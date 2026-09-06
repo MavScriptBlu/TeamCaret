@@ -1,0 +1,96 @@
+# =========================================================================
+# CCOS (Cyber Cougars Club Order & Event System) - .gitignore
+# ASP.NET Core MVC + EF Core, Visual Studio / VS Code, Azure deployment
+# =========================================================================
+
+# --- Build output ---------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Xx]64/
+[Xx]86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+publish/
+PublishProfiles/*.pubxml.user
+*.pubxml
+
+# --- Visual Studio ----------------------------------------------------------
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# --- VS Code ------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# --- Rider / JetBrains ----------------------------------------------------
+.idea/
+*.sln.iml
+
+# --- .NET / NuGet ---------------------------------------------------------
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.dll
+*.exe
+*.pdb
+
+# --- EF Core -----------------------------------------------------------
+# Migrations are tracked in source control - do NOT ignore backend/**/Migrations/.
+# This only ignores EF's scratch/bundle output.
+efbundle
+*.efbundle
+
+# --- Secrets & environment-specific config ---------------------------------
+# Real connection strings, JWT signing keys, and API keys belong in
+# `dotnet user-secrets` (local dev) or Azure App Service configuration /
+# Key Vault (deployed) - never in a committed appsettings file.
+appsettings.*.local.json
+appsettings.Production.json
+*.env
+.env
+.env.*
+secrets.json
+**/Properties/PublishProfiles/*.pubxml
+
+# --- Azure ---------------------------------------------------------------
+.azure/
+*.PublishSettings
+
+# --- Databases (local dev only) ---------------------------------------------
+*.mdf
+*.ldf
+*.ndf
+
+# --- Test / coverage results ------------------------------------------------
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+*.VisualState.xml
+
+# --- Logs ------------------------------------------------------------------
+*.log
+logs/
+
+# --- OS clutter --------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Node (if a frontend build step ever needs it) --------------------------
+node_modules/
+npm-debug.log*
