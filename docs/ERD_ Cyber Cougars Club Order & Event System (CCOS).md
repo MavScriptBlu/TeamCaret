@@ -11,77 +11,77 @@ erDiagram
     EVENT ||--o{ TICKET : "admits via"  
     VENUE ||--o{ EVENT : hosts
 
-    Table CUSTOMER {
-CustomerId int [pk, increment]
-FirstName varchar
-LastName varchar
-Email varchar
+Table CUSTOMER {
+    CustomerId int [pk, increment]
+    FirstName varchar
+    LastName varchar
+    Email varchar
 }
 
 Table MEMBER {
-MemberId int [pk, ref: - CUSTOMER.CustomerId]
-DuesPaidThrough date
-IsCurrent boolean
+    MemberId int [pk, ref: - CUSTOMER.CustomerId]
+    DuesPaidThrough date
+    IsCurrent boolean
 }
 
 Table OFFICER {
-OfficerId int [pk, ref: - MEMBER.MemberId]
-Title varchar
-GrantedDate date
+    OfficerId int [pk, ref: - MEMBER.MemberId]
+    Title varchar
+    GrantedDate date
 }
 
 Table PRODUCT {
-ProductId int [pk, increment]
-Category varchar // Swag or Resources
-Name varchar
-Description varchar
-Price decimal
-MemberPrice decimal
-StockQuantity int
-IsActive boolean
+    ProductId int [pk, increment]
+    Category varchar // Swag or Resources
+    Name varchar
+    Description varchar
+    Price decimal
+    MemberPrice decimal
+    StockQuantity int
+    IsActive boolean
 }
 
 Table VENUE {
-VenueId int [pk, increment]
-Name varchar
-Address varchar
-Capacity int
+    VenueId int [pk, increment]
+    Name varchar
+    Address varchar
+    Capacity int
 }
 
 Table EVENT {
-EventId int [pk, increment]
-VenueId int [ref: > VENUE.VenueId]
-Name varchar
-Description varchar
-EventDateTime datetime
-TicketCapacity int
-MembersOnly boolean
-Price decimal
-MemberPrice decimal
+    EventId int [pk, increment]
+    VenueId int [ref: > VENUE.VenueId]
+    Name varchar
+    Description varchar
+    EventDateTime datetime
+    TicketCapacity int
+    MembersOnly boolean
+    Price decimal
+    MemberPrice decimal
 }
 
 Table ORDER {
-OrderId int [pk, increment]
-CustomerId int [ref: > CUSTOMER.CustomerId]
-OrderDate datetime
-Status varchar // Pending, Fulfilled, Canceled
-TotalAmount decimal
+    OrderId int [pk, increment]
+    CustomerId int [ref: > CUSTOMER.CustomerId]
+    OrderDate datetime
+    Status varchar // Pending, Fulfilled, Canceled
+    TotalAmount decimal
 }
 
 Table ORDERLINE {
-OrderLineId int [pk, increment]
-OrderId int [ref: > ORDER.OrderId]
-ProductId int [ref: > PRODUCT.ProductId]
-Quantity int
-UnitPrice decimal
+    OrderLineId int [pk, increment]
+    OrderId int [ref: > ORDER.OrderId]
+    ProductId int [ref: > PRODUCT.ProductId]
+    Quantity int
+    UnitPrice decimal
 }
 
 Table TICKET {
-TicketId int [pk, increment]
-OrderId int [ref: > ORDER.OrderId]
-EventId int [ref: > EVENT.EventId]
-PriceCharged decimal
-Status varchar // Reserved, Purchased, Canceled
+    TicketId int [pk, increment]
+    OrderId int [ref: > ORDER.OrderId]
+    EventId int [ref: > EVENT.EventId]
+    PriceCharged decimal
+    Status varchar // Reserved, Purchased, Canceled
 }
 
 
