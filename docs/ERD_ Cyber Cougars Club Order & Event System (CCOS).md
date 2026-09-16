@@ -1,6 +1,6 @@
 # **ERD: Cyber Cougars Club Order & Event System (CCOS)**
 
-\`\`\`mermaid  
+mermaid  
 erDiagram  
     CUSTOMER ||--o| MEMBER : "may be"  
     MEMBER ||--o| OFFICER : "may be"  
@@ -83,7 +83,6 @@ erDiagram
         int Quantity  
         decimal UnitPrice  
     }  
-\`\`\`
 
 ## **Access Chain: Customer → Member → Officer**
 
