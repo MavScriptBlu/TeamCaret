@@ -2,12 +2,19 @@
 
 erDiagram
 CUSTOMER ||--o| MEMBER : "may be"
+
 MEMBER ||--o| OFFICER : "may be"
+
 CUSTOMER ||--o{ ORDER : places
+
 ORDER ||--o{ ORDERLINE : contains
+
 PRODUCT ||--o{ ORDERLINE : "ordered as"
+
 ORDER ||--o{ TICKET : includes
+
 EVENT ||--o{ TICKET : "admits via"
+
 VENUE ||--o{ EVENT : hosts
 
 ```
