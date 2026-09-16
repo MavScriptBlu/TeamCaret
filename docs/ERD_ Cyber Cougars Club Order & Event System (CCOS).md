@@ -1,88 +1,89 @@
 # **ERD: Cyber Cougars Club Order & Event System (CCOS)**
 
-mermaid  
-erDiagram  
-    CUSTOMER ||--o| MEMBER : "may be"  
-    MEMBER ||--o| OFFICER : "may be"  
-    CUSTOMER ||--o{ ORDER : places  
-    ORDER ||--o{ ORDERLINE : contains  
-    PRODUCT ||--o{ ORDERLINE : "ordered as"  
-    ORDER ||--o{ TICKET : includes  
-    EVENT ||--o{ TICKET : "admits via"  
-    VENUE ||--o{ EVENT : hosts
+erDiagram
+CUSTOMER ||--o| MEMBER : "may be"
+MEMBER ||--o| OFFICER : "may be"
+CUSTOMER ||--o{ ORDER : places
+ORDER ||--o{ ORDERLINE : contains
+PRODUCT ||--o{ ORDERLINE : "ordered as"
+ORDER ||--o{ TICKET : includes
+EVENT ||--o{ TICKET : "admits via"
+VENUE ||--o{ EVENT : hosts
 
-Table CUSTOMER {
-    CustomerId int [pk, increment]
-    FirstName varchar
-    LastName varchar
-    Email varchar
+```
+CUSTOMER {
+    int CustomerId PK
+    string FirstName
+    string LastName
+    string Email
 }
 
-Table MEMBER {
-    MemberId int [pk, ref: - CUSTOMER.CustomerId]
-    DuesPaidThrough date
-    IsCurrent boolean
+MEMBER {
+    int MemberId PK, FK
+    date DuesPaidThrough
+    bool IsCurrent
 }
 
-Table OFFICER {
-    OfficerId int [pk, ref: - MEMBER.MemberId]
-    Title varchar
-    GrantedDate date
+OFFICER {
+    int OfficerId PK, FK
+    string Title
+    date GrantedDate
 }
 
-Table PRODUCT {
-    ProductId int [pk, increment]
-    Category varchar // Swag or Resources
-    Name varchar
-    Description varchar
-    Price decimal
-    MemberPrice decimal
-    StockQuantity int
-    IsActive boolean
+PRODUCT {
+    int ProductId PK
+    string Category
+    string Name
+    string Description
+    decimal Price
+    decimal MemberPrice
+    int StockQuantity
+    bool IsActive
 }
 
-Table VENUE {
-    VenueId int [pk, increment]
-    Name varchar
-    Address varchar
-    Capacity int
+VENUE {
+    int VenueId PK
+    string Name
+    string Address
+    int Capacity
 }
 
-Table EVENT {
-    EventId int [pk, increment]
-    VenueId int [ref: > VENUE.VenueId]
-    Name varchar
-    Description varchar
-    EventDateTime datetime
-    TicketCapacity int
-    MembersOnly boolean
-    Price decimal
-    MemberPrice decimal
+EVENT {
+    int EventId PK
+    int VenueId FK
+    string Name
+    string Description
+    datetime EventDateTime
+    int TicketCapacity
+    bool MembersOnly
+    decimal Price
+    decimal MemberPrice
 }
 
-Table ORDER {
-    OrderId int [pk, increment]
-    CustomerId int [ref: > CUSTOMER.CustomerId]
-    OrderDate datetime
-    Status varchar // Pending, Fulfilled, Canceled
-    TotalAmount decimal
+ORDER {
+    int OrderId PK
+    int CustomerId FK
+    datetime OrderDate
+    string Status
+    decimal TotalAmount
 }
 
-Table ORDERLINE {
-    OrderLineId int [pk, increment]
-    OrderId int [ref: > ORDER.OrderId]
-    ProductId int [ref: > PRODUCT.ProductId]
-    Quantity int
-    UnitPrice decimal
+ORDERLINE {
+    int OrderLineId PK
+    int OrderId FK
+    int ProductId FK
+    int Quantity
+    decimal UnitPrice
 }
 
-Table TICKET {
-    TicketId int [pk, increment]
-    OrderId int [ref: > ORDER.OrderId]
-    EventId int [ref: > EVENT.EventId]
-    PriceCharged decimal
-    Status varchar // Reserved, Purchased, Canceled
+TICKET {
+    int TicketId PK
+    int OrderId FK
+    int EventId FK
+    decimal PriceCharged
+    string Status
 }
+```
 
 
 ## **Access Chain: Customer → Member → Officer**
