@@ -11,78 +11,79 @@ erDiagram
     EVENT ||--o{ TICKET : "admits via"  
     VENUE ||--o{ EVENT : hosts
 
-    CUSTOMER {  
-        int CustomerId PK  
-        string FirstName  
-        string LastName  
-        string Email  
-    }
+    Table CUSTOMER {
+CustomerId int [pk, increment]
+FirstName varchar
+LastName varchar
+Email varchar
+}
 
-    MEMBER {  
-        int MemberId PK "FK to CustomerId"  
-        date DuesPaidThrough  
-        bool IsCurrent  
-    }
+Table MEMBER {
+MemberId int [pk, ref: - CUSTOMER.CustomerId]
+DuesPaidThrough date
+IsCurrent boolean
+}
 
-    OFFICER {  
-        int OfficerId PK "FK to MemberId"  
-        string Title  
-        date GrantedDate  
-    }
+Table OFFICER {
+OfficerId int [pk, ref: - MEMBER.MemberId]
+Title varchar
+GrantedDate date
+}
 
-    PRODUCT {  
-        int ProductId PK  
-        string Category "Swag or Resources"  
-        string Name  
-        string Description  
-        decimal Price  
-        decimal MemberPrice  
-        int StockQuantity  
-        bool IsActive  
-    }
+Table PRODUCT {
+ProductId int [pk, increment]
+Category varchar // Swag or Resources
+Name varchar
+Description varchar
+Price decimal
+MemberPrice decimal
+StockQuantity int
+IsActive boolean
+}
 
-    VENUE {  
-        int VenueId PK  
-        string Name  
-        string Address  
-        int Capacity  
-    }
+Table VENUE {
+VenueId int [pk, increment]
+Name varchar
+Address varchar
+Capacity int
+}
 
-    EVENT {  
-        int EventId PK  
-        int VenueId FK  
-        string Name  
-        string Description  
-        datetime EventDateTime  
-        int TicketCapacity  
-        bool MembersOnly  
-        decimal Price  
-        decimal MemberPrice  
-    }
+Table EVENT {
+EventId int [pk, increment]
+VenueId int [ref: > VENUE.VenueId]
+Name varchar
+Description varchar
+EventDateTime datetime
+TicketCapacity int
+MembersOnly boolean
+Price decimal
+MemberPrice decimal
+}
 
-    TICKET {  
-        int TicketId PK  
-        int OrderId FK  
-        int EventId FK  
-        decimal PriceCharged  
-        string Status "Reserved, Purchased, Canceled"  
-    }
+Table ORDER {
+OrderId int [pk, increment]
+CustomerId int [ref: > CUSTOMER.CustomerId]
+OrderDate datetime
+Status varchar // Pending, Fulfilled, Canceled
+TotalAmount decimal
+}
 
-    ORDER {  
-        int OrderId PK  
-        int CustomerId FK  
-        datetime OrderDate  
-        string Status "Pending, Fulfilled, Canceled"  
-        decimal TotalAmount  
-    }
+Table ORDERLINE {
+OrderLineId int [pk, increment]
+OrderId int [ref: > ORDER.OrderId]
+ProductId int [ref: > PRODUCT.ProductId]
+Quantity int
+UnitPrice decimal
+}
 
-    ORDERLINE {  
-        int OrderLineId PK  
-        int OrderId FK  
-        int ProductId FK  
-        int Quantity  
-        decimal UnitPrice  
-    }  
+Table TICKET {
+TicketId int [pk, increment]
+OrderId int [ref: > ORDER.OrderId]
+EventId int [ref: > EVENT.EventId]
+PriceCharged decimal
+Status varchar // Reserved, Purchased, Canceled
+}
+
 
 ## **Access Chain: Customer → Member → Officer**
 
