@@ -1,6 +1,7 @@
 # **ERD: Cyber Cougars Club Order & Event System (CCOS)**
 
 erDiagram
+
 CUSTOMER ||--o| MEMBER : "may be"
 
 MEMBER ||--o| OFFICER : "may be"
