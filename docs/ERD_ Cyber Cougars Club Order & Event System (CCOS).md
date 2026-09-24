@@ -1,116 +1,199 @@
-# **ERD: Cyber Cougars Club Order & Event System (CCOS)**
+erDiagram
 
-\`\`\`mermaid  
-erDiagram  
-    CUSTOMER ||--o| MEMBER : "may be"  
-    MEMBER ||--o| OFFICER : "may be"  
-    CUSTOMER ||--o{ ORDER : places  
-    ORDER ||--o{ ORDERLINE : contains  
-    PRODUCT ||--o{ ORDERLINE : "ordered as"  
-    ORDER ||--o{ TICKET : includes  
-    EVENT ||--o{ TICKET : "admits via"  
+    CUSTOMER ||--o| MEMBER : "may be"
+
+    MEMBER ||--o| OFFICER : "may be"
+
+    ADMIN ||--o{ OFFICER : "grants position"
+
+    MEMBER ||--o{ OFFICER_HISTORY : "has history"
+
+    ADMIN ||--o{ OFFICER_HISTORY : "grants position"
+
+    CUSTOMER ||--o{ EMAIL : "has"
+
+    CUSTOMER ||--o{ PHONE : "has"
+
+    CUSTOMER ||--o{ ADDRESS : "has"
+
+    VENUE ||--|| VENUE_ADDRESS : "has"
+
     VENUE ||--o{ EVENT : hosts
 
-    CUSTOMER {  
-        int CustomerId PK  
-        string FirstName  
-        string LastName  
-        string Email  
+    EVENT ||--o{ PRODUCT : "has ticket products"
+
+    CUSTOMER ||--o{ ORDER : places
+
+    ORDER ||--o{ ORDERLINE : contains
+
+    PRODUCT ||--o{ ORDERLINE : "ordered as"
+
+    TREASURY_SETTINGS ||--o{ EXPENSE : "tracks"
+
+    TREASURY_SETTINGS ||--o{ DEPOSIT : "tracks"
+
+    RECONCILIATION ||--o{ EXPENSE : "reviews"
+
+    RECONCILIATION ||--o{ DEPOSIT : "reviews"
+
+    ADMIN ||--o{ EXPENSE : "logs"
+
+    ADMIN ||--o{ DEPOSIT : "logs"
+
+    ADMIN ||--o{ RECONCILIATION : "performs"
+
+
+    CUSTOMER {
+        int CustomerId PK
+        string FirstName
+        string LastName
     }
 
-    MEMBER {  
-        int MemberId PK "FK to CustomerId"  
-        date DuesPaidThrough  
-        bool IsCurrent  
+    ADMIN {
+        int AdminId PK
+        string Username
+        string PasswordHash
+        bool IsAdmin
+        bool IsActive
+        datetime CreatedDate
+        datetime LastLoginDate
     }
 
-    OFFICER {  
-        int OfficerId PK "FK to MemberId"  
-        string Title  
-        date GrantedDate  
+    MEMBER {
+        int MemberId PK, FK
+        date MemberExpiration
+        bool IsCurrent
     }
 
-    PRODUCT {  
-        int ProductId PK  
-        string Category "Swag or Resources"  
-        string Name  
-        string Description  
-        decimal Price  
-        decimal MemberPrice  
-        int StockQuantity  
-        bool IsActive  
+    OFFICER {
+        int OfficerId PK, FK
+        string Title
+        date GrantedDate
+        int GrantedByAdminId FK
     }
 
-    VENUE {  
-        int VenueId PK  
-        string Name  
-        string Address  
-        int Capacity  
+    OFFICER_HISTORY {
+        int OfficerHistoryId PK
+        int MemberId FK
+        string Title
+        date GrantedDate
+        date RevokedDate
+        int GrantedByAdminId FK
     }
 
-    EVENT {  
-        int EventId PK  
-        int VenueId FK  
-        string Name  
-        string Description  
-        datetime EventDateTime  
-        int TicketCapacity  
-        bool MembersOnly  
-        decimal Price  
-        decimal MemberPrice  
+    EMAIL {
+        int EmailId PK
+        int CustomerId FK
+        string EmailAddress
+        bool IsPrimary
     }
 
-    TICKET {  
-        int TicketId PK  
-        int OrderId FK  
-        int EventId FK  
-        decimal PriceCharged  
-        string Status "Reserved, Purchased, Canceled"  
+    PHONE {
+        int PhoneId PK
+        int CustomerId FK
+        string PhoneNumber
+        string PhoneType
+        bool IsPrimary
     }
 
-    ORDER {  
-        int OrderId PK  
-        int CustomerId FK  
-        datetime OrderDate  
-        string Status "Pending, Fulfilled, Canceled"  
-        decimal TotalAmount  
+    ADDRESS {
+        int AddressId PK
+        int CustomerId FK
+        string AddressLine1
+        string AddressLine2
+        string City
+        string State
+        string ZipCode
+        string AddressType
+        bool IsPrimary
     }
 
-    ORDERLINE {  
-        int OrderLineId PK  
-        int OrderId FK  
-        int ProductId FK  
-        int Quantity  
-        decimal UnitPrice  
-    }  
-\`\`\`
+    VENUE {
+        int VenueId PK
+        string Name
+        int Capacity
+    }
 
-## **Access Chain: Customer → Member → Officer**
+    VENUE_ADDRESS {
+        int VenueAddressId PK
+        int VenueId FK
+        string AddressLine1
+        string AddressLine2
+        string City
+        string State
+        string ZipCode
+    }
 
-This is the key relationship for authentication/authorization: it's a chain, not three separate roles bolted onto one table.
+    EVENT {
+        int EventId PK
+        int VenueId FK
+        string Name
+        string Description
+        datetime EventDateTime
+        int TicketCapacity
+        bool MembersOnly
+    }
 
-* **Customer** — anyone with an account (guest or member). Can place orders, buy non-members-only tickets.  
-* **Member** — a Customer who's also in the Members table (current dues). Unlocks member pricing and members-only events.  
-* **Officer** — a Member who's also in the Officers table. Every Officer is necessarily a Member (you can't skip the chain), and being in this table is what grants admin access to the app — product/venue/event management, viewing all orders, managing member dues status.
+    PRODUCT {
+        int ProductId PK
+        int EventId FK
+        string Category
+        string Name
+        string Description
+        decimal Price
+        decimal MemberPrice
+        int StockQuantity
+        bool IsActive
+    }
 
-Checking access at login is just: does this CustomerId have a matching row in Officers? → admin. Only in Members? → member pricing/events. Neither? → guest.
+    ORDER {
+        int OrderId PK
+        int CustomerId FK
+        datetime OrderDate
+        string Status
+        decimal TotalAmount
+    }
 
-## **Relationship Notes**
+    ORDERLINE {
+        int OrderLineId PK
+        int OrderId FK
+        int ProductId FK
+        int Quantity
+        decimal UnitPrice
+    }
 
-* **Customer → Member**: optional one-to-one. Every Member is a Customer, but not every Customer is a Member.  
-* **Member → Officer**: optional one-to-one. Every Officer is a Member, but not every Member is an Officer.  
-* **Customer → Order**: one-to-many. Either a Member or a Guest customer can place orders.  
-* **Order → OrderLine → Product**: same bridge pattern as the original OES example — resolves the many-to-many between Order and Product.  
-* **Order → Ticket**: one-to-many. A single order/checkout can include multiple event tickets alongside (or instead of) product line items.  
-* **Event → Ticket**: one-to-many. Each ticket admits to exactly one event.  
-* **Venue → Event**: one-to-many. A venue can host many events over the semester.
+    TREASURY_SETTINGS {
+        int TreasurySettingsId PK
+        decimal StartingBalance
+        date StartingBalanceAsOf
+    }
 
-## **Field Notes**
+    EXPENSE {
+        int ExpenseId PK
+        string Type
+        date Date
+        decimal Amount
+        string Description
+        int LoggedByAdminId FK
+        datetime CreatedAt
+    }
 
-* `IsCurrent` on Member is either a computed property (`DuesPaidThrough >= today`) or a maintained flag officers can override — team's call, computed is less error-prone.  
-* `MemberPrice` fields on Product and Event let the ordering flow apply member pricing automatically when `Customer.Member.IsCurrent` is true; if there's no linked Member, only the regular `Price` applies.  
-* `MembersOnly` on Event blocks ticket purchase entirely for customers without a current Member record — check this before the price check.  
-* `PriceCharged` on Ticket snapshots what was actually paid (member or regular price) at purchase time, same reasoning as `UnitPrice` on OrderLine — don't rely on live Event pricing for historical tickets.  
-* Canceling an Order should restock any related Product quantities (via its OrderLines) and set related Tickets to `Canceled`, freeing that capacity back on the Event — do both in the same transaction as the cancellation.  
-* Only current Members should be promotable to Officer in the UI — worth a validation rule, not just a DB constraint.
+    DEPOSIT {
+        int DepositId PK
+        date Date
+        decimal Amount
+        string Source
+        int LoggedByAdminId FK
+        datetime CreatedAt
+    }
 
+    RECONCILIATION {
+        int ReconciliationId PK
+        date PeriodStart
+        date PeriodEnd
+        decimal StatementEndingBalance
+        decimal SystemCalculatedBalance
+        string Notes
+        int ReconciledByAdminId FK
+        datetime ReconciledAt
+    }
