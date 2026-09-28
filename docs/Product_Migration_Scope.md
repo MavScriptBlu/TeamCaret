@@ -5,7 +5,6 @@
 The initial Product migration will include:
 
 - ProductId
-- EventId (nullable FK to Event)
 - Category
 - Name
 - Description
@@ -24,8 +23,6 @@ The initial Product migration will include:
 
 ### Dependencies
 
-- EVENT must exist before creating ticket Products that reference an Event.
-- EventId is nullable because normal Products do not require an Event.
 - PRODUCT must exist before ORDERLINE records can reference it.
 - No Category lookup table currently exists; this should be confirmed during review.
 
@@ -33,10 +30,9 @@ The initial Product migration will include:
 
 - CyberCougar T-Shirt
 - CyberCougar Hoodie
-- General Meeting Ticket
 - Inactive/retired product
 
-Seed data will test regular pricing, member pricing, inventory, inactive products, and Event-linked Products.
+Seed data will test regular pricing, member pricing, inventory, and inactive products.
 
 ### Sprint Review Questions
 
@@ -44,13 +40,11 @@ Seed data will test regular pricing, member pricing, inventory, inactive product
 - Should MemberPrice be required?
 - Should zero-dollar Products be allowed?
 - Should StockQuantity allow zero?
-- Should Event Tickets remain Products with an optional EventId?
 - Are decimal(10,2) and current field lengths sufficient?
 
 ### Verification
 
 - Confirm Product migration creates successfully.
-- Confirm valid and invalid EventId behavior.
 - Confirm pricing precision.
 - Confirm inventory values.
 - Confirm seed data inserts successfully.
