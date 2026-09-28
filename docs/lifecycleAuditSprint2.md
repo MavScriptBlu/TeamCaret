@@ -1,53 +1,52 @@
-# Sprint 1 Review: Product CRUD Design Phase
-**Cyber Cougars Club Order & Event System (CCOS), "Caret" Jira Project**
-**Presented by:** Blue Johnas (Product Owner)
-**Team:** Blue Johnas, Seng Lee, Dylan Morzfeld
-**Sprint focus:** Interface design + database design for the Product feature (no code yet, instructor's call)
+# CCOS Full Project CRUD Lifecycle & Audit Policies
 
----
+Reference doc for CAR-31. This covers how every entity in CCOS moves through its life (create, read, update, deactivate) and what gets logged along the way. We're not just writing this for Product, we're writing it once so Membership, Treasury, and Events/Tickets can all build on the same rules instead of every sprint inventing its own version of "how do we handle deleting this."
 
-## 1. What We Were Actually Trying to Do
+## 1. Core Rule: We Never Actually Delete Anything
 
-Sprint 1 was design-only, no code. Goal was to walk out with a validated UI design and database design for Product CRUD, solid enough to hand straight to Sprint 2 and just build. We picked Product first because it's the simplest full-CRUD thing in our system and it mirrors the original OES assignment pattern, so it doubles as proof we actually get the architecture before we start stacking more on top of it.
+Once a record's been referenced by something else (an order, a ticket, a membership row, a transaction), it does not get hard-deleted. Ever. We set this pattern with Product (`IsActive` flag) and it applies the exact same way everywhere else:
 
-## 2. Wireframe Walkthrough (CAR-2, CAR-3, CAR-4)
+- **Create**: row goes in, active by default.
+- **Read**: active stuff shows by default on customer-facing views. Officers/admins can flip a toggle to see inactive too.
+- **Update**: anything's editable while active, but updating never rewrites history. An OrderLine's `UnitPrice` snapshot doesn't move just because the Product's live price changed later.
+- **Deactivate (soft delete)**: flips `IsActive` to false instead of yanking the row. It's still queryable for history/reporting, just filtered out of the default view.
+- **Reactivate**: flip it back. Same row, same history, nothing gets recreated.
 
-**Officer: Product List**
-- Filterable/searchable table (All / Active / Inactive)
-- Out-of-stock rows get flagged visually so you're not hunting for them
-- Inactive rows show greyed out with a "Reactivate" button instead of "Deactivate." There is no hard-delete button anywhere in this UI, full stop
+Why: every table tied to money or membership (`OrderLines`, `Tickets`, future `TreasuryTransactions`) has a foreign key pointing back to its parent. Hard-delete the Product, Member, or Event and you snap that link. Now you've got orphaned records or broken history. Soft delete keeps everything intact, permanently. It's the same reason you don't rip out a load-bearing wall without putting a beam in first. You plan for what's leaning on it.
 
-**Officer: Create/Edit Form**
-- Required fields marked, validation kicks in on blur/submit
-- Member Price field enforces "can't be higher than Price" as a UI rule
-- Active toggle is hidden on Create (new products default active), shows up on Edit
+## 2. Entity-by-Entity Notes
 
-**Customer: Product Browse**
-- Only active products show up, obviously
-- Member pricing only kicks in for customers with a *current* Member record (`IsCurrent = true`). Guests and lapsed members just see regular price
-- "Add to Cart" disables at zero stock instead of hiding the product entirely. We want people to see it's out, not think it never existed
+| Entity | Soft-delete field | Who can deactivate | Notes |
+|---|---|---|---|
+| Product | `IsActive` | Officer | Locked in Sprint 1/2. Deactivated products still hang onto their past `OrderLines`. |
+| Member | `IsCurrent` (computed from `DuesPaidThrough`) | System (computed, nobody flips this by hand) | Lapses on its own when dues run out, comes back on its own when they renew. |
+| Officer | Nothing yet, Sprint 3 | Officer (self-handoff) or Advisor | Losing officer status shouldn't nuke the Member record underneath it. You're still a member after you step down. |
+| Venue | Planned | Officer | Not built yet. Deactivating a venue shouldn't touch Events that already happened there. |
+| Event | Planned | Officer | Same deal as Product. Old Tickets still need to point at the Event that actually happened. |
+| Order | `Status` enum (Pending/Fulfilled/Canceled) | Officer | Orders don't get soft-deleted, they transition status instead. Canceled orders stick around for the money trail. |
+| Ticket | `Status` enum (Reserved/Purchased/Canceled) | Officer, maybe Customer self-cancel (TBD) | Same status-transition move as Order instead of a flag. |
 
-## 3. Database Structure: What We Locked In (CAR-5, CAR-6, CAR-7)
+## 3. Audit Policy
 
-- **No schema changes needed.** Product reuses the `Products` table we already built in the ERD/schema, as-is.
-- **Soft delete, not hard delete.** "Delete" in the officer UI actually maps to `IsActive = 0`, never an actual row delete. Reasoning's simple: `OrderLines.ProductId` points back at `Products`, so yanking a row with order history attached would break past orders. Not happening.
-- **API contract's locked:** public GET endpoints for anyone browsing (customer/guest), Officer-only auth required on POST/PUT/DELETE. Server-side validation matches the UI rules: `Price`/`MemberPrice` ≥ 0, `StockQuantity` ≥ 0.
-- **EF Core / migration scope checked** against the existing schema. No surprises waiting for us in Sprint 2.
+### What actually gets logged
+Anything that touches money, membership status, or access level needs a trail. That doesn't mean we're bolting on a separate audit table for everything right out the gate. It means every entity above is built so its own history *is* the audit trail (status changes, soft-delete flags with timestamps) instead of us needing some extra log to piece together what happened after the fact.
 
-## 4. Open Questions / Stuff We Still Need to Figure Out
+Money's the one place that needs more than status flags. Treasury (Sprint 6) gets its own dedicated audit log. Every edit or void needs who changed it, when, and what it looked like before. That's its own ticket (CAR-26) instead of us trying to cram it into the current schema.
 
-- `MemberPrice ≤ Price` is only enforced in the UI and API right now, not at the database level with an actual CHECK constraint. Need to decide as a team if that's good enough or if we want the DB backing it up too.
-- A few file/folder names floating around in the design notes (`backend/CCOS.Api`, `shared/CCOS.Shared`, `docs/CyberCougar OES Schema.md`) don't match what's actually in our project docs. Quick sync needed before anyone starts scaffolding in Sprint 2 so we're not accidentally building two different structures.
-- Board didn't keep pace with the actual work this sprint. A few tickets (CAR-3, CAR-6, CAR-7) had the design work done and documented before Jira status caught up. Not a blocker, just calling it out: update the board same day as the work gets done, not after.
+### What every audit record needs, minimum
+- Who did it: tied to the actual Customer/Member/Officer record, not just a name typed in somewhere
+- What changed: before and after, not just "record updated" (that tells us nothing)
+- When: full timestamp, not just a date
+- Why: required on money voids/edits specifically, optional everywhere else
 
-## 5. What's Next: Sprint 2
+### Who sees the audit stuff
+- Officers see audit history for whatever they manage: Product changes, Order/Ticket status.
+- Treasury audit logs (once built) are Officer-visible, but voids/edits on money specifically should get a second officer's eyes on it. Not full approval necessarily, just visibility. It's club money, more than one person should know when it moves.
+- Troy (Advisor) gets the same read access as an Officer. That's already how the ERD sets up the access model. Advisor sits next to Officer, not under it.
 
-Sprint 2 is where this stops being wireframes and turns into actual code:
-- Scaffold the `Product` entity class + EF Core `DbContext` mapping
-- Write and run the first migration
-- Build the API endpoints per the contract above (GET public, POST/PUT/DELETE Officer-only)
-- Build the wireframed pages for real: Officer list/form, Customer browse
-- Carry the server-side validation over exactly as we speced it this sprint
+### Retention
+We don't purge audit history as part of normal ops, period. If storage ever actually becomes a problem (unlikely at club scale), that's a manual call an Officer makes, not something that runs on its own.
 
----
-*Proposal, ERD, schema, and backlog are all in the MSTC project alongside this one.*
+## 4. Why This Matters Heading Into Sprint 3+
+
+Membership & Officer Roles (Sprint 3) is the first feature after Product that actually needs lifecycle rules past a basic on/off flag, since Officer status hangs off Member status, and Member status is computed, not something anyone flips manually. Getting this written down now, before Treasury and Events get built, means those sprints just extend a pattern that already exists instead of everybody reinventing "how do we handle deleting/canceling this" from scratch every time.
