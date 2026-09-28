@@ -52,7 +52,7 @@ Every EF Core query on `Products` automatically adds `WHERE IsActive = 1`, throu
 | Customer order and ticket history, officer all-orders view | Not affected | Reads the saved name and price from `OrderLines` and never touches `Products` |
 | Order cancellation (restock) | Bypassed, by product ID | A product archived after the order was placed still gets its stock back |
 
-**Order history can't be broken by the filter.** Every order line already stores what was bought (`ProductNameSnapshot`, `UnitPrice`, `Quantity`), so order history never joins `Products`. To keep it that way, the EF `OrderLine` class has no `Product` navigation property: it keeps `ProductId`, and the foreign key still exists in the database, but there is nothing to follow from an order line to a product. A query that silently drops the order lines of archived products can't be written by mistake.
+**Order history can't be broken by the filter.** After R6 is applied, every order line will store what was bought (`ProductNameSnapshot`, `UnitPrice`, `Quantity`), so order history never joins `Products`. To keep it that way, the EF `OrderLine` class has no `Product` navigation property: it keeps `ProductId`, and the foreign key still exists in the database, but there is nothing to follow from an order line to a product. A query that silently drops the order lines of archived products can't be written by mistake.
 
 The only code that reaches a product from an order is cancellation. It looks up each `ProductId` with the filter off to restock it, all in one method.
 
