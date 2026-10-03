@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <ProjectReference Include="../../shared/CCOS.Shared/CCOS.Shared.csproj" />
   </ItemGroup>
 
 </Project>
