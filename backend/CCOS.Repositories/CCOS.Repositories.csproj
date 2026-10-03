@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CCOS.Data\CCOS.Data.csproj" />
+  </ItemGroup>
+
 </Project>
