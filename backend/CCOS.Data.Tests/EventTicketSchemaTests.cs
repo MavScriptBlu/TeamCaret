@@ -11,6 +11,18 @@ namespace CCOS.Data.Tests;
 public class EventTicketSchemaTests
 {
     [Fact]
+    public void Utc_converter_normalizes_local_values_before_provider_write()
+    {
+        var converter = new UtcDateTimeConverter();
+        var localValue = new DateTime(2026, 10, 3, 19, 0, 0, DateTimeKind.Local);
+
+        var providerValue = (DateTime)converter.ConvertToProvider(localValue)!;
+
+        Assert.Equal(localValue.ToUniversalTime(), providerValue);
+        Assert.Equal(DateTimeKind.Utc, providerValue.Kind);
+    }
+
+    [Fact]
     public async Task Model_builds_with_expected_constraints_and_restrict_relationships()
     {
         await using var connection = await CreateConnectionAsync();
@@ -109,12 +121,41 @@ public class EventTicketSchemaTests
         var repository = new TicketBookingRepository(db);
         await using var transaction = await db.Database.BeginTransactionAsync();
         await repository.ReserveSeatsAsync(@event.EventId, 2);
-        await Assert.ThrowsAsync<SoldOutException>(() => repository.ReserveSeatsAsync(@event.EventId, 1));
+        var exception = await Assert.ThrowsAsync<SoldOutException>(() => repository.ReserveSeatsAsync(@event.EventId, 1));
+        Assert.Contains("unavailable", exception.Message);
         await transaction.CommitAsync();
 
         var savedEvent = await db.Events.AsNoTracking().SingleAsync();
         Assert.Equal(2, savedEvent.TicketsSold);
         Assert.Equal(DateTimeKind.Utc, savedEvent.StartsAtUtc.Kind);
+    }
+
+    [Fact]
+    public async Task Reservation_rejects_invalid_quantities_before_grouping()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var @event = CreateEvent(venue, ticketCapacity: 10);
+        db.Venues.Add(venue);
+        db.Events.Add(@event);
+        await db.SaveChangesAsync();
+
+        var repository = new TicketBookingRepository(db);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => repository.ReserveTicketsForOrderAsync(
+            [
+                new EventTicketReservation(@event.EventId, 5),
+                new EventTicketReservation(@event.EventId, -4)
+            ]));
+        await transaction.CommitAsync();
+
+        Assert.Equal(0, (await db.Events.AsNoTracking().SingleAsync()).TicketsSold);
     }
 
     [Fact]
