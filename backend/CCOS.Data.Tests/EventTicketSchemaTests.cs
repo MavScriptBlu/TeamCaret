@@ -46,6 +46,9 @@ public class EventTicketSchemaTests
             "CK_TicketRegistrations_Status",
             registrationEntity.GetCheckConstraints().Select(constraint => constraint.Name));
         Assert.Contains("CK_Venues_Capacity", venueEntity.GetCheckConstraints().Select(constraint => constraint.Name));
+        var productNameSnapshot = model.FindEntityType(typeof(OrderLine))!.FindProperty(nameof(OrderLine.ProductNameSnapshot))!;
+        Assert.False(productNameSnapshot.IsNullable);
+        Assert.Equal(100, productNameSnapshot.GetMaxLength());
         Assert.Equal(DeleteBehavior.Restrict, registrationEntity.GetForeignKeys()
             .Single(foreignKey => foreignKey.PrincipalEntityType.ClrType == typeof(Event))
             .DeleteBehavior);
@@ -159,6 +162,92 @@ public class EventTicketSchemaTests
     }
 
     [Fact]
+    public async Task Reservation_rejects_events_that_have_already_started()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var @event = CreateEvent(venue, ticketCapacity: 10);
+        @event.StartsAtUtc = DateTime.UtcNow.AddMinutes(-1);
+        db.Venues.Add(venue);
+        db.Events.Add(@event);
+        await db.SaveChangesAsync();
+
+        var repository = new TicketBookingRepository(db);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var exception = await Assert.ThrowsAsync<SoldOutException>(() => repository.ReserveSeatsAsync(@event.EventId, 1));
+        await transaction.CommitAsync();
+
+        Assert.Contains("unavailable", exception.Message);
+        Assert.Equal(0, (await db.Events.AsNoTracking().SingleAsync()).TicketsSold);
+    }
+
+    [Fact]
+    public async Task Event_save_rejects_ticket_capacity_above_venue_capacity()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var @event = CreateEvent(venue, ticketCapacity: 11);
+        db.Venues.Add(venue);
+        db.Events.Add(@event);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+
+        @event.TicketCapacity = 10;
+        await db.SaveChangesAsync();
+        @event.TicketCapacity = 11;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Event_save_rejects_overlapping_active_events_at_same_venue()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var firstEvent = CreateEvent(venue, ticketCapacity: 10);
+        db.Venues.Add(venue);
+        db.Events.Add(firstEvent);
+        await db.SaveChangesAsync();
+
+        var overlappingEvent = CreateEvent(venue, ticketCapacity: 10);
+        overlappingEvent.StartsAtUtc = firstEvent.StartsAtUtc.AddMinutes(30);
+        overlappingEvent.EndsAtUtc = firstEvent.EndsAtUtc.AddMinutes(30);
+        db.Events.Add(overlappingEvent);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Venue_save_rejects_capacity_reduction_below_upcoming_events()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        db.Venues.Add(venue);
+        db.Events.Add(CreateEvent(venue, ticketCapacity: 8));
+        await db.SaveChangesAsync();
+
+        venue.Capacity = 7;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task Cancellation_marks_registrations_and_decrements_event_count()
     {
         await using var connection = await CreateConnectionAsync();
@@ -194,6 +283,10 @@ public class EventTicketSchemaTests
         };
         db.OrderLines.Add(orderLine);
         await db.SaveChangesAsync();
+        Assert.Equal("General", orderLine.ProductNameSnapshot);
+        ticketType.Name = "Renamed ticket";
+        await db.SaveChangesAsync();
+        Assert.Equal("General", orderLine.ProductNameSnapshot);
         db.TicketRegistrations.AddRange(
             new TicketRegistration
             {
@@ -213,8 +306,10 @@ public class EventTicketSchemaTests
 
         var repository = new TicketBookingRepository(db);
         var canceledAtUtc = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc);
+        await using var transaction = await db.Database.BeginTransactionAsync();
         var canceledCount = await repository.CancelOrderRegistrationsAsync(order.OrderId, canceledAtUtc);
         var canceledAgain = await repository.CancelOrderRegistrationsAsync(order.OrderId, canceledAtUtc);
+        await transaction.CommitAsync();
 
         Assert.Equal(2, canceledCount);
         Assert.Equal(0, canceledAgain);
@@ -226,6 +321,18 @@ public class EventTicketSchemaTests
             Assert.Equal(DateTimeKind.Utc, registration.CanceledAtUtc!.Value.Kind);
             Assert.Equal(DateTimeKind.Utc, registration.CreatedAtUtc.Kind);
         });
+    }
+
+    [Fact]
+    public async Task Cancellation_requires_the_caller_owned_transaction()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+        await using var db = new AppDbContext(options);
+        var repository = new TicketBookingRepository(db);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repository.CancelOrderRegistrationsAsync(1));
     }
 
     private static Event CreateEvent(Venue venue, int ticketCapacity, int ticketsSold = 0)

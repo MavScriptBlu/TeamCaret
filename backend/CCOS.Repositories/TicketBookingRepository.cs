@@ -54,6 +54,7 @@ public sealed class TicketBookingRepository(AppDbContext db)
                 .Where(@event =>
                     @event.EventId == reservation.EventId
                     && @event.IsActive
+                    && @event.StartsAtUtc > DateTime.UtcNow
                     && @event.TicketsSold + (long)reservation.Quantity <= @event.TicketCapacity)
                 .ExecuteUpdateAsync(
                     setters => setters.SetProperty(
@@ -81,7 +82,11 @@ public sealed class TicketBookingRepository(AppDbContext db)
             _ => DateTime.SpecifyKind(canceledAt, DateTimeKind.Utc)
         };
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        if (db.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("Ticket cancellation must run inside the order transaction.");
+        }
+
         var eventRegistrations = await db.TicketRegistrations
             .Where(registration =>
                 registration.OrderLine.OrderId == orderId
@@ -129,7 +134,6 @@ public sealed class TicketBookingRepository(AppDbContext db)
             totalCanceled += canceled;
         }
 
-        await transaction.CommitAsync(cancellationToken);
         return totalCanceled;
     }
 }

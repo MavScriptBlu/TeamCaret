@@ -62,7 +62,6 @@ erDiagram
     MEMBER {
         int MemberId PK, FK
         date MemberExpiration
-        bool IsCurrent
         bool IsActive
         date JoinedDate
         date DeactivatedDate
