@@ -142,8 +142,7 @@ public record UpdateProductRequest(
 |                 [_______________________________]                 |
 | Price *         [ $______ ]                                        |
 | Member Price *  [ $______ ]   (must be <= Price)                   |
-| Stock Quantity *[ ______ ]                                          |
-| Active          [x] Active                                          |
+|| Active          (Edit only; defaults to active on Create)             |
 |                                                                      |
 |                                   [Cancel]   [Save Product]         |
 +--------------------------------------------------------------------+
