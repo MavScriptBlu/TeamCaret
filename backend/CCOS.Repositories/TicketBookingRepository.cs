@@ -22,23 +22,26 @@ public sealed class TicketBookingRepository(AppDbContext db)
         IEnumerable<EventTicketReservation> reservations,
         CancellationToken cancellationToken = default)
     {
-        var groupedReservations = reservations
+        ArgumentNullException.ThrowIfNull(reservations);
+
+        var reservationList = reservations.ToList();
+        if (reservationList.Count == 0)
+        {
+            throw new ArgumentException("At least one event reservation is required.", nameof(reservations));
+        }
+
+        if (reservationList.Any(reservation => reservation.EventId <= 0 || reservation.Quantity <= 0))
+        {
+            throw new ArgumentOutOfRangeException(nameof(reservations), "Event IDs and quantities must be positive.");
+        }
+
+        var groupedReservations = reservationList
             .GroupBy(reservation => reservation.EventId)
             .Select(group => new EventTicketReservation(
                 group.Key,
                 group.Aggregate(0, (total, reservation) => checked(total + reservation.Quantity))))
             .OrderBy(reservation => reservation.EventId)
             .ToList();
-
-        if (groupedReservations.Count == 0)
-        {
-            throw new ArgumentException("At least one event reservation is required.", nameof(reservations));
-        }
-
-        if (groupedReservations.Any(reservation => reservation.EventId <= 0 || reservation.Quantity <= 0))
-        {
-            throw new ArgumentOutOfRangeException(nameof(reservations), "Event IDs and quantities must be positive.");
-        }
 
         if (db.Database.CurrentTransaction is null)
         {
