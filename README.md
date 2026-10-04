@@ -12,6 +12,10 @@ See `docs/Project Proposal_ Cyber Cougars Club Order & Event System (CCOS).md`
 for the full proposal, `docs/ERD_...md` for the entity-relationship diagram,
 and `docs/CyberCougar OES Schema.md` for the SQL schema.
 
+Feature-level design docs live alongside those, e.g.
+`docs/CAR-1_Product_CRUD_Design.md` for the Product CRUD interface + database
+design.
+
 ## Tech Stack
 
 - ASP.NET Core MVC (Web API backend + Razor Pages/Blazor frontend - team's
