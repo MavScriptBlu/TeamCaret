@@ -64,7 +64,7 @@ public record ProductDto(
     string Name,
     string? Description,
     decimal Price,
-    decimal MemberPrice,
+    decimal? MemberPrice,
     int StockQuantity,
     bool IsActive);
 
@@ -94,6 +94,10 @@ public record UpdateProductRequest(
 | `/api/products`              | POST   | Officer          | Create a product                                   |
 | `/api/products/{id}`         | PUT    | Officer          | Update a product (including `IsActive`)            |
 | `/api/products/{id}`         | DELETE | Officer          | Deactivate a product (`IsActive = 0`); not a hard delete |
+
+For customer-facing GETs, the API populates `MemberPrice` only when the
+authenticated customer has a current `Member` record; otherwise it returns
+`null`. The officer product list returns the full member price.
 
 ### Validation rules (client- and server-side, per backlog)
 
@@ -171,9 +175,8 @@ public record UpdateProductRequest(
 ```
 
 - Only `IsActive = 1` products are listed.
-- Member pricing is shown only when the logged-in customer has a current
-  `Member` record (`IsCurrent = true`); guests and lapsed members only see
-  `Price`.
+- The API provides member pricing only when the logged-in customer has a
+  current `Member` record; guests and lapsed members only receive `Price`.
 - "Add to Cart" is disabled when `StockQuantity = 0`, showing "Out of
   stock" instead.
 
