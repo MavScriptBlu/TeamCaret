@@ -1,5 +1,7 @@
+using System.Data;
 using CCOS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CCOS.Data;
 
@@ -19,8 +21,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         PopulateProductNameSnapshotsAsync(false, CancellationToken.None).GetAwaiter().GetResult();
-        ValidateEventVenueConstraintsAsync(false, CancellationToken.None).GetAwaiter().GetResult();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        var transaction = BeginSerializableEventValidationTransaction();
+        try
+        {
+            ValidateEventVenueConstraintsAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+            var result = base.SaveChanges(acceptAllChangesOnSuccess);
+            transaction?.Commit();
+            return result;
+        }
+        finally
+        {
+            transaction?.Dispose();
+        }
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
@@ -31,8 +43,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         CancellationToken cancellationToken = default)
     {
         await PopulateProductNameSnapshotsAsync(true, cancellationToken);
-        await ValidateEventVenueConstraintsAsync(true, cancellationToken);
-        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var transaction = await BeginSerializableEventValidationTransactionAsync(cancellationToken);
+        try
+        {
+            await ValidateEventVenueConstraintsAsync(true, cancellationToken);
+            var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return result;
+        }
+        finally
+        {
+            if (transaction is not null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -287,7 +316,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var venueCapacities = persistedVenues.ToDictionary(venue => venue.VenueId, venue => venue.Capacity);
         foreach (var venueEntry in changedVenueEntries)
         {
-            if (venueEntry.State == EntityState.Deleted)
+            if (venueEntry.State == EntityState.Deleted || venueEntry.Entity.VenueId == 0)
             {
                 venueCapacities.Remove(venueEntry.Entity.VenueId);
             }
@@ -303,9 +332,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var finalEvents = persistedEvents.ToList();
         foreach (var eventEntry in changedEventEntries)
         {
-            finalEvents.RemoveAll(@event => @event.EventId == eventEntry.Entity.EventId);
+            if (eventEntry.State != EntityState.Added)
+            {
+                finalEvents.RemoveAll(@event => @event.EventId == eventEntry.Entity.EventId);
+            }
+
             if (eventEntry.State is EntityState.Added or EntityState.Modified)
             {
+                eventEntry.Entity.StartsAtUtc = NormalizeUtc(eventEntry.Entity.StartsAtUtc);
+                eventEntry.Entity.EndsAtUtc = NormalizeUtc(eventEntry.Entity.EndsAtUtc);
                 finalEvents.Add(eventEntry.Entity);
             }
         }
@@ -334,7 +369,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             if (@event.IsActive && finalEvents.Any(other =>
                     !ReferenceEquals(other, @event)
                     && other.IsActive
-                    && other.VenueId == @event.VenueId
+                    && EventsShareVenue(other, @event)
                     && other.StartsAtUtc < @event.EndsAtUtc
                     && other.EndsAtUtc > @event.StartsAtUtc))
             {
@@ -359,5 +394,75 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     $"Venue {venueId} capacity cannot be reduced below an upcoming active event's ticket capacity.");
             }
         }
+    }
+
+    private IDbContextTransaction? BeginSerializableEventValidationTransaction()
+    {
+        if (!HasEventVenueChanges())
+        {
+            return null;
+        }
+
+        var currentTransaction = Database.CurrentTransaction;
+        if (currentTransaction is not null)
+        {
+            EnsureSerializable(currentTransaction);
+            return null;
+        }
+
+        return Database.BeginTransaction(IsolationLevel.Serializable);
+    }
+
+    private async Task<IDbContextTransaction?> BeginSerializableEventValidationTransactionAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!HasEventVenueChanges())
+        {
+            return null;
+        }
+
+        var currentTransaction = Database.CurrentTransaction;
+        if (currentTransaction is not null)
+        {
+            EnsureSerializable(currentTransaction);
+            return null;
+        }
+
+        return await Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    }
+
+    private bool HasEventVenueChanges()
+    {
+        ChangeTracker.DetectChanges();
+        return ChangeTracker.Entries<Event>()
+                   .Any(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+               || ChangeTracker.Entries<Venue>()
+                   .Any(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted);
+    }
+
+    private static void EnsureSerializable(IDbContextTransaction transaction)
+    {
+        if (transaction.GetDbTransaction().IsolationLevel != IsolationLevel.Serializable)
+        {
+            throw new InvalidOperationException(
+                "Event and venue changes require a serializable transaction.");
+        }
+    }
+
+    private static DateTime NormalizeUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Local
+            ? value.ToUniversalTime()
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+    private static bool EventsShareVenue(Event first, Event second)
+    {
+        if (first.Venue is not null && ReferenceEquals(first.Venue, second.Venue))
+        {
+            return true;
+        }
+
+        return first.VenueId != 0
+               && second.VenueId != 0
+               && first.VenueId == second.VenueId;
     }
 }

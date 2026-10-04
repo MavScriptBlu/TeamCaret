@@ -230,6 +230,68 @@ public class EventTicketSchemaTests
     }
 
     [Fact]
+    public async Task Event_save_checks_overlaps_between_multiple_new_events()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var firstEvent = CreateEvent(venue, ticketCapacity: 10);
+        var overlappingEvent = CreateEvent(venue, ticketCapacity: 10);
+        overlappingEvent.StartsAtUtc = firstEvent.StartsAtUtc.AddMinutes(30);
+        overlappingEvent.EndsAtUtc = firstEvent.EndsAtUtc.AddMinutes(30);
+        db.Venues.Add(venue);
+        db.Events.AddRange(firstEvent, overlappingEvent);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Event_save_normalizes_local_timestamps_before_overlap_validation()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var venue = new Venue { Name = "Test venue", Capacity = 10 };
+        var firstEvent = CreateEvent(venue, ticketCapacity: 10);
+        db.Venues.Add(venue);
+        db.Events.Add(firstEvent);
+        await db.SaveChangesAsync();
+
+        var overlappingEvent = CreateEvent(venue, ticketCapacity: 10);
+        overlappingEvent.StartsAtUtc = firstEvent.StartsAtUtc.AddMinutes(30).ToLocalTime();
+        overlappingEvent.EndsAtUtc = firstEvent.EndsAtUtc.AddMinutes(30).ToLocalTime();
+        db.Events.Add(overlappingEvent);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+
+        Assert.Equal(DateTimeKind.Utc, overlappingEvent.StartsAtUtc.Kind);
+        Assert.Equal(DateTimeKind.Utc, overlappingEvent.EndsAtUtc.Kind);
+    }
+
+    [Fact]
+    public async Task Event_save_allows_overlapping_events_at_different_new_venues()
+    {
+        await using var connection = await CreateConnectionAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var firstVenue = new Venue { Name = "First venue", Capacity = 10 };
+        var secondVenue = new Venue { Name = "Second venue", Capacity = 10 };
+        var firstEvent = CreateEvent(firstVenue, ticketCapacity: 10);
+        var secondEvent = CreateEvent(secondVenue, ticketCapacity: 10);
+        db.Venues.AddRange(firstVenue, secondVenue);
+        db.Events.AddRange(firstEvent, secondEvent);
+
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task Venue_save_rejects_capacity_reduction_below_upcoming_events()
     {
         await using var connection = await CreateConnectionAsync();
