@@ -1,3 +1,4 @@
+```mermaid
 erDiagram
 
     CUSTOMER ||--o| MEMBER : "may be"
@@ -9,6 +10,8 @@ erDiagram
     MEMBER ||--o{ OFFICER_HISTORY : "has history"
 
     ADMIN ||--o{ OFFICER_HISTORY : "grants position"
+
+    ADMIN |o--o{ MEMBER : "deactivates"
 
     CUSTOMER ||--o{ EMAIL : "has"
 
@@ -27,6 +30,12 @@ erDiagram
     ORDER ||--o{ ORDERLINE : contains
 
     PRODUCT ||--o{ ORDERLINE : "ordered as"
+
+    EVENT ||--o{ TICKET_REGISTRATION : "admits"
+
+    PRODUCT ||--o{ TICKET_REGISTRATION : "ticket type for"
+
+    ORDERLINE ||--o{ TICKET_REGISTRATION : "creates"
 
     TREASURY_SETTINGS ||--o{ EXPENSE : "tracks"
 
@@ -115,6 +124,7 @@ erDiagram
         int VenueId PK
         string Name
         int Capacity
+        bool IsActive
     }
 
     VENUE_ADDRESS {
@@ -132,13 +142,18 @@ erDiagram
         int VenueId FK
         string Name
         string Description
-        datetime EventDateTime
+        datetime StartsAtUtc
+        datetime EndsAtUtc
         int TicketCapacity
+        int TicketsSold
         bool MembersOnly
+        bool IsActive
+        rowversion RowVersion
     }
 
     PRODUCT {
         int ProductId PK
+        string ProductType
         int EventId FK
         string Category
         string Name
@@ -163,6 +178,17 @@ erDiagram
         int ProductId FK
         int Quantity
         decimal UnitPrice
+        string ProductNameSnapshot
+    }
+
+    TICKET_REGISTRATION {
+        int TicketRegistrationId PK
+        int EventId FK
+        int TicketTypeId FK
+        int OrderLineId FK
+        string Status
+        datetime CreatedAtUtc
+        datetime CanceledAtUtc
     }
 
     TREASURY_SETTINGS {
@@ -200,3 +226,4 @@ erDiagram
         int ReconciledByAdminId FK
         datetime ReconciledAt
     }
+```
