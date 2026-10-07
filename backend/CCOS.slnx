@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CCOS.Data.Tests/CCOS.Data.Tests.csproj" />
+  <Project Path="CCOS.Data/CCOS.Data.csproj" />
+  <Project Path="CCOS.Repositories/CCOS.Repositories.csproj" />
+</Solution>
