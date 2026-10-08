@@ -1,0 +1,223 @@
+/* Events home page (/Events). Uses the variables from site.css. */
+
+/* ---------- Header block: logo, title, tagline ---------- */
+.events-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--s6);
+    padding-bottom: var(--s5);
+    margin-bottom: var(--s5);
+    border-bottom: 1px solid var(--divider);
+}
+
+.events-hero-logo {
+    width: 140px;
+    height: 140px;
+    flex: none;
+}
+
+.events-hero h1 {
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 800;
+}
+
+.events-hero p {
+    margin: var(--s2) 0 0;
+    color: var(--muted);
+}
+
+/* ---------- Sections: Upcoming Events, News ---------- */
+.events-section {
+    margin-bottom: var(--s8);
+}
+
+.events-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s3);
+    margin-bottom: var(--s4);
+}
+
+    .events-section-head h2 {
+        font-size: 22px;
+        font-weight: 600;
+    }
+
+/* ---------- Three-dot options menu ---------- */
+.events-options {
+    position: relative;
+}
+
+    .events-options summary {
+        list-style: none;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 1px solid transparent;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+    }
+
+        .events-options summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .events-options summary:hover {
+            background: var(--divider);
+        }
+
+        .events-options summary svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--text);
+        }
+
+    .events-options[open] summary {
+        background: #f6d7dc;
+        border-color: var(--maroon);
+    }
+
+.events-options-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 10;
+    width: 200px;
+    background: var(--raised);
+    border: 1px solid var(--text);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+}
+
+    .events-options-menu a {
+        display: block;
+        padding: var(--s3) var(--s4);
+        text-align: center;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        .events-options-menu a + a {
+            border-top: 1px solid var(--divider);
+        }
+
+        .events-options-menu a:hover {
+            background: var(--surface);
+            color: var(--brand-text);
+        }
+
+/* ---------- Card grid ---------- */
+.events-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s4);
+}
+
+.events-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--raised);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    color: var(--text);
+    text-decoration: none;
+}
+
+a.events-card:hover {
+    border-color: var(--maroon);
+}
+
+    a.events-card:hover .events-card-title {
+        color: var(--brand-text);
+    }
+
+.events-card-image {
+    aspect-ratio: 3 / 2;
+    display: grid;
+    place-items: center;
+    background: #e7e2e0;
+}
+
+    .events-card-image svg {
+        width: 40px;
+        height: 40px;
+        fill: none;
+        stroke: var(--muted);
+        stroke-width: 1.5;
+        stroke-linecap: round;
+    }
+
+.events-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--s3) var(--s4) var(--s4);
+}
+
+.events-card-date {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--brand-text);
+}
+
+.events-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 22px;
+}
+
+.events-card-text {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--muted);
+}
+
+/* ---------- Empty state ---------- */
+.events-empty {
+    max-width: 580px;
+    margin: var(--s5) auto;
+    padding: var(--s4);
+    text-align: center;
+    background: #e7e2e0;
+    border-radius: var(--r-sm);
+    font-size: 16px;
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 760px) {
+    .events-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .events-hero {
+        gap: var(--s4);
+    }
+
+    .events-hero-logo {
+        width: 88px;
+        height: 88px;
+    }
+
+    .events-hero h1 {
+        font-size: 26px;
+    }
+
+    .events-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
