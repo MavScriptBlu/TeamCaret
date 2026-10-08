@@ -1,0 +1,12 @@
+@page "{id:int?}"
+@model EditModel
+@{
+    ViewData["Title"] = "Edit Product";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.Id is not null)
+{
+    <p class="text-muted">Product id: @Model.Id</p>
+}
