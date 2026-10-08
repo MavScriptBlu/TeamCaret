@@ -2,51 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CCOS.Web</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@ViewData["Title"] - Cyber Cougars</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/CCOS.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">CCOS.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+    <header class="bar">
+        <div class="wrap">
+            <button type="button" class="icon-btn" id="menuToggle"
+                    aria-label="Open menu" aria-controls="siteMenu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+            </button>
+
+            <a class="brand" href="/Products" aria-label="Cyber Cougars, go to products">
+                <img class="brand-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="cyber cougars logo" />
+                <span>Cyber Cougars</span>
+            </a>
+
+            <form class="search" role="search" method="get" action="/Products/Search">
+                <input type="search" name="q" placeholder="Search merch and events" aria-label="Search" />
+            </form>
+
+            @* Placeholder until login exists. Swap for a link to the account page later. *@
+            <button type="button" class="avatar" aria-label="Account">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="scrim" id="menuScrim" hidden></div>
+    <aside class="drawer" id="siteMenu" aria-label="Menu" hidden>
+        <div class="drawer-head">
+            <h2>Menu</h2>
+            <button type="button" class="icon-btn" id="menuClose" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="navlinks">
+            <a href="/Products">Merch</a>
+            <a href="/Events">Events</a>
+            <a href="/Officer/Products/Index">Product dashboard</a>
+            <a href="/Officer/Events/Create">Create event</a>
+            <a href="/Officer/Venues/Create">Add venue</a>
+        </nav>
+    </aside>
+
+    <main class="wrap" role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="site">
+        <div class="wrap">
+            <div class="foot-brand">
+                <div class="brand brand-dark">Cyber Cougars</div>
+                <p class="note">Merch and events for the club.</p>
+            </div>
+            <div class="cols">
+                <div>
+                    <h4>Shop</h4>
+                    <a href="/Products/Index">Merch</a>
+                </div>
+                <div>
+                    <h4>Club</h4>
+                    <a href="/Events/Index">Events</a>
+                </div>
+                <div>
+                    <h4>Officers</h4>
+                    <a href="/Officer/Products/Index">Product dashboard</a>
+                    <a href="/Officer/Events/Create">Create event</a>
+                    <a href="/Officer/Venues/Create">Add venue</a>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - CCOS.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
