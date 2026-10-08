@@ -12,19 +12,19 @@ Once a record's been referenced by something else (an order, a ticket, a members
 - **Deactivate (soft delete)**: flips `IsActive` to false instead of yanking the row. It's still queryable for history/reporting, just filtered out of the default view.
 - **Reactivate**: flip it back. Same row, same history, nothing gets recreated.
 
-Why: every table tied to money or membership (`OrderLines`, `Tickets`, future `TreasuryTransactions`) has a foreign key pointing back to its parent. Hard-delete the Product, Member, or Event and you snap that link. Now you've got orphaned records or broken history. Soft delete keeps everything intact, permanently. It's the same reason you don't rip out a load-bearing wall without putting a beam in first. You plan for what's leaning on it.
+Why: every table tied to money or membership (`OrderLines`, `TicketRegistrations`, future `TreasuryTransactions`) has a foreign key pointing back to its parent. Hard-delete the Product, Member, or Event and you snap that link. Now you've got orphaned records or broken history. Soft delete keeps everything intact, permanently. It's the same reason you don't rip out a load-bearing wall without putting a beam in first. You plan for what's leaning on it.
 
 ## 2. Entity-by-Entity Notes
 
 | Entity | Soft-delete field | Who can deactivate | Notes |
 |---|---|---|---|
 | Product | `IsActive` | Officer | Locked in Sprint 1/2. Deactivated products still hang onto their past `OrderLines`. |
-| Member | `IsCurrent` (computed from `DuesPaidThrough`) | System (computed, nobody flips this by hand) | Lapses on its own when dues run out, comes back on its own when they renew. |
-| Officer | Nothing yet, Sprint 3 | Officer (self-handoff) or Advisor | Losing officer status shouldn't nuke the Member record underneath it. You're still a member after you step down. |
-| Venue | Planned | Officer | Not built yet. Deactivating a venue shouldn't touch Events that already happened there. |
-| Event | Planned | Officer | Same deal as Product. Old Tickets still need to point at the Event that actually happened. |
+| Member | `IsActive` + `MemberExpiration` | Admin (leaving the club); expiring is automatic | Expires on its own when `MemberExpiration` passes and comes back when they renew. Leaving the club is an admin setting `IsActive` to false. Status (Active/Expired/Inactive) is worked out from both, never stored. See Membership Lifecycle & Deactivation Schema. |
+| Officer | `Officers` row closed, `OfficerHistory.RevokedDate` set | Advisor (Admin) | Losing officer status shouldn't nuke the Member record underneath it. You're still a member after you step down. |
+| Venue | `IsActive` | Officer | Deactivating a venue doesn't touch Events that already happened there; it just can't host new ones. |
+| Event | `IsActive` | Officer | Same deal as Product. Old ticket registrations still point at the Event that actually happened. |
 | Order | `Status` enum (Pending/Fulfilled/Canceled) | Officer | Orders don't get soft-deleted, they transition status instead. Canceled orders stick around for the money trail. |
-| Ticket | `Status` enum (Reserved/Purchased/Canceled) | Officer, maybe Customer self-cancel (TBD) | Same status-transition move as Order instead of a flag. |
+| Ticket (`TicketRegistrations`) | `Status` enum (Purchased/Canceled) | Officer, maybe Customer self-cancel (TBD) | Same status-transition move as Order instead of a flag. No Reserved status: checkout is one transaction, so there's no hold step. See Event, Ticket & Venue Relational Schema. |
 
 ## 3. Audit Policy
 
@@ -49,4 +49,4 @@ We don't purge audit history as part of normal ops, period. If storage ever actu
 
 ## 4. Why This Matters Heading Into Sprint 3+
 
-Membership & Officer Roles (Sprint 3) is the first feature after Product that actually needs lifecycle rules past a basic on/off flag, since Officer status hangs off Member status, and Member status is computed, not something anyone flips manually. Getting this written down now, before Treasury and Events get built, means those sprints just extend a pattern that already exists instead of everybody reinventing "how do we handle deleting/canceling this" from scratch every time.
+Membership & Officer Roles (Sprint 3) is the first feature after Product that actually needs lifecycle rules past a basic on/off flag, since Officer status hangs off Member status, and Member status is worked out from an admin-set flag plus the dues expiration date. Getting this written down now, before Treasury and Events get built, means those sprints just extend a pattern that already exists instead of everybody reinventing "how do we handle deleting/canceling this" from scratch every time.
