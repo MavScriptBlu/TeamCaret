@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace CCOS.Web.Pages;
+namespace CCOS.Web.Pages.Events;
 
 /// <summary>
-/// Stub for the Home page (/). Content is added in a later story.
+/// Stub for the Events page (/Events). Content is added in a later story.
 /// </summary>
 public class IndexModel : PageModel
 {
