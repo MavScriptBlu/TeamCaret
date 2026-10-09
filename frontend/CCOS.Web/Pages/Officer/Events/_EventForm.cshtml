@@ -1,0 +1,119 @@
+@model CCOS.Web.Pages.Officer.Events.EventFormPageModel
+@*
+    Shared form for Create Event and Edit Event. Matches Wireframe-Create-Event and
+    Wirframe-Event-Edit, plus the event fields from the backlog and schema doc
+    (capacity, members only, member price). Nothing is saved or validated yet,
+    so the form has novalidate and no required fields.
+*@
+
+<h1 class="event-form-title">@Model.Heading</h1>
+
+<form method="post" class="event-form" novalidate>
+    <div class="event-detail-top">
+        @* Image isn't in the database yet; the file is not uploaded or saved. *@
+        <label class="event-form-image" id="eventImageDrop">
+            <input type="file" accept="image/*" class="event-form-file" id="eventImage" />
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+            <span id="eventImageText">@Model.ImagePrompt</span>
+        </label>
+
+        <div class="event-form-fields">
+            <label class="visually-hidden" for="Name">Event name</label>
+            <input asp-for="Name" class="event-form-name" placeholder="Event Name" maxlength="100" autocomplete="off" />
+
+            <div class="event-form-row">
+                <span class="event-form-label" id="dateLabel">Date</span>
+                <div class="event-form-inline" role="group" aria-labelledby="dateLabel">
+                    <input asp-for="Date" type="date" asp-format="{0:yyyy-MM-dd}" aria-label="Date" />
+                    <span class="event-form-times">
+                        <input asp-for="StartTime" type="time" asp-format="{0:HH:mm}" aria-label="Start time" />
+                        <span aria-hidden="true">–</span>
+                        <input asp-for="EndTime" type="time" asp-format="{0:HH:mm}" aria-label="End time" />
+                    </span>
+                </div>
+            </div>
+
+            <div class="event-form-row">
+                <label class="event-form-label" asp-for="VenueId">Location/Venue</label>
+                <div class="event-form-stack">
+                    <select asp-for="VenueId" asp-items="Model.VenueOptions">
+                        <option value="">Choose a venue</option>
+                    </select>
+                    <a class="event-form-link" asp-page="/Officer/Venues/Create">Add a venue</a>
+                </div>
+            </div>
+
+            <div class="event-form-row">
+                <label class="event-form-label" asp-for="Category">Categories</label>
+                <select asp-for="Category" asp-items="Model.CategoryOptions">
+                    <option value="">Choose a category</option>
+                </select>
+            </div>
+
+            <div class="event-form-row">
+                <label class="event-form-label" asp-for="TicketCapacity">Capacity</label>
+                <input asp-for="TicketCapacity" type="number" min="1" step="1" class="event-form-short" />
+            </div>
+
+            <div class="event-form-row">
+                <span class="event-form-label"></span>
+                <label class="event-form-check">
+                    <input asp-for="MembersOnly" />
+                    Members only
+                </label>
+            </div>
+
+            <div class="event-form-prices">
+                <label>
+                    Ticket price
+                    <span class="event-form-money"><span aria-hidden="true">$</span><input asp-for="TicketPrice" type="number" min="0" step="0.01" asp-format="{0:0.00}" /></span>
+                </label>
+                <label>
+                    Member price
+                    <span class="event-form-money"><span aria-hidden="true">$</span><input asp-for="MemberPrice" type="number" min="0" step="0.01" asp-format="{0:0.00}" /></span>
+                </label>
+            </div>
+
+            <div class="event-form-actions">
+                <button type="submit" class="event-rsvp">@Model.SaveText</button>
+                <a class="event-form-cancel" asp-page="@Model.CancelPage" asp-route-id="@Model.CancelRouteId">Cancel</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="event-detail-description">
+        <label class="visually-hidden" for="Description">Description</label>
+        <textarea asp-for="Description" class="event-form-description" rows="5" maxlength="500" placeholder="Description and further details"></textarea>
+    </div>
+</form>
+
+<script>
+    // Image drop area: drag and drop or click to choose. Only shows the file name for now.
+    (function () {
+        var drop = document.getElementById('eventImageDrop');
+        var input = document.getElementById('eventImage');
+        var text = document.getElementById('eventImageText');
+        if (!drop || !input || !text) return;
+
+        function show() {
+            if (input.files.length > 0) text.textContent = input.files[0].name;
+        }
+
+        input.addEventListener('change', show);
+        drop.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            drop.classList.add('is-dragging');
+        });
+        drop.addEventListener('dragleave', function () {
+            drop.classList.remove('is-dragging');
+        });
+        drop.addEventListener('drop', function (e) {
+            e.preventDefault();
+            drop.classList.remove('is-dragging');
+            if (e.dataTransfer.files.length > 0) {
+                input.files = e.dataTransfer.files;
+                show();
+            }
+        });
+    })();
+</script>
