@@ -1,12 +1,130 @@
 @page "{id:int?}"
 @model DetailsModel
 @{
-    ViewData["Title"] = "Event Details";
+    ViewData["Title"] = Model.Event?.Name ?? "Event not found";
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
 
-@if (Model.Id is not null)
+@if (Model.Event is null)
 {
-    <p class="text-muted">Event id: @Model.Id</p>
+    <section class="event-missing">
+        <h1>Event not found</h1>
+        <p>We couldn't find that event.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else
+{
+    var ev = Model.Event;
+
+    <article class="event-detail">
+        <div class="event-detail-top">
+            <div class="events-card-image event-detail-image" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+            </div>
+
+            <div class="event-detail-info">
+                <div class="event-detail-head">
+                    <h1>@ev.Name</h1>
+
+                    @* Officer actions. Lock these down once login exists. *@
+                    <details class="events-options" id="eventOptions">
+                        <summary aria-label="Event options">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                        </summary>
+                        <div class="events-options-menu">
+                            <a asp-page="/Officer/Events/Edit" asp-route-id="@ev.EventId">Edit event</a>
+                            <button type="button" class="events-options-danger" id="cancelEventButton">Cancel event</button>
+                        </div>
+                    </details>
+                </div>
+
+                <dl class="event-detail-facts">
+                    <div>
+                        <dt>Date</dt>
+                        <dd>@(ClubTime.FormatRange(ev.StartsAtUtc, ev.EndsAtUtc))</dd>
+                    </div>
+                    <div>
+                        <dt>Location/Venue</dt>
+                        <dd>@ev.VenueName</dd>
+                    </div>
+                    @if (ev.Categories.Count > 0)
+                    {
+                        <div>
+                            <dt>Categories</dt>
+                            <dd>@(string.Join(" - ", ev.Categories))</dd>
+                        </div>
+                    }
+                </dl>
+
+                <div class="event-detail-buy">
+                    @if (ev.MembersOnly)
+                    {
+                        <p class="event-detail-note">Members only</p>
+                    }
+                    <div class="event-detail-prices">
+                        @if (Model.PriceText is null && Model.MemberPriceText is null)
+                        {
+                            <p>Tickets aren't on sale yet.</p>
+                        }
+                        @if (Model.PriceText is not null)
+                        {
+                            <p>Ticket price: <strong>@Model.PriceText</strong></p>
+                        }
+                        @if (Model.MemberPriceText is not null)
+                        {
+                            <p>Member price: <strong>@Model.MemberPriceText</strong></p>
+                        }
+                    </div>
+                    @* Placeholder: RSVP does nothing yet. *@
+                    <button type="button" class="event-rsvp">RSVP</button>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ev.Description))
+        {
+            <section class="event-detail-description" aria-label="Description">
+                <p>@ev.Description</p>
+            </section>
+        }
+    </article>
+
+    <dialog class="event-dialog" id="cancelEventDialog" aria-labelledby="cancelEventTitle">
+        <p id="cancelEventTitle">Are you sure you want to cancel this event?</p>
+        @* Both buttons just close the dialog for now. *@
+        <form method="dialog" class="event-dialog-actions" asp-antiforgery="false">
+            <button value="yes" class="event-dialog-yes">Yes</button>
+            <button value="no" class="event-dialog-no">No</button>
+        </form>
+    </dialog>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var options = document.getElementById('eventOptions');
+            var cancelButton = document.getElementById('cancelEventButton');
+            var dialog = document.getElementById('cancelEventDialog');
+            if (!options || !cancelButton || !dialog) return;
+
+            // Close the options menu on an outside click or Escape.
+            document.addEventListener('click', function (e) {
+                if (options.open && !options.contains(e.target)) options.open = false;
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && options.open) {
+                    options.open = false;
+                    options.querySelector('summary').focus();
+                }
+            });
+
+            // "Cancel event" opens the confirmation dialog.
+            cancelButton.addEventListener('click', function () {
+                options.open = false;
+                dialog.showModal();
+            });
+        })();
+    </script>
 }
