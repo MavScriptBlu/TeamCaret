@@ -4,29 +4,29 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace CCOS.Web.Pages.Events;
 
 /// <summary>
-/// Events home page (/Events): the upcoming events grid and the club news block.
-/// Uses sample data until the events API exists. /Events?empty=true shows the empty state.
+/// Events home page (/Events): upcoming events and news.
+/// Shows sample data for now. /Events?empty=true shows the empty state.
 /// </summary>
 public class IndexModel : PageModel
 {
     /// <summary>
-    /// Club time zone. Event times are stored in UTC (CAR-30) and shown in club time.
+    /// Time zone used to display event times.
     /// </summary>
     private static readonly TimeZoneInfo ClubTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Chicago");
 
-    // Sample data until the events API is ready. Swap these for an API call in a later story.
+    // Sample data for display.
     private static readonly EventCard[] SampleEvents =
     [
-        new(1, "General Meeting", new DateTime(2026, 10, 15, 23, 0, 0, DateTimeKind.Utc), "Club updates, officer reports, and pizza."),
-        new(2, "Intro to CTFs Workshop", new DateTime(2026, 10, 22, 23, 30, 0, DateTimeKind.Utc), "Hands-on capture-the-flag basics for beginners."),
-        new(3, "Fall Social", new DateTime(2026, 11, 5, 23, 0, 0, DateTimeKind.Utc), "Games and snacks. Bring a friend."),
+        new(1, "Sample Event 1", new DateTime(2026, 10, 15, 23, 0, 0, DateTimeKind.Utc), "Short description of the event."),
+        new(2, "Sample Event 2", new DateTime(2026, 10, 22, 23, 0, 0, DateTimeKind.Utc), "Short description of the event."),
+        new(3, "Sample Event 3", new DateTime(2026, 10, 29, 23, 0, 0, DateTimeKind.Utc), "Short description of the event."),
     ];
 
     private static readonly NewsItem[] SampleNews =
     [
-        new("Officer elections", "Nominations open soon. Watch this space for dates."),
-        new("New club hoodies", "Hoodies are now in the merch store."),
-        new("Thanks for a great kickoff", "Thanks to everyone who came out to our first meeting."),
+        new("News Item 1", "Short summary of the news."),
+        new("News Item 2", "Short summary of the news."),
+        new("News Item 3", "Short summary of the news."),
     ];
 
     /// <summary>
