@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CCOS.Web.Pages;
 
@@ -7,7 +8,8 @@ namespace CCOS.Web.Pages;
 /// </summary>
 public class IndexModel : PageModel
 {
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return RedirectToPage("/Products/Index");
     }
 }
