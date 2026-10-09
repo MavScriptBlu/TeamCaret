@@ -1,5 +1,7 @@
+using System.Data;
 using CCOS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CCOS.Data;
 
@@ -13,6 +15,54 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<VenueAddress> VenueAddresses => Set<VenueAddress>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<TicketRegistration> TicketRegistrations => Set<TicketRegistration>();
+
+    public override int SaveChanges() => SaveChanges(true);
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PopulateProductNameSnapshotsAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+        var transaction = BeginSerializableEventValidationTransaction();
+        try
+        {
+            ValidateEventVenueConstraintsAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+            var result = base.SaveChanges(acceptAllChangesOnSuccess);
+            transaction?.Commit();
+            return result;
+        }
+        finally
+        {
+            transaction?.Dispose();
+        }
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        SaveChangesAsync(true, cancellationToken);
+
+    public override async Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        await PopulateProductNameSnapshotsAsync(true, cancellationToken);
+        var transaction = await BeginSerializableEventValidationTransactionAsync(cancellationToken);
+        try
+        {
+            await ValidateEventVenueConstraintsAsync(true, cancellationToken);
+            var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return result;
+        }
+        finally
+        {
+            if (transaction is not null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +126,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             });
             entity.HasKey(line => line.OrderLineId);
             entity.Property(line => line.UnitPrice).HasPrecision(10, 2);
+            entity.Property(line => line.ProductNameSnapshot).HasMaxLength(100).IsRequired();
             entity.HasIndex(line => line.OrderId).HasDatabaseName("IX_OrderLines_OrderId");
             entity.HasIndex(line => line.ProductId).HasDatabaseName("IX_OrderLines_ProductId");
             entity.HasOne(line => line.Order)
@@ -196,5 +247,222 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(registration => registration.OrderLineId);
             entity.HasIndex(registration => registration.TicketTypeId);
         });
+    }
+
+    private async Task PopulateProductNameSnapshotsAsync(bool useAsync, CancellationToken cancellationToken)
+    {
+        ChangeTracker.DetectChanges();
+        var addedLines = ChangeTracker.Entries<OrderLine>()
+            .Where(entry => entry.State == EntityState.Added)
+            .ToList();
+        var trackedProductNames = ChangeTracker.Entries<Product>()
+            .GroupBy(entry => entry.Entity.ProductId)
+            .ToDictionary(group => group.Key, group => group.First().Entity.Name);
+        var productIdsToLoad = addedLines
+            .Select(entry => entry.Entity.ProductId)
+            .Where(productId => !trackedProductNames.ContainsKey(productId))
+            .Distinct()
+            .ToArray();
+        var databaseProductNames = new Dictionary<int, string>();
+        if (productIdsToLoad.Length > 0)
+        {
+            databaseProductNames = useAsync
+                ? await Products.IgnoreQueryFilters()
+                    .Where(product => productIdsToLoad.Contains(product.ProductId))
+                    .ToDictionaryAsync(product => product.ProductId, product => product.Name, cancellationToken)
+                : Products.IgnoreQueryFilters()
+                    .Where(product => productIdsToLoad.Contains(product.ProductId))
+                    .ToDictionary(product => product.ProductId, product => product.Name);
+        }
+
+        foreach (var lineEntry in addedLines)
+        {
+            var productId = lineEntry.Entity.ProductId;
+            if (!trackedProductNames.TryGetValue(productId, out var productName)
+                && !databaseProductNames.TryGetValue(productId, out productName))
+            {
+                throw new InvalidOperationException(
+                    $"Product {productId} does not exist for the order line.");
+            }
+
+            lineEntry.Entity.ProductNameSnapshot = productName;
+        }
+    }
+
+    private async Task ValidateEventVenueConstraintsAsync(bool useAsync, CancellationToken cancellationToken)
+    {
+        ChangeTracker.DetectChanges();
+        var changedEventEntries = ChangeTracker.Entries<Event>()
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+        var changedVenueEntries = ChangeTracker.Entries<Venue>()
+            .Where(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+        if (changedEventEntries.Count == 0 && changedVenueEntries.Count == 0)
+        {
+            return;
+        }
+
+        var venueIds = changedEventEntries
+            .Where(entry => entry.State != EntityState.Deleted)
+            .Select(entry => entry.Entity.VenueId)
+            .Concat(changedVenueEntries.Select(entry => entry.Entity.VenueId))
+            .Distinct()
+            .ToArray();
+
+        var persistedVenues = useAsync
+            ? await Venues.AsNoTracking().Where(venue => venueIds.Contains(venue.VenueId)).ToListAsync(cancellationToken)
+            : Venues.AsNoTracking().Where(venue => venueIds.Contains(venue.VenueId)).ToList();
+        var venueCapacities = persistedVenues.ToDictionary(venue => venue.VenueId, venue => venue.Capacity);
+        foreach (var venueEntry in changedVenueEntries)
+        {
+            if (venueEntry.State == EntityState.Deleted || venueEntry.Entity.VenueId == 0)
+            {
+                venueCapacities.Remove(venueEntry.Entity.VenueId);
+            }
+            else
+            {
+                venueCapacities[venueEntry.Entity.VenueId] = venueEntry.Entity.Capacity;
+            }
+        }
+
+        var persistedEvents = useAsync
+            ? await Events.AsNoTracking().Where(@event => venueIds.Contains(@event.VenueId)).ToListAsync(cancellationToken)
+            : Events.AsNoTracking().Where(@event => venueIds.Contains(@event.VenueId)).ToList();
+        var finalEvents = persistedEvents.ToList();
+        foreach (var eventEntry in changedEventEntries)
+        {
+            if (eventEntry.State != EntityState.Added)
+            {
+                finalEvents.RemoveAll(@event => @event.EventId == eventEntry.Entity.EventId);
+            }
+
+            if (eventEntry.State is EntityState.Added or EntityState.Modified)
+            {
+                eventEntry.Entity.StartsAtUtc = NormalizeUtc(eventEntry.Entity.StartsAtUtc);
+                eventEntry.Entity.EndsAtUtc = NormalizeUtc(eventEntry.Entity.EndsAtUtc);
+                finalEvents.Add(eventEntry.Entity);
+            }
+        }
+
+        foreach (var eventEntry in changedEventEntries.Where(entry => entry.State is EntityState.Added or EntityState.Modified))
+        {
+            var @event = eventEntry.Entity;
+            var venueCapacity = eventEntry.Reference(@event => @event.Venue).CurrentValue?.Capacity;
+            if (venueCapacity is null)
+            {
+                if (!venueCapacities.TryGetValue(@event.VenueId, out var capacity))
+                {
+                    throw new InvalidOperationException(
+                        $"Venue {@event.VenueId} does not exist for event {@event.EventId}.");
+                }
+
+                venueCapacity = capacity;
+            }
+
+            if (@event.TicketCapacity > venueCapacity)
+            {
+                throw new InvalidOperationException(
+                    $"Event {@event.EventId} ticket capacity cannot exceed its venue capacity.");
+            }
+
+            if (@event.IsActive && finalEvents.Any(other =>
+                    !ReferenceEquals(other, @event)
+                    && other.IsActive
+                    && EventsShareVenue(other, @event)
+                    && other.StartsAtUtc < @event.EndsAtUtc
+                    && other.EndsAtUtc > @event.StartsAtUtc))
+            {
+                throw new InvalidOperationException(
+                    $"Active events at venue {@event.VenueId} cannot overlap.");
+            }
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var venueEntry in changedVenueEntries.Where(entry =>
+                     entry.State == EntityState.Modified
+                     && entry.Property(venue => venue.Capacity).OriginalValue > entry.Entity.Capacity))
+        {
+            var venueId = venueEntry.Entity.VenueId;
+            if (finalEvents.Any(@event =>
+                    @event.VenueId == venueId
+                    && @event.IsActive
+                    && @event.StartsAtUtc > now
+                    && @event.TicketCapacity > venueEntry.Entity.Capacity))
+            {
+                throw new InvalidOperationException(
+                    $"Venue {venueId} capacity cannot be reduced below an upcoming active event's ticket capacity.");
+            }
+        }
+    }
+
+    private IDbContextTransaction? BeginSerializableEventValidationTransaction()
+    {
+        if (!HasEventVenueChanges())
+        {
+            return null;
+        }
+
+        var currentTransaction = Database.CurrentTransaction;
+        if (currentTransaction is not null)
+        {
+            EnsureSerializable(currentTransaction);
+            return null;
+        }
+
+        return Database.BeginTransaction(IsolationLevel.Serializable);
+    }
+
+    private async Task<IDbContextTransaction?> BeginSerializableEventValidationTransactionAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!HasEventVenueChanges())
+        {
+            return null;
+        }
+
+        var currentTransaction = Database.CurrentTransaction;
+        if (currentTransaction is not null)
+        {
+            EnsureSerializable(currentTransaction);
+            return null;
+        }
+
+        return await Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    }
+
+    private bool HasEventVenueChanges()
+    {
+        ChangeTracker.DetectChanges();
+        return ChangeTracker.Entries<Event>()
+                   .Any(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+               || ChangeTracker.Entries<Venue>()
+                   .Any(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted);
+    }
+
+    private static void EnsureSerializable(IDbContextTransaction transaction)
+    {
+        if (transaction.GetDbTransaction().IsolationLevel != IsolationLevel.Serializable)
+        {
+            throw new InvalidOperationException(
+                "Event and venue changes require a serializable transaction.");
+        }
+    }
+
+    private static DateTime NormalizeUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Local
+            ? value.ToUniversalTime()
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+    private static bool EventsShareVenue(Event first, Event second)
+    {
+        if (first.Venue is not null && ReferenceEquals(first.Venue, second.Venue))
+        {
+            return true;
+        }
+
+        return first.VenueId != 0
+               && second.VenueId != 0
+               && first.VenueId == second.VenueId;
     }
 }
