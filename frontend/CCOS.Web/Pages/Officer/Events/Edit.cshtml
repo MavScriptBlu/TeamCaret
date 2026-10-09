@@ -1,12 +1,20 @@
 @page "{id:int?}"
 @model EditModel
 @{
-    ViewData["Title"] = "Edit Event";
+    ViewData["Title"] = Model.Found ? Model.Heading : "Event not found";
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
 
-@if (Model.Id is not null)
+@if (!Model.Found)
 {
-    <p class="text-muted">Event id: @Model.Id</p>
+    <section class="event-missing">
+        <h1>Event not found</h1>
+        <p>We couldn't find that event.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else
+{
+    <partial name="_EventForm" model="Model" />
 }
