@@ -7,6 +7,7 @@ namespace CCOS.Web.Pages.Events;
 /// (see "Event, Ticket &amp; Venue Relational Schema" in docs), so swapping the sample
 /// data for a database query later doesn't change the pages.
 /// </summary>
+/// <param name="VenueId">The event's venue (Event.VenueId).</param>
 /// <param name="VenueName">Venue.Name of the event's venue.</param>
 /// <param name="TicketTypes">The event's ticket types (TicketType products).</param>
 /// <param name="Categories">
@@ -18,8 +19,10 @@ public record EventInfo(
     string? Description,
     DateTime StartsAtUtc,
     DateTime EndsAtUtc,
+    int TicketCapacity,
     bool MembersOnly,
     bool IsActive,
+    int VenueId,
     string VenueName,
     IReadOnlyList<TicketTypeInfo> TicketTypes,
     IReadOnlyList<string> Categories);
@@ -31,6 +34,35 @@ public record EventInfo(
 public record TicketTypeInfo(string Name, decimal Price, decimal MemberPrice, bool IsActive = true);
 
 /// <summary>
+/// One venue an event can be held at. Matches Venue.VenueId and Venue.Name.
+/// </summary>
+public record VenueInfo(int VenueId, string Name);
+
+/// <summary>
+/// Sample venues and categories for the officer event forms.
+/// </summary>
+public static class SampleVenues
+{
+    /// <summary>
+    /// Active venues, by name. Retired venues can't host new events (schema doc).
+    /// </summary>
+    public static IReadOnlyList<VenueInfo> All { get; } =
+    [
+        new(1, "Sample Venue, Room 101"),
+        new(2, "Sample Venue, Room 102"),
+        new(3, "Sample Venue, Room 103"),
+    ];
+}
+
+/// <summary>
+/// Event categories. Shown on the wireframes but not in the database yet, so sample data only.
+/// </summary>
+public static class SampleCategories
+{
+    public static IReadOnlyList<string> All { get; } = ["Workshop", "Social"];
+}
+
+/// <summary>
 /// Sample events for display. Shared by the Events home page and the event page
 /// so both always show the same events.
 /// </summary>
@@ -38,36 +70,30 @@ public static class SampleEvents
 {
     // Dates are set relative to today so the samples always stay upcoming.
     // 23:00 UTC is 6:00 PM in club time (5:00 PM outside daylight saving).
+    private static readonly DateTime FirstStartUtc =
+        DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(7).AddHours(23), DateTimeKind.Utc);
+
     /// <summary>
     /// All sample events.
     /// </summary>
-    public static IReadOnlyList<EventInfo> All
-    {
-        get
-        {
-            var firstStartUtc =
-                DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(7).AddHours(23), DateTimeKind.Utc);
-
-            return
-            [
-                new(1, "Sample Event 1", "Description and further details about the event.",
-                    firstStartUtc, firstStartUtc.AddHours(2),
-                    MembersOnly: false, IsActive: true, "Sample Venue, Room 101",
-                    [new("General", 10.00m, 5.00m)],
-                    ["Workshop", "Social"]),
-                new(2, "Sample Event 2", "Description and further details about the event.",
-                    firstStartUtc.AddDays(7), firstStartUtc.AddDays(7).AddHours(2),
-                    MembersOnly: false, IsActive: true, "Sample Venue, Room 102",
-                    [new("General", 5.00m, 0.00m)],
-                    ["Workshop"]),
-                new(3, "Sample Event 3", "Description and further details about the event.",
-                    firstStartUtc.AddDays(14), firstStartUtc.AddDays(14).AddHours(2),
-                    MembersOnly: true, IsActive: true, "Sample Venue, Room 103",
-                    [new("General", 0.00m, 0.00m)],
-                    ["Social"]),
-            ];
-        }
-    }
+    public static IReadOnlyList<EventInfo> All { get; } =
+    [
+        new(1, "Sample Event 1", "Description and further details about the event.",
+            FirstStartUtc, FirstStartUtc.AddHours(2),
+            TicketCapacity: 50, MembersOnly: false, IsActive: true, VenueId: 1, "Sample Venue, Room 101",
+            [new("General", 10.00m, 5.00m)],
+            ["Workshop", "Social"]),
+        new(2, "Sample Event 2", "Description and further details about the event.",
+            FirstStartUtc.AddDays(7), FirstStartUtc.AddDays(7).AddHours(2),
+            TicketCapacity: 40, MembersOnly: false, IsActive: true, VenueId: 2, "Sample Venue, Room 102",
+            [new("General", 5.00m, 0.00m)],
+            ["Workshop"]),
+        new(3, "Sample Event 3", "Description and further details about the event.",
+            FirstStartUtc.AddDays(14), FirstStartUtc.AddDays(14).AddHours(2),
+            TicketCapacity: 30, MembersOnly: true, IsActive: true, VenueId: 3, "Sample Venue, Room 103",
+            [new("General", 0.00m, 0.00m)],
+            ["Social"]),
+    ];
 
     /// <summary>
     /// Upcoming events for the public list: IsActive and starting from now on, soonest first.
@@ -84,6 +110,13 @@ public static class SampleEvents
     /// </summary>
     public static EventInfo? FindActive(int eventId) =>
         All.FirstOrDefault(e => e.EventId == eventId && e.IsActive);
+
+    /// <summary>
+    /// Finds any event by id, including canceled ones, for officer pages.
+    /// Null when there is no event with that id.
+    /// </summary>
+    public static EventInfo? Find(int eventId) =>
+        All.FirstOrDefault(e => e.EventId == eventId);
 }
 
 /// <summary>
