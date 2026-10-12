@@ -1,0 +1,42 @@
+@model string
+@*
+    Image drop area for the officer forms (events and venues): drag and drop, or click to
+    choose a file. Images aren't in the database yet, so the file is only shown by name,
+    never uploaded or saved. The model is the prompt text. Use once per page.
+*@
+
+<label class="event-form-image" id="imageDrop">
+    <input type="file" accept="image/*" class="event-form-file" id="imageFile" />
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+    <span id="imageDropText">@Model</span>
+</label>
+
+<script>
+    (function () {
+        var drop = document.getElementById('imageDrop');
+        var input = document.getElementById('imageFile');
+        var text = document.getElementById('imageDropText');
+        if (!drop || !input || !text) return;
+
+        function show() {
+            if (input.files.length > 0) text.textContent = input.files[0].name;
+        }
+
+        input.addEventListener('change', show);
+        drop.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            drop.classList.add('is-dragging');
+        });
+        drop.addEventListener('dragleave', function () {
+            drop.classList.remove('is-dragging');
+        });
+        drop.addEventListener('drop', function (e) {
+            e.preventDefault();
+            drop.classList.remove('is-dragging');
+            if (e.dataTransfer.files.length > 0) {
+                input.files = e.dataTransfer.files;
+                show();
+            }
+        });
+    })();
+</script>
