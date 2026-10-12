@@ -1,31 +1,307 @@
-html {
-  font-size: 14px;
+:root {
+    --maroon: #82142c;
+    --gold: #fdb71a;
+    --masthead: #272324;
+    --on-dark: #fff;
+    --surface: #f4f2f0;
+    --raised: #fff;
+    --text: #231f20;
+    --muted: #5e5759;
+    --brand-text: #82142c;
+    --divider: #e2dcda;
+    --focus: #82142c;
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s8: 48px;
+    --r-sm: 3px;
+    --font: 'Montserrat', 'Gotham', system-ui, sans-serif;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+[hidden] {
+    display: none !important;
 }
 
 body {
-  margin-bottom: 60px;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    color: var(--text);
+    font: 400 15px/24px var(--font);
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+main {
+    flex: 1;
+    padding-block: var(--s5) var(--s8);
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+h1, h2, h3 {
+    font-family: var(--font);
+    margin: 0;
+    color: var(--text);
+}
+
+button, input {
+    font: inherit;
+    color: inherit;
+}
+
+a {
+    color: var(--brand-text);
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+img {
+    max-width: 100%;
+}
+
+.wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: var(--s4);
+    width: 100%;
+}
+
+/* ---------- Header ---------- */
+.bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--masthead);
+    color: var(--on-dark);
+    border-bottom: 3px solid var(--maroon);
+}
+
+    .bar .wrap {
+        display: flex;
+        align-items: center;
+        gap: var(--s3);
+        padding-block: var(--s2);
+    }
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--on-dark);
+    white-space: nowrap;
+}
+
+.brand-dark {
+    color: var(--text);
+}
+
+.brand-logo {
+    width: 75px;
+    height: auto;
+    object-fit: contain;
+    flex: none;
+}
+
+.search {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+
+    .search input {
+        width: 100%;
+        max-width: 380px;
+        min-width: 0;
+        border: 1px solid #8c8385;
+        background: #1d1a1b;
+        color: #fff;
+        border-radius: var(--r-sm);
+        padding: var(--s2) var(--s3);
+        font-size: 14px;
+    }
+
+        .search input::placeholder {
+            color: #b8b1b2;
+        }
+
+.icon-btn {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    color: var(--on-dark);
+    font-size: 26px;
+    line-height: 1;
+}
+
+    .icon-btn:hover {
+        background: rgba(255,255,255,.1);
+    }
+
+    .icon-btn svg, .avatar svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
+.avatar {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    background: var(--maroon);
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+}
+
+/* hide the club name next to the logo on narrow screens (400px) */
+@media (max-width: 560px) {
+    .bar .brand span {
+        display: none;
+    }
+}
+
+/* ---------- Slide-out menu ---------- */
+.scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,16,17,.65);
+    z-index: 50;
+}
+
+.drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    width: min(300px, 100%);
+    background: var(--raised);
+    border-right: 3px solid var(--maroon);
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--s3) var(--s4);
+    border-bottom: 1px solid var(--divider);
+}
+
+    .drawer-head .icon-btn {
+        color: var(--text);
+    }
+
+        .drawer-head .icon-btn:hover {
+            background: var(--divider);
+        }
+
+.navlinks {
+    padding: var(--s4);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+    .navlinks a {
+        display: block;
+        padding: var(--s3) var(--s2);
+        text-decoration: none;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 16px;
+        border-bottom: 1px solid var(--divider);
+    }
+
+        .navlinks a:hover {
+            color: var(--brand-text);
+        }
+
+/* ---------- Footer ---------- */
+footer.site {
+    border-top: 1px solid var(--divider);
+    background: var(--raised);
+    padding-block: var(--s6);
+}
+
+    footer.site .wrap {
+        display: flex;
+        gap: var(--s6);
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    footer.site .cols {
+        display: flex;
+        gap: var(--s8);
+        flex-wrap: wrap;
+    }
+
+    footer.site h4 {
+        margin: 0 0 var(--s2);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--brand-text);
+    }
+
+    footer.site .cols a {
+        display: block;
+        padding: 2px 0;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        footer.site .cols a:hover {
+            color: var(--brand-text);
+            text-decoration: underline;
+        }
+
+    footer.site .note {
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--muted);
+        margin: var(--s2) 0 0;
+    }
+
+@media (max-width: 480px) {
+    footer.site .cols {
+        gap: var(--s5);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
 }
