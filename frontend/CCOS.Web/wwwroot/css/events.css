@@ -571,6 +571,26 @@ a.events-card:hover {
     resize: vertical;
 }
 
+/* Venue form (/Officer/Venues/Create): city, state and ZIP on one line */
+.venue-form-city {
+    display: flex;
+    gap: var(--s2);
+}
+
+    .venue-form-city input {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .event-form .venue-form-state {
+        flex: 0 0 72px;
+        text-transform: uppercase;
+    }
+
+    .event-form .venue-form-zip {
+        flex: 0 0 96px;
+    }
+
 /* Unknown or missing event id */
 .event-missing {
     padding: var(--s8) 0;
