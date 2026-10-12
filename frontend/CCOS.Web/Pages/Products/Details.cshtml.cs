@@ -27,8 +27,22 @@ public class DetailsModel : PageModel
             return NotFound();
         }
 
+        var product = FindProduct(id.Value);
+
+        if (product is null)
+        {
+            return NotFound();
+        }
+
         Product = SampleProduct;
         return Page();
+    }
+
+    private ProductDetailViewModel? FindProduct(int id)
+    {
+        // In a real application, this would query the database or an API.
+        // For now, we just return the sample product if the id matches.
+        return id == SampleProduct.Id ? SampleProduct : null;
     }
 
     /// <summary>
@@ -45,7 +59,7 @@ public class DetailsModel : PageModel
     int Id,
     string Category,
     string Name,
-    string Description,
+    string? Description,
     decimal Price,
     decimal? MemberPrice,
     int StockQuantity);
