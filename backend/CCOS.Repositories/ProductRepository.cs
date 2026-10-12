@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace CCOS.Repositories;
 
 /// <summary>
-/// Reads club merchandise (swag and resources) for the customer-facing pages.
+/// Reads club merchandise (swag and resources).
 /// Inactive products are left out by the IsActive query filter on Product (CAR-24),
-/// so callers only ever get products that are for sale.
+/// except in ListAllMerchandiseAsync, which officer screens use.
 /// </summary>
 public sealed class ProductRepository(AppDbContext db)
 {
@@ -18,6 +18,20 @@ public sealed class ProductRepository(AppDbContext db)
     public async Task<IReadOnlyList<Product>> ListActiveMerchandiseAsync(CancellationToken cancellationToken = default)
     {
         return await Merchandise()
+            .OrderBy(product => product.Category)
+            .ThenBy(product => product.Name)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// All merchandise, including inactive products, by category then name. For officer
+    /// screens only (CAR-1: officers can see deactivated products).
+    /// </summary>
+    public async Task<IReadOnlyList<Product>> ListAllMerchandiseAsync(CancellationToken cancellationToken = default)
+    {
+        return await db.Products.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(product => !(product is TicketType))
             .OrderBy(product => product.Category)
             .ThenBy(product => product.Name)
             .ToListAsync(cancellationToken);

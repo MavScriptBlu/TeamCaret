@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CCOS.Api.Controllers;
 
 /// <summary>
-/// Customer-facing product endpoints from docs/CAR-1_Product_CRUD_Design.md.
-/// Only active merchandise is returned.
+/// Product endpoints from docs/CAR-1_Product_CRUD_Design.md. Customers only get active
+/// merchandise; the officer list asks for inactive products too.
 /// </summary>
 [ApiController]
 [Route("api/products")]
@@ -15,10 +15,21 @@ public class ProductsController(ProductRepository products) : ControllerBase
 {
     /// <summary>
     /// GET /api/products: active merchandise for browsing.
+    /// GET /api/products?includeInactive=true: all merchandise for the officer product list,
+    /// with full member prices.
+    /// TODO: restrict includeInactive to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpGet]
-    public async Task<IReadOnlyList<ProductDto>> List(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductDto>> List(
+        [FromQuery] bool includeInactive,
+        CancellationToken cancellationToken)
     {
+        if (includeInactive)
+        {
+            var all = await products.ListAllMerchandiseAsync(cancellationToken);
+            return all.Select(product => ToDto(product, includeMemberPrice: true)).ToList();
+        }
+
         var items = await products.ListActiveMerchandiseAsync(cancellationToken);
         return items.Select(product => ToDto(product, CanSeeMemberPrice())).ToList();
     }

@@ -84,19 +84,24 @@ public static class SampleEvents
             [
                 new(1, "Sample Event 1", "Description and further details about the event.",
                     firstStartUtc, firstStartUtc.AddHours(2),
-                                        TicketCapacity: 50, MembersOnly: false, IsActive: true, VenueId: 1, "Sample Venue, Room 101",
+                    TicketCapacity: 50, MembersOnly: false, IsActive: true, VenueId: 1, "Sample Venue, Room 101",
                     [new("General", 10.00m, 5.00m)],
                     ["Workshop", "Social"]),
                 new(2, "Sample Event 2", "Description and further details about the event.",
                     firstStartUtc.AddDays(7), firstStartUtc.AddDays(7).AddHours(2),
-                                        TicketCapacity: 40, MembersOnly: false, IsActive: true, VenueId: 2, "Sample Venue, Room 102",
+                    TicketCapacity: 40, MembersOnly: false, IsActive: true, VenueId: 2, "Sample Venue, Room 102",
                     [new("General", 5.00m, 0.00m)],
                     ["Workshop"]),
                 new(3, "Sample Event 3", "Description and further details about the event.",
                     firstStartUtc.AddDays(14), firstStartUtc.AddDays(14).AddHours(2),
-                                        TicketCapacity: 30, MembersOnly: true, IsActive: true, VenueId: 3, "Sample Venue, Room 103",
+                    TicketCapacity: 30, MembersOnly: true, IsActive: true, VenueId: 3, "Sample Venue, Room 103",
                     [new("General", 0.00m, 0.00m)],
                     ["Social"]),
+                new(4, "Sample Event 4", "Description and further details about the event.",
+                    firstStartUtc.AddDays(21), firstStartUtc.AddDays(21).AddHours(2),
+                    TicketCapacity: 50, MembersOnly: false, IsActive: true, VenueId: 1, "Sample Venue, Room 101",
+                    [new("General", 8.00m, 4.00m)],
+                    ["Workshop"]),
             ];
         }
     }
