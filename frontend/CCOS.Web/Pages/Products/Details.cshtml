@@ -1,7 +1,13 @@
 @page "{id:int}"
 @model DetailsModel
 @{
-	var product = Model.Product;
+    var product = Model.Product;
+    @if (product is null)
+    {
+		Response.StatusCode = 404;
+        return;
+    }
+
     ViewData["Title"] = "Product Details";
 }
 
@@ -65,7 +71,15 @@
 
         <section class="product-description" aria-labelledby="description-heading">
             <h2 id="description-heading">Description</h2>
-            <p>@product.Description</p>
+
+            @if (product.Description is null)
+            {
+                <p>No description available.</p>
+            }
+            else
+            {
+				<p>@product.Description</p>
+            }
         </section>
 
         @if (product.StockQuantity > 0)
@@ -78,16 +92,25 @@
         }
 
         <div class="product-purchase">
-            <div class="product-quantity">
-                <label for="product-quantity">Qty</label>
-                <input id="product-quantity"
-                       type="number"
-                       min="1"
-                       max="@product.StockQuantity"
-                       value="1" />
-            </div>
+            @if (product.StockQuantity > 0)
+            {
+				<div class="product-quantity">
+					<label for="product-quantity">Qty</label>
+					<input id="product-quantity"
+						   type="number"
+						   min="1"
+						   max="@product.StockQuantity"
+						   value="1" />
+				</div>
+                
+                @*placeholder for the add to cart button, currently does nothing*@
+				<button class="add-to-cart" type="button">Add to cart</button>
+            }
+            else
+            {
+				<button class="add-to-cart" type="button" disabled>Out of stock</button>
+            }
 
-            <button class="add-to-cart" type="button">Add to cart</button>
         </div>
     </section>
 </div>
