@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/CCOS.Api/CCOS.Api.csproj" />
+    <Project Path="backend/CCOS.Data.Tests/CCOS.Data.Tests.csproj" />
+    <Project Path="backend/CCOS.Data/CCOS.Data.csproj" />
+    <Project Path="backend/CCOS.Repositories/CCOS.Repositories.csproj" />
+  </Folder>
+  <Folder Name="/frontend/">
+    <Project Path="frontend/CCOS.Web/CCOS.Web.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/CCOS.Shared/CCOS.Shared.csproj" />
+  </Folder>
+</Solution>

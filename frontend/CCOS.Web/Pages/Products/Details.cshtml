@@ -1,0 +1,116 @@
+@page "{id:int}"
+@model DetailsModel
+@{
+    var product = Model.Product;
+    @if (product is null)
+    {
+		Response.StatusCode = 404;
+        return;
+    }
+
+    ViewData["Title"] = "Product Details";
+}
+
+<link rel="stylesheet" href="~/css/productDetails.css" asp-append-version="true" />
+
+<a class="product-back" asp-page="/Products/Index">&larr; Back to Products</a>
+
+<div class="product-detail">
+    <section class="product-gallery" aria-label="@product.Name photos">
+        <div class="product-photo product-photo-main"
+             role="img"
+             aria-label="Main photo placeholder for @product.Name">
+            @* Placeholder for the main product photo, remove when actual photo is available *@
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+            </svg>
+            <span>Main photo</span>
+        </div>
+
+        <div class="product-thumbnails">
+            <div class="product-photo"
+                 role="img"
+                 aria-label="Second photo placeholder for @product.Name">
+                @* Placeholder for the main product photo, remove when actual photo is available *@
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span>Photo 2</span>
+            </div>
+
+            <div class="product-photo"
+                 role="img"
+                 aria-label="Third photo placeholder for @product.Name">
+                @* Placeholder for the main product photo, remove when actual photo is available *@
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="m21 15-5-5L5 21" />
+                </svg>
+                <span>Photo 3</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="product-info" aria-labelledby="product-name">
+        <p class="product-category">@product.Category</p>
+        <h1 id="product-name">@product.Name</h1>
+
+        <p class="product-price">@product.Price.ToString("C")</p>
+
+        @if (product.MemberPrice is not null)
+        {
+            <p class="product-member-price">
+                Member price: @product.MemberPrice.Value.ToString("C")
+            </p>
+        }
+
+        <section class="product-description" aria-labelledby="description-heading">
+            <h2 id="description-heading">Description</h2>
+
+            @if (product.Description is null)
+            {
+                <p>No description available.</p>
+            }
+            else
+            {
+				<p>@product.Description</p>
+            }
+        </section>
+
+        @if (product.StockQuantity > 0)
+        {
+            <p class="product-stock">In stock — @product.StockQuantity available</p>
+        }
+        else
+        {
+            <p class="product-stock product-stock-out">Out of stock</p>
+        }
+
+        <div class="product-purchase">
+            @if (product.StockQuantity > 0)
+            {
+				<div class="product-quantity">
+					<label for="product-quantity">Qty</label>
+					<input id="product-quantity"
+						   type="number"
+						   min="0"
+						   max="@product.StockQuantity"
+						   value="0" />
+				</div>
+                
+                @*placeholder for the add to cart button, currently does nothing*@
+				<button class="add-to-cart" type="button">Add to cart</button>
+            }
+            else
+            {
+				<button class="add-to-cart" type="button" disabled>Out of stock</button>
+            }
+
+        </div>
+    </section>
+</div>

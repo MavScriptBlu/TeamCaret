@@ -1,0 +1,55 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Venue Form";
+}
+
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+
+@*
+    Matches Wireframe-Venue-Form. The address is split into the VenueAddress columns from
+    the schema doc. Nothing is saved or validated yet, so the form has novalidate and no
+    required fields.
+*@
+
+<h1 class="event-form-title">Venue Form</h1>
+
+<form method="post" class="event-form" novalidate>
+    <div class="event-detail-top">
+        @* Image isn't in the database yet; the file is not uploaded or saved. *@
+        <partial name="_ImageDrop" model="@("Drag and drop an image, or click to choose one")" />
+
+        <div class="event-form-fields">
+            <label class="visually-hidden" for="Name">Venue name</label>
+            <input asp-for="Name" class="event-form-name" placeholder="Venue Name" maxlength="100" autocomplete="off" />
+
+            <div class="event-form-row">
+                <span class="event-form-label" id="addressLabel">Address</span>
+                <div class="event-form-stack" role="group" aria-labelledby="addressLabel">
+                    <input asp-for="AddressLine1" placeholder="Street address" maxlength="100" aria-label="Street address" />
+                    <input asp-for="AddressLine2" placeholder="Building, room (optional)" maxlength="100" aria-label="Building or room" />
+                    <div class="venue-form-city">
+                        <input asp-for="City" placeholder="City" maxlength="50" aria-label="City" />
+                        <input asp-for="State" class="venue-form-state" placeholder="State" maxlength="2" aria-label="State" />
+                        <input asp-for="ZipCode" class="venue-form-zip" placeholder="ZIP" maxlength="10" aria-label="ZIP code" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="event-form-row">
+                <label class="event-form-label" asp-for="Capacity">Capacity</label>
+                <input asp-for="Capacity" type="number" min="1" step="1" class="event-form-short" />
+            </div>
+
+            <div class="event-form-actions">
+                <button type="submit" class="event-rsvp">Save</button>
+                <a class="event-form-cancel" asp-page="/Events/Index">Cancel</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="event-detail-description">
+        <label class="visually-hidden" for="Description">Description</label>
+        <textarea asp-for="Description" class="event-form-description" rows="5" placeholder="Description and further details"></textarea>
+    </div>
+</form>

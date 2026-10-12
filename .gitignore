@@ -94,3 +94,8 @@ desktop.ini
 # --- Node (if a frontend build step ever needs it) --------------------------
 node_modules/
 npm-debug.log*
+
+.claude/*
+.claude/
+# Local development database for CCOS.Api (SQLite, created on first run)
+ccos-dev.db*

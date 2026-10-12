@@ -1,0 +1,102 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Merch";
+}
+
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@* Matches Wireframe-HomePage (assets/Wireframes-Product) and the browse layout in CAR-1. *@
+
+<section class="products-hero">
+    <img class="products-hero-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="Cyber Cougars logo" />
+    <div>
+        <h1>Cyber Cougars Merch</h1>
+        <p>Find your merch here!</p>
+    </div>
+</section>
+
+<div class="products-banner" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+</div>
+
+@if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Products couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.TotalCount == 0)
+{
+    <p class="products-empty">No merch yet. Check back soon!</p>
+}
+else
+{
+    <form method="get" class="products-filters" aria-label="Filter products">
+        <label class="products-filter">
+            <input type="checkbox" name="inStockOnly" value="true" checked="@Model.InStockOnly" />
+            In stock only
+        </label>
+        <label class="products-filter">
+            <select name="category" aria-label="Category">
+                <option value="">All categories</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category" selected="@(category == Model.Category)">@category</option>
+                }
+            </select>
+        </label>
+        <button type="submit" class="products-filter-apply">Apply</button>
+    </form>
+
+    @if (Model.Products.Count == 0)
+    {
+        <div class="products-empty">
+            <p>No products match these filters.</p>
+            <a asp-page="/Products/Index">Show all products</a>
+        </div>
+    }
+    else
+    {
+        <ul class="products-grid">
+            @foreach (var product in Model.Products)
+            {
+                var inStock = product.StockQuantity > 0;
+                <li>
+                    <a class="product-card @(inStock ? "" : "is-out")" asp-page="/Products/Details" asp-route-id="@product.ProductId">
+                        <div class="product-card-image">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                            @if (!inStock)
+                            {
+                                <span class="product-card-badge">Out of stock</span>
+                            }
+                        </div>
+                        <div class="product-card-body">
+                            <span class="product-card-category">@product.Category</span>
+                            <span class="product-card-name">@product.Name</span>
+                            @if (!string.IsNullOrWhiteSpace(product.Description))
+                            {
+                                <span class="product-card-description">@product.Description</span>
+                            }
+                            <span class="product-card-price">@IndexModel.FormatPrice(product.Price)</span>
+                            @if (product.MemberPrice is decimal memberPrice)
+                            {
+                                <span class="product-card-member">Member price: @IndexModel.FormatPrice(memberPrice)</span>
+                            }
+                            <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+}
+
+@section Scripts {
+    <script>
+        // Apply filters as soon as they change; the Apply button stays for keyboard and no-JS use.
+        (function () {
+            var form = document.querySelector('.products-filters');
+            if (!form) return;
+            form.addEventListener('change', function () { form.submit(); });
+        })();
+    </script>
+}
