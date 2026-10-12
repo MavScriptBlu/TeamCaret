@@ -363,6 +363,214 @@ a.events-card:hover {
     color: var(--text);
 }
 
+/* ---------- Create and edit event forms (/Officer/Events/Create, /Officer/Events/Edit/{id}) ---------- */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.event-form-title {
+    margin-bottom: var(--s5);
+    text-align: center;
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 800;
+}
+
+.event-form input,
+.event-form select,
+.event-form textarea {
+    font: inherit;
+    color: var(--text);
+    background: var(--raised);
+    border: 1px solid #bdb5b3;
+    border-radius: var(--r-sm);
+    padding: 6px 10px;
+}
+
+    .event-form input:focus,
+    .event-form select:focus,
+    .event-form textarea:focus {
+        border-color: var(--maroon);
+    }
+
+/* Image drop area */
+.event-form-image {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2);
+    padding: var(--s4);
+    text-align: center;
+    background: #e7e2e0;
+    border: 2px dashed #bdb5b3;
+    border-radius: var(--r-sm);
+    color: var(--muted);
+    cursor: pointer;
+}
+
+    .event-form-image:hover,
+    .event-form-image.is-dragging {
+        border-color: var(--maroon);
+        color: var(--brand-text);
+    }
+
+    .event-form-image:focus-within {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+    }
+
+    .event-form-image svg {
+        width: 40px;
+        height: 40px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+    }
+
+.event-form .event-form-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+/* Fields */
+.event-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+}
+
+.event-form .event-form-name {
+    width: 100%;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.event-form-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s3);
+}
+
+    .event-form-row > select,
+    .event-form-row > input {
+        flex: 1;
+        min-width: 0;
+    }
+
+.event-form-label {
+    flex: 0 0 140px;
+    padding-top: 7px;
+    font-weight: 700;
+}
+
+.event-form-inline {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.event-form-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    min-width: 0;
+}
+
+    .event-form-stack select {
+        width: 100%;
+    }
+
+.event-form-times {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.event-form-link {
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.event-form .event-form-short {
+    flex: 0 0 120px;
+}
+
+.event-form-check {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.event-form-prices {
+    margin-top: var(--s3);
+    display: flex;
+    justify-content: center;
+    gap: var(--s4);
+}
+
+    .event-form-prices label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s1);
+        font-weight: 700;
+    }
+
+.event-form-money {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    font-weight: 400;
+}
+
+    .event-form-money input {
+        width: 110px;
+    }
+
+.event-form-actions {
+    margin-top: var(--s3);
+    display: flex;
+    justify-content: center;
+    gap: var(--s3);
+}
+
+.event-form-cancel {
+    min-width: 160px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    background: var(--divider);
+    color: var(--text);
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+}
+
+    .event-form-cancel:hover {
+        background: #d4ccca;
+    }
+
+.event-form .event-form-description {
+    width: 100%;
+    max-width: 640px;
+    resize: vertical;
+}
+
 /* Unknown or missing event id */
 .event-missing {
     padding: var(--s8) 0;
@@ -383,6 +591,10 @@ a.events-card:hover {
         grid-template-columns: minmax(0, 1fr);
         gap: var(--s5);
     }
+
+    .event-form-label {
+        flex-basis: 110px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -401,5 +613,32 @@ a.events-card:hover {
 
     .events-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .event-form-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--s1);
+    }
+
+    .event-form-label {
+        flex-basis: auto;
+        padding-top: 0;
+    }
+
+    .event-form-row > select,
+    .event-form-row > input {
+        width: 100%;
+    }
+
+    .event-form .event-form-short {
+        flex: none;
+        width: 120px;
+    }
+
+    .event-form-actions .event-rsvp,
+    .event-form-cancel {
+        min-width: 0;
+        flex: 1;
     }
 }

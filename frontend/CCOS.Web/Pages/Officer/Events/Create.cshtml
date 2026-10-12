@@ -1,7 +1,9 @@
 @page
 @model CreateModel
 @{
-    ViewData["Title"] = "New Event";
+    ViewData["Title"] = Model.Heading;
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+
+<partial name="_EventForm" model="Model" />
