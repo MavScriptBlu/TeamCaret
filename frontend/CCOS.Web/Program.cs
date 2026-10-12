@@ -1,7 +1,18 @@
+using CCOS.Web.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// Product data comes from CCOS.Api. Run the API alongside the site (see Api:BaseUrl).
+builder.Services.AddHttpClient<ProductsApiClient>(client =>
+{
+    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
+        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 var app = builder.Build();
 

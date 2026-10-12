@@ -1,48 +1,51 @@
+﻿using System.Text.Json;
+using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CCOS.Web.Pages.Products;
 
 /// <summary>
-/// Stub for the Product Details page (/Products/Details/{id}). Content is added in a later story.
+/// Product Details page (/Products/Details/{id}). Loads the product from CCOS.Api
+/// (GET /api/products/{id}); inactive or unknown products return 404.
 /// </summary>
-public class DetailsModel : PageModel
+public class DetailsModel(ProductsApiClient productsApi, ILogger<DetailsModel> logger) : PageModel
 {
-    // Temporary sample data, following the sample-data approach on Events/Index.
-    private static readonly ProductDetailViewModel SampleProduct = new(
-        Id: 1,
-        Category: "Swag",
-        Name: "Club Hoodie",
-        Description: "A comfortable Cyber Cougars hoodie for showing your club pride.",
-        Price: 35.00m,
-        MemberPrice: 28.00m,
-        StockQuantity: 42);
-
     public ProductDetailViewModel Product { get; private set; } = default!;
 
-    public IActionResult OnGet(int? id)
+    public async Task<IActionResult> OnGetAsync(int? id, CancellationToken cancellationToken)
     {
-        if (id != SampleProduct.Id)
+        if (id is not int productId)
         {
             return NotFound();
         }
 
-        var product = FindProduct(id.Value);
+        CCOS.Shared.ProductDto? product;
+        try
+        {
+            product = await productsApi.GetAsync(productId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogError(ex, "Couldn't load product {ProductId} from CCOS.Api.", productId);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
 
         if (product is null)
         {
             return NotFound();
         }
 
-        Product = SampleProduct;
+        Product = new ProductDetailViewModel(
+            product.ProductId,
+            product.Category,
+            product.Name,
+            product.Description,
+            product.Price,
+            product.MemberPrice,
+            product.StockQuantity);
         return Page();
-    }
-
-    private ProductDetailViewModel? FindProduct(int id)
-    {
-        // In a real application, this would query the database or an API.
-        // For now, we just return the sample product if the id matches.
-        return id == SampleProduct.Id ? SampleProduct : null;
     }
 
     /// <summary>
