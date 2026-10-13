@@ -2,6 +2,13 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-12 · CAR-45 Local Postgres setup
+
+- Added `docker-compose.yml` to run PostgreSQL 16 locally in Docker. Settings come from a `.env` file.
+- Added `.env.example` as the template; `.gitignore` now lets it through while still ignoring the real `.env`.
+- Added `docs/database-setup.md` with setup steps, DBeaver connection info, troubleshooting, and Postgres vs SQLite notes for the team.
+- README: added a Local Database Setup section and updated the tech stack.
+
 ## 2026-10-05 · Schema sync
 
 - ERD: added the CAR-30 event and ticket changes (`TICKET_REGISTRATION`, `Events` start/end times, `TicketsSold`, `IsActive`, `RowVersion`, `Venues.IsActive`, `Products.ProductType`), CAR-24's `OrderLines.ProductNameSnapshot`, and the `ADMIN` → `MEMBER` link from CAR-28. The ERD now renders as a diagram on GitHub.

@@ -3,9 +3,9 @@
 ## Get Postgres running
 
 1. Open Docker Desktop and make sure it says it's running.
-2. Make a folder like `C:\Users\Blue\Dev\ccos-db` and drop `docker-compose.yml` in it.
-3. Open the file, swap `PUT_YOUR_PASSWORD_HERE` for your real password (the one in DBeaver). Save.
-4. Open a terminal in that folder and run:
+2. In the repo root, copy `.env.example` and rename the copy to `.env`. (`.env` is gitignored, never commit it.)
+3. Open `.env` and set `POSTGRES_PASSWORD` to your own password. Save.
+4. Open a terminal in the repo root and run:
    ```
    docker compose up -d
    ```
@@ -17,13 +17,13 @@
 
 ## Connect DBeaver
 
-Your settings are already right: host `localhost`, port `5432`, database `postgres`, user `ccos-db`, your password.
+Use the values from your `.env`: host `localhost`, port `POSTGRES_PORT` (5432), database `POSTGRES_DB` (postgres), user `POSTGRES_USER` (ccos-db), and your password.
 Hit **Test Connection**. If it asks to download a driver, say yes. Green = done.
 
 ## If it breaks
 
-- **"password authentication failed"**: the password in the compose file and DBeaver don't match. If you changed it AFTER the first run, the old one is baked in. Fix: `docker compose down -v` (wipes the db, it's empty anyway) then `docker compose up -d`.
-- **"port is already allocated"**: something else (usually a Postgres you installed on Windows) is on 5432. Either stop that one, or change the compose line to `"5433:5432"` and use port 5433 in DBeaver.
+- **"password authentication failed"**: the password in `.env` and DBeaver don't match. If you changed it AFTER the first run, the old one is baked in. Fix: `docker compose down -v` (wipes the db, it's empty anyway) then `docker compose up -d`.
+- **"port is already allocated"**: something else (usually a Postgres you installed on Windows) is on 5432. Either stop that one, or set `POSTGRES_PORT=5433` in `.env` and use port 5433 in DBeaver.
 - **Stop it**: `docker compose stop`. **Start again**: `docker compose up -d`. Your data stays.
 
 ## Connection string for the app (hand this to Dylan)

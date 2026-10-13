@@ -21,9 +21,25 @@ design.
 - ASP.NET Core MVC (Web API backend + Razor Pages/Blazor frontend - team's
   final call, see proposal)
 - Entity Framework Core
-- SQL Server (Azure SQL in production)
+- SQL Server (Azure SQL in production), under review: see `docs/database-setup.md`
+- PostgreSQL 16 in Docker for local development
 - ASP.NET Core Identity for authentication
 - Deployed to Azure App Service
+
+## Local Database Setup
+
+1. Copy `.env.example`, rename the copy to `.env`, and put your own password in it.
+   `.env` is gitignored, so never commit it.
+2. Start Docker Desktop (or Podman), then from the repo root run:
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. Connect with DBeaver (or any Postgres tool) using the values from your `.env`.
+
+Full steps, troubleshooting, and Postgres vs SQLite notes are in
+`docs/database-setup.md`.
 
 ## Project Structure
 
@@ -33,6 +49,8 @@ TeamCaret/
 ├── frontend/        Razor Pages/Blazor app that calls the backend API (view layer)
 ├── shared/         DTOs/enums shared between backend and frontend (the API contract)
 ├── docs/           Proposal, ERD, schema, backlog, changelog
+├── docker-compose.yml  Local Postgres database (reads settings from .env)
+├── .env.example    Template for your local .env (copy it, add your password)
 ├── .gitignore
 └── README.md
 ```
