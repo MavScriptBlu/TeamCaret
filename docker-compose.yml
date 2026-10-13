@@ -1,7 +1,8 @@
 # CCOS local Postgres. Values come from the .env file in this same folder.
+# Works with Docker (docker compose up -d) or Podman (podman compose up -d).
 services:
   ccos-db:
-    image: postgres:16
+    image: docker.io/library/postgres:16 # full name so Podman doesn't ask which registry
     container_name: ccos-db
     restart: unless-stopped
     environment:

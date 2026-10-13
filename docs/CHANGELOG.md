@@ -2,6 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-13 · CAR-45 Podman support and Task shortcuts
+
+- Added `Taskfile.yml` with `task up`, `task down`, `task logs`, and `task reset`. Uses Docker by default; set `CONTAINER=podman` in `.env` to use Podman.
+- Taskfile: `task up` and `task reset` now stop with a clear message if `.env` is missing or `POSTGRES_PASSWORD` is blank; `up` and `reset` have `task --summary` help text.
+- `.env.example`: added a commented-out `CONTAINER=podman` line.
+- Added `task build` and `task test`, plus a GitHub Actions workflow (`.github/workflows/ci.yml`) that installs Task and runs build, test, and a database start/stop check on every push and PR.
+- `docker-compose.yml` now uses the full image name `docker.io/library/postgres:16` so Podman pulls it without asking which registry. Docker works the same as before.
+- `docs/database-setup.md`: added a Using Podman section (machine setup, `podman compose`, optional `docker` alias, gotchas).
+- README: Local Database Setup and tech stack now mention Podman and the `task` shortcuts; new Build, Test, and CI section; `Taskfile.yml` and the CI workflow added to the structure tree.
+- `docs/database-setup.md`: added a Shortcuts with Task section.
+
 ## 2026-10-12 · CAR-45 Local Postgres setup
 
 - Added `docker-compose.yml` to run PostgreSQL 16 locally in Docker. Settings come from a `.env` file.

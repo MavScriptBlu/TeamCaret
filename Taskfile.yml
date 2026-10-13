@@ -1,0 +1,63 @@
+# CCOS shortcuts. Install Task from https://taskfile.dev, then run `task` to see the list.
+# GitHub Actions runs `task build`, `task test`, `task up` and `task down` too (.github/workflows/ci.yml).
+# Uses Docker by default. Podman people: add CONTAINER=podman to your .env.
+version: "3"
+
+dotenv: [".env"] # loads your settings (and CONTAINER, if you set it)
+
+tasks:
+  default:
+    desc: List all tasks
+    silent: true
+    cmds:
+      - task --list
+
+  up:
+    desc: Start the local Postgres database
+    summary: |
+      Starts Postgres in a container using docker-compose.yml and your .env.
+      Uses Docker unless your .env has CONTAINER=podman.
+      Then shows what's running so you can see ccos-db is up.
+    preconditions: &needs_env
+      - sh: test -f .env
+        msg: "No .env yet. Copy .env.example, rename the copy to .env, and set your password."
+      - sh: test -n "$POSTGRES_PASSWORD"
+        msg: "POSTGRES_PASSWORD is empty in your .env. Set it, then try again."
+    cmds:
+      - ${CONTAINER:-docker} compose up -d
+      - ${CONTAINER:-docker} ps
+
+  down:
+    desc: Stop the database (your data stays)
+    preconditions:
+      - sh: test -f .env
+        msg: "No .env found, so there's nothing set up to stop."
+    cmds:
+      - ${CONTAINER:-docker} compose down
+
+  logs:
+    desc: Show the database logs (Ctrl+C to quit)
+    cmds:
+      - ${CONTAINER:-docker} compose logs -f ccos-db
+
+  build:
+    desc: Build the whole solution
+    cmds:
+      - dotnet build CCOS.slnx
+
+  test:
+    desc: Run all the tests
+    cmds:
+      - dotnet test CCOS.slnx
+
+  reset:
+    desc: WIPE the database and start fresh (use after changing the password)
+    summary: |
+      Deletes the database volume (all local data) and starts a brand new one.
+      Use it when you changed POSTGRES_PASSWORD after the first run and get
+      "password authentication failed". Asks before it deletes anything.
+    preconditions: *needs_env
+    prompt: This deletes all local database data. Keep going?
+    cmds:
+      - ${CONTAINER:-docker} compose down -v
+      - ${CONTAINER:-docker} compose up -d
