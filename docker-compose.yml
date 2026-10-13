@@ -1,5 +1,6 @@
-# CCOS local Postgres. Values come from the .env file in this same folder.
-# Works with Docker (docker compose up -d) or Podman (podman compose up -d).
+# CCOS local stack: database, API, and website. Values come from the .env file in this same folder.
+# Works with Docker (docker compose up -d --build) or Podman (podman compose up -d --build).
+# Easiest way: `task up` (whole app) or `task db` (just the database).
 services:
   ccos-db:
     image: docker.io/library/postgres:16 # full name so Podman doesn't ask which registry
@@ -13,6 +14,36 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops
+
+  # The API (backend/CCOS.Api). Open http://localhost:8081/api/products to see it answer.
+  # For now it still uses its own SQLite file inside the container (not the Postgres above),
+  # so its sample data resets whenever the container is rebuilt.
+  ccos-api:
+    build:
+      context: . # repo root, so the build can reach shared/
+      dockerfile: backend/CCOS.Api/Dockerfile
+    container_name: ccos-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development # turns on the SQLite dev database and sample data
+    ports:
+      - "${API_PORT:-8081}:8080" # inside the container .NET listens on 8080
+
+  # The website (frontend/CCOS.Web). Open http://localhost:8080
+  ccos-web:
+    build:
+      context: .
+      dockerfile: frontend/CCOS.Web/Dockerfile
+    container_name: ccos-web
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Inside Docker the site reaches the API by its service name, not localhost
+      Api__BaseUrl: http://ccos-api:8080/
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      - ccos-api
 
 volumes:
   ccos-data:

@@ -7,8 +7,9 @@
 3. Open `.env` and set `POSTGRES_PASSWORD` to your own password. Save.
 4. Open a terminal in the repo root and run:
    ```
-   docker compose up -d
+   docker compose up -d ccos-db
    ```
+   (`ccos-db` starts just the database. Leave it off and you get the whole app, which `task up` does too.)
 5. Check it's alive:
    ```
    docker ps
@@ -67,11 +68,12 @@ Then from the repo root:
 
 | Command      | What it does                                                |
 | ------------ | ----------------------------------------------------------- |
-| `task up`    | Starts the database and shows what's running               |
-| `task down`  | Stops the database (your data stays)                       |
-| `task logs`  | Shows the database logs (Ctrl+C to quit)                   |
+| `task db`    | Starts only the database and shows what's running          |
+| `task up`    | Builds and starts the whole app (database, API, website)   |
+| `task down`  | Stops everything (your data stays)                         |
+| `task logs`  | Shows logs from all three (Ctrl+C to quit)                 |
 | `task reset` | WIPES the database and starts fresh (asks you first)       |
-| `task`       | Lists all of these (plus `task build` and `task test`)      |
+| `task`       | Lists all of these (plus build, test, format and lint)      |
 
 Want the details on one? Run `task --summary up` (or `reset`). If your `.env` is missing or the password is blank, `task up` stops and tells you what to fix instead of starting a broken database.
 

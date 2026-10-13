@@ -2,6 +2,28 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-13 · CAR-45 Run the API and website in containers
+
+- Added `backend/CCOS.Api/Dockerfile` and `frontend/CCOS.Web/Dockerfile` (.NET 10, multi-stage build, runs as the non-root `app` user, listens on 8080 inside the container).
+- `docker-compose.yml` now runs three containers: `ccos-db`, `ccos-api` (http://localhost:8081) and `ccos-web` (http://localhost:8080). The website reaches the API by its service name (`http://ccos-api:8080/`).
+- Added `.dockerignore` so `.env`, `bin/`, `obj/` and local `.db` files never go into an image.
+- Taskfile: `task up` now builds and starts the whole app, new `task db` starts only Postgres, `task logs` shows all three, `task reset` rebuilds too.
+- CI: the database job is now "App starts". It runs `task up`, checks Postgres, then checks `/api/products` and the website's `/Products` page both answer.
+- `.env.example`: optional `WEB_PORT` and `API_PORT` overrides.
+- Fixed two formatting nits `task lint` caught (a double space in the API's `Program.cs`, using order in `Pages/Index.cshtml.cs`).
+- Note: the API still uses its own SQLite file with sample data, not Postgres. Switching it over is separate database work.
+- README: new Run the Whole App in Containers section, tech stack now says Razor Pages, structure tree updated. `docs/database-setup.md`: DB-only command and Task table updated.
+
+## 2026-10-13 · CAR-45 Code style, linting, and Dependabot
+
+- Added `.editorconfig` with the team's code style (4-space indents, file-scoped namespaces, `var`, braces, `_camelCase` private fields). Style rules are suggestions, so they never break the build. EF migrations are skipped, and test names can use underscores.
+- Added `Directory.Build.props` so every project runs Microsoft's recommended code checks (analyzers). They show up as build warnings, not errors.
+- Taskfile: added `task format` (fixes formatting) and `task lint` (checks it without changing files).
+- CI: added a Check formatting step that runs `task lint` between build and test.
+- Added `.github/dependabot.yml`: weekly update PRs for NuGet packages (Microsoft packages grouped into one PR) and GitHub Actions.
+- README: Build, Test, and CI section now covers code style, testing tools (xUnit + `Microsoft.AspNetCore.Mvc.Testing`, since the frontend is Razor Pages), and Dependabot; structure tree updated.
+- `docs/database-setup.md`: Task table mentions format and lint.
+
 ## 2026-10-13 · CAR-45 Podman support and Task shortcuts
 
 - Added `Taskfile.yml` with `task up`, `task down`, `task logs`, and `task reset`. Uses Docker by default; set `CONTAINER=podman` in `.env` to use Podman.

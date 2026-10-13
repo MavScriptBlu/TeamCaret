@@ -1,5 +1,5 @@
 # CCOS shortcuts. Install Task from https://taskfile.dev, then run `task` to see the list.
-# GitHub Actions runs `task build`, `task test`, `task up` and `task down` too (.github/workflows/ci.yml).
+# GitHub Actions runs `task build`, `task lint`, `task test`, `task up` and `task down` too (.github/workflows/ci.yml).
 # Uses Docker by default. Podman people: add CONTAINER=podman to your .env.
 version: "3"
 
@@ -13,22 +13,30 @@ tasks:
       - task --list
 
   up:
-    desc: Start the local Postgres database
+    desc: Build and start the whole app (database, API, website)
     summary: |
-      Starts Postgres in a container using docker-compose.yml and your .env.
-      Uses Docker unless your .env has CONTAINER=podman.
-      Then shows what's running so you can see ccos-db is up.
+      Builds the API and website images and starts them with Postgres, using
+      docker-compose.yml and your .env. Uses Docker unless your .env has CONTAINER=podman.
+      Website: http://localhost:8080   API: http://localhost:8081/api/products
+      The first run takes a few minutes (it downloads .NET). After that it's quick.
     preconditions: &needs_env
       - sh: test -f .env
         msg: "No .env yet. Copy .env.example, rename the copy to .env, and set your password."
       - sh: test -n "$POSTGRES_PASSWORD"
         msg: "POSTGRES_PASSWORD is empty in your .env. Set it, then try again."
     cmds:
-      - ${CONTAINER:-docker} compose up -d
+      - ${CONTAINER:-docker} compose up -d --build
+      - ${CONTAINER:-docker} ps
+
+  db:
+    desc: Start only the Postgres database (for DBeaver work)
+    preconditions: *needs_env
+    cmds:
+      - ${CONTAINER:-docker} compose up -d ccos-db
       - ${CONTAINER:-docker} ps
 
   down:
-    desc: Stop the database (your data stays)
+    desc: Stop everything (your database data stays)
     preconditions:
       - sh: test -f .env
         msg: "No .env found, so there's nothing set up to stop."
@@ -36,9 +44,9 @@ tasks:
       - ${CONTAINER:-docker} compose down
 
   logs:
-    desc: Show the database logs (Ctrl+C to quit)
+    desc: Show logs from the database, API and website (Ctrl+C to quit)
     cmds:
-      - ${CONTAINER:-docker} compose logs -f ccos-db
+      - ${CONTAINER:-docker} compose logs -f
 
   build:
     desc: Build the whole solution
@@ -50,6 +58,19 @@ tasks:
     cmds:
       - dotnet test CCOS.slnx
 
+  format:
+    desc: Fix spacing and indents to match .editorconfig
+    cmds:
+      - dotnet format CCOS.slnx --severity error
+
+  lint:
+    desc: Check formatting without changing files (CI runs this)
+    summary: |
+      Fails if any file doesn't match .editorconfig. Fix it with `task format`.
+      Code warnings (analyzers) show up in `task build` instead and never fail it.
+    cmds:
+      - dotnet format CCOS.slnx --verify-no-changes --severity error
+
   reset:
     desc: WIPE the database and start fresh (use after changing the password)
     summary: |
@@ -60,4 +81,4 @@ tasks:
     prompt: This deletes all local database data. Keep going?
     cmds:
       - ${CONTAINER:-docker} compose down -v
-      - ${CONTAINER:-docker} compose up -d
+      - ${CONTAINER:-docker} compose up -d --build
