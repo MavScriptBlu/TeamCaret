@@ -1,0 +1,17 @@
+# CCOS local Postgres. Values come from the .env file in this same folder.
+services:
+  ccos-db:
+    image: postgres:16
+    container_name: ccos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops
+
+volumes:
+  ccos-data:
