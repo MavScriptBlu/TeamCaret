@@ -1,7 +1,5 @@
-# =========================================================================
 # CCOS (Cyber Cougars Club Order & Event System) - .gitignore
 # ASP.NET Core MVC + EF Core, Visual Studio / VS Code, Azure deployment
-# =========================================================================
 
 # --- Build output ---------------------------------------------------------
 [Bb]in/
@@ -62,6 +60,7 @@ appsettings.Production.json
 *.env
 .env
 .env.*
+!.env.example
 secrets.json
 **/Properties/PublishProfiles/*.pubxml
 
