@@ -90,31 +90,17 @@ Want the details on one? Run `task --summary up` (or `migrate`, `reset`). If you
 
 Task uses Docker by default. On Podman, add `CONTAINER=podman` to your `.env`. (The PowerShell `docker` alias doesn't work inside Task, so use this instead.)
 
-## Shortcuts with Task
+## Ports: what's where
 
-The repo has a `Taskfile.yml` so you don't have to remember the long commands.
+| Piece    | Container  | Open it on your computer                  | Port inside Docker | Change it with  |
+| -------- | ---------- | ----------------------------------------- | ------------------ | --------------- |
+| Website  | `ccos-web` | http://localhost:8080                     | 8080               | `WEB_PORT`      |
+| API      | `ccos-api` | http://localhost:8081/api/products        | 8080               | `API_PORT`      |
+| Database | `ccos-db`  | `localhost:5432` (DBeaver, `dotnet ef`)   | 5432               | `POSTGRES_PORT` |
 
-Install Task once (Windows):
-
-```
-winget install Task.Task
-```
-
-Then from the repo root:
-
-| Command        | What it does                                                    |
-| -------------- | --------------------------------------------------------------- |
-| `task db`      | Starts only the database and shows what's running              |
-| `task migrate` | Creates or updates the tables (uses your user secret)          |
-| `task up`      | Builds and starts the whole app (database, API, website)       |
-| `task down`    | Stops everything (your data stays)                             |
-| `task logs`    | Shows logs from all three (Ctrl+C to quit)                     |
-| `task reset`   | WIPES the database and starts fresh (asks you first)           |
-| `task`         | Lists all of these (plus build, test, format and lint)          |
-
-Want the details on one? Run `task --summary up` (or `migrate`, `reset`). If your `.env` is missing or the password is blank, `task up` stops and tells you what to fix instead of starting a broken database.
-
-Task uses Docker by default. On Podman, add `CONTAINER=podman` to your `.env`. (The PowerShell `docker` alias doesn't work inside Task, so use this instead.)
+- Set the "Change it with" names in your `.env` only if something else already uses the port.
+- Containers talk to each other by name, not `localhost`. The website reaches the API at `http://ccos-api:8080/`.
+- Running the API yourself with `dotnet run`? It listens on http://localhost:5173 instead.
 
 ## Connect DBeaver
 

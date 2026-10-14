@@ -62,8 +62,17 @@ task logs    # watch all three (Ctrl+C to quit)
 
 No Task? `docker compose up -d --build` does the same thing.
 
-- Website: http://localhost:8080
-- API: http://localhost:8081/api/products
+### Ports: what's where
+
+| Piece    | Container  | Open it on your computer                  | Port inside Docker | Change it with  |
+| -------- | ---------- | ----------------------------------------- | ------------------ | --------------- |
+| Website  | `ccos-web` | http://localhost:8080                     | 8080               | `WEB_PORT`      |
+| API      | `ccos-api` | http://localhost:8081/api/products        | 8080               | `API_PORT`      |
+| Database | `ccos-db`  | `localhost:5432` (DBeaver, `dotnet ef`)   | 5432               | `POSTGRES_PORT` |
+
+- Set the "Change it with" names in your `.env` only if something else already uses the port.
+- Containers talk to each other by name, not `localhost`. The website reaches the API at `http://ccos-api:8080/`.
+- Running the API yourself with `dotnet run`? It listens on http://localhost:5173 instead.
 
 The first `task up` takes a few minutes because it downloads .NET. After that it's quick.
 Each project has its own `Dockerfile` (`backend/CCOS.Api/Dockerfile`, `frontend/CCOS.Web/Dockerfile`),
