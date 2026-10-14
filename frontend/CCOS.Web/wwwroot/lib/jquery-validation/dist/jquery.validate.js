@@ -686,6 +686,9 @@ $.extend( $.validator, {
 		},
 
 		clean: function( selector ) {
+			if ( typeof selector === "string" ) {
+				return $.find( selector, this.currentForm )[ 0 ];
+			}
 			return $( selector )[ 0 ];
 		},
 
