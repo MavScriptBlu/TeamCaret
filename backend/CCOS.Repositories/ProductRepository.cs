@@ -5,12 +5,49 @@ using Microsoft.EntityFrameworkCore;
 namespace CCOS.Repositories;
 
 /// <summary>
-/// Reads club merchandise (swag and resources).
+/// CRUD operations for club merchandise (swag and resources).
 /// Inactive products are left out by the IsActive query filter on Product (CAR-24),
 /// except in ListAllMerchandiseAsync, which officer screens use.
+/// Delete is always soft-delete (IsActive = false); rows are never removed.
 /// </summary>
 public sealed class ProductRepository(AppDbContext db)
 {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Create
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Creates a new merchandise product.
+    /// </summary>
+    public async Task<Product> CreateAsync(
+        string category,
+        string name,
+        string? description,
+        decimal price,
+        decimal memberPrice,
+        int stockQuantity,
+        CancellationToken cancellationToken = default)
+    {
+        var product = new Product
+        {
+            Category = category,
+            Name = name,
+            Description = description,
+            Price = price,
+            MemberPrice = memberPrice,
+            StockQuantity = stockQuantity,
+            IsActive = true
+        };
+
+        db.Products.Add(product);
+        await db.SaveChangesAsync(cancellationToken);
+        return product;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Read
+    // ─────────────────────────────────────────────────────────────────────────
+
     /// <summary>
     /// Active merchandise, by category then name. Ticket types are Products too
     /// (TicketType), but they're sold from event pages, so they're left out here.
@@ -47,4 +84,87 @@ public sealed class ProductRepository(AppDbContext db)
 
     private IQueryable<Product> Merchandise() =>
         db.Products.AsNoTracking().Where(product => !(product is TicketType));
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Update
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Updates an existing merchandise product. Returns the updated product, or null if not found.
+    /// IgnoreQueryFilters so officers can reactivate a soft-deleted product.
+    /// </summary>
+    public async Task<Product?> UpdateAsync(
+        int productId,
+        string category,
+        string name,
+        string? description,
+        decimal price,
+        decimal memberPrice,
+        int stockQuantity,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products
+            .IgnoreQueryFilters()
+            .Where(p => !(p is TicketType))
+            .FirstOrDefaultAsync(p => p.ProductId == productId, cancellationToken);
+
+        if (product is null)
+        {
+            return null;
+        }
+
+        product.Category = category;
+        product.Name = name;
+        product.Description = description;
+        product.Price = price;
+        product.MemberPrice = memberPrice;
+        product.StockQuantity = stockQuantity;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return product;
+    }
+
+    /// <summary>
+    /// Reactivates a soft-deleted product. Returns true if found and reactivated, false if not found.
+    /// </summary>
+    public async Task<bool> ReactivateAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products
+            .IgnoreQueryFilters()
+            .Where(p => !(p is TicketType))
+            .FirstOrDefaultAsync(p => p.ProductId == productId, cancellationToken);
+
+        if (product is null)
+        {
+            return false;
+        }
+
+        product.IsActive = true;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Delete (soft-delete only: IsActive = false)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Soft-deletes a product (sets IsActive to false). Rows are never removed.
+    /// Returns true if found and deactivated, false if not found or already inactive.
+    /// </summary>
+    public async Task<bool> SoftDeleteAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        var product = await db.Products
+            .Where(p => !(p is TicketType))
+            .FirstOrDefaultAsync(p => p.ProductId == productId, cancellationToken);
+
+        if (product is null)
+        {
+            return false;
+        }
+
+        product.IsActive = false;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }

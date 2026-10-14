@@ -50,6 +50,81 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/products: create a new product.
+    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<ProductDto>> Create(
+        [FromBody] ProductInputDto input,
+        CancellationToken cancellationToken)
+    {
+        var product = await products.CreateAsync(
+            input.Category,
+            input.Name,
+            input.Description,
+            input.Price,
+            input.MemberPrice,
+            input.StockQuantity,
+            cancellationToken);
+
+        return CreatedAtAction(
+            nameof(Get),
+            new { id = product.ProductId },
+            ToDto(product, includeMemberPrice: true));
+    }
+
+    /// <summary>
+    /// PUT /api/products/{id}: update an existing product.
+    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// </summary>
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<ProductDto>> Update(
+        int id,
+        [FromBody] ProductInputDto input,
+        CancellationToken cancellationToken)
+    {
+        var product = await products.UpdateAsync(
+            id,
+            input.Category,
+            input.Name,
+            input.Description,
+            input.Price,
+            input.MemberPrice,
+            input.StockQuantity,
+            cancellationToken);
+
+        if (product is null)
+        {
+            return NotFound();
+        }
+
+        return ToDto(product, includeMemberPrice: true);
+    }
+
+    /// <summary>
+    /// PATCH /api/products/{id}/reactivate: reactivate a soft-deleted product.
+    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// </summary>
+    [HttpPatch("{id:int}/reactivate")]
+    public async Task<IActionResult> Reactivate(int id, CancellationToken cancellationToken)
+    {
+        var success = await products.ReactivateAsync(id, cancellationToken);
+        return success ? NoContent() : NotFound();
+    }
+
+    /// <summary>
+    /// DELETE /api/products/{id}: soft-delete a product (IsActive = false).
+    /// Rows are never removed per acceptance criteria.
+    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var success = await products.SoftDeleteAsync(id, cancellationToken);
+        return success ? NoContent() : NotFound();
+    }
+
+    /// <summary>
     /// Per the CAR-1 design, only a logged-in customer with a current Member record gets
     /// member pricing. There's no login yet, so member prices are shared with everyone
     /// for now. TODO: check the caller's Member record once ASP.NET Core Identity is in.
