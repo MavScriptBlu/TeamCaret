@@ -124,5 +124,8 @@ The team settled on PostgreSQL 17 for CAR-45. It runs the same everywhere (Windo
 - Times are stored as `timestamp(0) with time zone` with `now()` defaults.
 - The migrations were regenerated from scratch as one `InitialPostgresSchema` migration.
 
-SQLite is still allowed for quick local testing: run the API in Development with no
+The `ccos-api` container (from `task up`) uses this same PostgreSQL container, with the host name
+`ccos-db` inside the Docker network. Run `task migrate` once so it has tables.
+
+SQLite is still allowed for quick local testing: run the API with `dotnet run` in Development with no
 connection string and it uses a sample SQLite file (see `backend/README.md`).

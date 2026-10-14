@@ -81,6 +81,12 @@ dotnet run --project backend/CCOS.Api
 Open the `/api/products` URL it prints. Anything you save now is in PostgreSQL, so it's
 still there next time and everyone on the same database sees the same data.
 
+## The API container
+
+`task up` also runs the API in a container (`ccos-api`). It gets its connection string from
+`docker-compose.yml` (host `ccos-db`, built from your `.env`), so it uses the same PostgreSQL
+container as `dotnet run`. It does not use your user secret. Run `task migrate` once so the tables exist.
+
 ## No database? No problem
 
 If there's no `ConnectionStrings:CCOS` (no user secret set), the API in **Development**

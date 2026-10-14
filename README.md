@@ -78,9 +78,10 @@ The first `task up` takes a few minutes because it downloads .NET. After that it
 Each project has its own `Dockerfile` (`backend/CCOS.Api/Dockerfile`, `frontend/CCOS.Web/Dockerfile`),
 and `.dockerignore` keeps your `.env` and build junk out of the images.
 
-Heads up: the API container still uses its own SQLite file with sample data, not the PostgreSQL
-container. That data resets whenever the API container is rebuilt. To work against PostgreSQL, run
-the API with `dotnet run` (see `backend/README.md`). Port taken? Set `WEB_PORT` or `API_PORT` in your `.env`.
+All three containers work together: the website calls the API container, and the API container
+uses the PostgreSQL container (same user, password and database as your `.env`). The tables are not
+there on a brand new database, so run `task migrate` once after your first `task up` (see
+`backend/README.md`). Port taken? Set `WEB_PORT`, `API_PORT` or `POSTGRES_PORT` in your `.env`.
 
 ## Build, Test, and CI
 

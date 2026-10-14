@@ -18,6 +18,7 @@ tasks:
       Builds the API and website images and starts them with PostgreSQL, using
       docker-compose.yml and your .env. Uses Docker unless your .env has CONTAINER=podman.
       Website: http://localhost:8080   API: http://localhost:8081/api/products
+      The API container uses the PostgreSQL container. Run `task migrate` once so the tables exist.
       The first run takes a few minutes (it downloads .NET). After that it's quick.
     preconditions: &needs_env
       - sh: test -f .env

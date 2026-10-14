@@ -17,9 +17,9 @@ services:
       - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops or restarts
 
   # The API (backend/CCOS.Api). Open http://localhost:8081/api/products to see it answer.
-  # For now the API container still uses its own SQLite sample file (not the PostgreSQL above),
-  # so its sample data resets whenever the container is rebuilt. Running the API with
-  # `dotnet run` and your user secrets is what talks to PostgreSQL (see backend/README.md).
+  # It talks to the ccos-db container above (host name ccos-db, port 5432 inside the Docker network)
+  # with the same user, password and database as your .env. The tables come from `task migrate`,
+  # so run that once after the first `task up` (see backend/README.md).
   ccos-api:
     build:
       context: . # repo root, so the build can reach shared/
@@ -27,9 +27,14 @@ services:
     container_name: ccos-api
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Development # turns on the SQLite dev database and sample data
+      ASPNETCORE_ENVIRONMENT: Development
+      # This is ConnectionStrings:CCOS written the way environment variables spell it (double underscore).
+      # Inside Docker the database is reached by its service name, not localhost.
+      ConnectionStrings__CCOS: "Host=ccos-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
     ports:
       - "${API_PORT:-8081}:8080" # inside the container .NET listens on 8080
+    depends_on:
+      - ccos-db
 
   # The website (frontend/CCOS.Web). Open http://localhost:8080
   ccos-web:
