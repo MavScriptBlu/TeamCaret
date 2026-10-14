@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@using CCOS.Web.Services
 @{
     ViewData["Title"] = "Merch";
 }
@@ -76,10 +77,10 @@ else
                             {
                                 <span class="product-card-description">@product.Description</span>
                             }
-                            <span class="product-card-price">@IndexModel.FormatPrice(product.Price)</span>
+                            <span class="product-card-price">@Money.Format(product.Price)</span>
                             @if (product.MemberPrice is decimal memberPrice)
                             {
-                                <span class="product-card-member">Member price: @IndexModel.FormatPrice(memberPrice)</span>
+                                <span class="product-card-member">Member price: @Money.Format(memberPrice)</span>
                             }
                             <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
                         </div>

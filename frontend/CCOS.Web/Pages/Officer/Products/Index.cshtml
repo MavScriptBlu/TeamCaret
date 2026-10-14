@@ -1,7 +1,100 @@
 @page
 @model IndexModel
+@using CCOS.Web.Services
 @{
-    ViewData["Title"] = "Manage Products";
+    ViewData["Title"] = "Officer Dashboard";
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@* Matches Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive (assets/Wireframes-Product). *@
+
+<div class="officer-head">
+    <h1>Officer Dashboard</h1>
+    <div class="officer-actions">
+        <a class="officer-pill" asp-page="/Officer/Products/Create">Create product</a>
+        <form method="get" class="officer-filter">
+            <select name="show" aria-label="Filter products" onchange="this.form.submit()">
+                <option value="">All products</option>
+                <option value="active" selected="@(Model.Show == "active")">Active</option>
+                <option value="inactive" selected="@(Model.Show == "inactive")">Inactive</option>
+            </select>
+            <noscript><button type="submit">Apply</button></noscript>
+        </form>
+    </div>
+</div>
+
+@if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Products couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.TotalCount == 0)
+{
+    <p class="products-empty">No products yet. Use Create product to add one.</p>
+}
+else if (Model.Products.Count == 0)
+{
+    <div class="products-empty">
+        <p>No products match this filter.</p>
+        <a asp-page="/Officer/Products/Index">Show all products</a>
+    </div>
+}
+else
+{
+    <ul class="officer-products">
+        @for (var i = 0; i < Model.Products.Count; i++)
+        {
+            var product = Model.Products[i];
+            <li>
+                <details class="officer-product @(product.IsActive ? "" : "is-inactive")" open="@(i == 0)">
+                    <summary>
+                        <span class="officer-product-name">@product.Name</span>
+                        @if (!product.IsActive)
+                        {
+                            <span class="officer-badge">Deactivated</span>
+                        }
+                        else if (product.StockQuantity == 0)
+                        {
+                            <span class="officer-badge is-stock">Out of stock</span>
+                        }
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                    </summary>
+
+                    <div class="officer-product-body">
+                        <div class="officer-product-image" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                        </div>
+
+                        <div class="officer-product-details">
+                            @if (!product.IsActive)
+                            {
+                                <p class="officer-deactivated">Product Currently Deactivated</p>
+                            }
+                            <dl class="officer-facts">
+                                <div><dt>Name</dt><dd>@product.Name</dd></div>
+                                <div><dt>Price</dt><dd>@Money.Format(product.Price)</dd></div>
+                                <div><dt>Member Price</dt><dd>@(product.MemberPrice is decimal memberPrice ? Money.Format(memberPrice) : "–")</dd></div>
+                                <div><dt>Current stock</dt><dd>@product.StockQuantity</dd></div>
+                                <div><dt>Category</dt><dd>@product.Category</dd></div>
+                                <div><dt>IsActive</dt><dd>@(product.IsActive ? "Yes" : "No")</dd></div>
+                            </dl>
+                            <div class="officer-description">
+                                <h2>Description</h2>
+                                <p>@(string.IsNullOrWhiteSpace(product.Description) ? "No description." : product.Description)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="officer-product-actions">
+                        @* Placeholders: delete (deactivate) and quick edit don't do anything yet. *@
+                        <button type="button" class="officer-delete">Delete Product</button>
+                        <span class="officer-product-links">
+                            <button type="button" class="officer-pill">Quick Edit</button>
+                            <a class="officer-pill" asp-page="/Officer/Products/Edit" asp-route-id="@product.ProductId">Edit product page</a>
+                        </span>
+                    </div>
+                </details>
+            </li>
+        }
+    </ul>
+}

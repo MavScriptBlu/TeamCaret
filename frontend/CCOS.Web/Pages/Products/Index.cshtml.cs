@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using CCOS.Shared;
 using CCOS.Web.Services;
@@ -14,8 +13,6 @@ namespace CCOS.Web.Pages.Products;
 /// </summary>
 public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logger) : PageModel
 {
-    private static readonly CultureInfo Money = CultureInfo.GetCultureInfo("en-US");
-
     /// <summary>
     /// Category filter from the URL (/Products?category=Swag). Empty means all categories.
     /// </summary>
@@ -75,10 +72,4 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
             .Where(product => !InStockOnly || product.StockQuantity > 0)
             .ToList();
     }
-
-    /// <summary>
-    /// "$35.00", or "Free" for $0.
-    /// </summary>
-    public static string FormatPrice(decimal price) =>
-        price == 0 ? "Free" : price.ToString("C", Money);
 }
