@@ -519,3 +519,139 @@ a.product-card:hover {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+
+/* ---------- Officer product creation form ---------- */
+.product-create-page {
+    max-width: 780px;
+    margin-inline: auto;
+}
+
+    .product-create-page h1 {
+        font-size: 34px;
+        line-height: 1.15;
+        font-weight: 800;
+    }
+
+    .product-create-page > p {
+        margin: var(--s2) 0 var(--s5);
+        color: var(--muted);
+    }
+
+.product-create-form {
+    padding: var(--s5);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+    background: var(--raised);
+}
+
+.product-create-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s4);
+}
+
+.product-form-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--s1);
+}
+
+.product-form-field label {
+    font-weight: 600;
+}
+
+.product-form-field input,
+.product-form-field textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: var(--s2) var(--s3);
+    border: 1px solid #bdb5b3;
+    border-radius: var(--r-sm);
+    background: var(--raised);
+    font: inherit;
+}
+
+.product-form-field textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.product-form-field-wide {
+    grid-column: 1 / -1;
+}
+
+.product-form-field .field-validation-error {
+    color: #a12622;
+    font-size: 13px;
+}
+
+.product-validation-summary.validation-summary-errors {
+    margin-bottom: var(--s4);
+    padding: var(--s3);
+    border: 1px solid #a12622;
+    border-radius: var(--r-sm);
+    background: #fff1f0;
+    color: #a12622;
+}
+
+.product-validation-summary ul {
+    margin: 0;
+    padding-left: var(--s5);
+}
+
+.product-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    margin-top: var(--s5);
+}
+
+.product-form-save,
+.product-form-cancel {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--s4);
+    border: 1px solid var(--maroon);
+    border-radius: var(--r-sm);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.product-form-save {
+    background: var(--maroon);
+    color: #fff;
+}
+
+.product-form-cancel {
+    background: var(--raised);
+    color: var(--brand-text);
+}
+
+.product-created-message {
+    margin: 0 0 var(--s4);
+    padding: var(--s3) var(--s4);
+    border: 1px solid #28613b;
+    border-radius: var(--r-sm);
+    background: #edf7ef;
+    color: #205632;
+}
+
+@media (max-width: 600px) {
+    .product-create-form {
+        padding: var(--s4);
+    }
+
+    .product-create-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .product-form-field-wide {
+        grid-column: auto;
+    }
+}

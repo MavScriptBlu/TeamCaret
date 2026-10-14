@@ -4,4 +4,77 @@
     ViewData["Title"] = "New Product";
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+<section class="product-create-page" aria-labelledby="product-create-title">
+    <h1 id="product-create-title">Create product</h1>
+    <p>Add the product details below. New products are active when created.</p>
+
+    <form method="post" class="product-create-form">
+        <div asp-validation-summary="ModelOnly"
+             class="product-validation-summary"
+             role="alert"></div>
+
+        <div class="product-create-grid">
+            <div class="product-form-field">
+                <label asp-for="Input.Name"></label>
+                <input asp-for="Input.Name" maxlength="100" autocomplete="off" />
+                <span asp-validation-for="Input.Name" class="field-validation-error"></span>
+            </div>
+
+            <div class="product-form-field">
+                <label asp-for="Input.Category"></label>
+                <input asp-for="Input.Category" maxlength="30" autocomplete="off" />
+                <span asp-validation-for="Input.Category" class="field-validation-error"></span>
+            </div>
+
+            <div class="product-form-field">
+                <label asp-for="Input.Price"></label>
+                <input asp-for="Input.Price"
+                       type="number"
+                       min="0"
+                       max="99999999.99"
+                       step="0.01"
+                       inputmode="decimal" />
+                <span asp-validation-for="Input.Price" class="field-validation-error"></span>
+            </div>
+
+            <div class="product-form-field">
+                <label asp-for="Input.MemberPrice"></label>
+                <input asp-for="Input.MemberPrice"
+                       type="number"
+                       min="0"
+                       max="99999999.99"
+                       step="0.01"
+                       inputmode="decimal" />
+                <span asp-validation-for="Input.MemberPrice" class="field-validation-error"></span>
+            </div>
+
+            <div class="product-form-field">
+                <label asp-for="Input.StockQuantity"></label>
+                <input asp-for="Input.StockQuantity"
+                       type="number"
+                       min="0"
+                       max="2147483647"
+                       step="1" />
+                <span asp-validation-for="Input.StockQuantity" class="field-validation-error"></span>
+            </div>
+
+            <div class="product-form-field product-form-field-wide">
+                <label asp-for="Input.Description">Description (optional)</label>
+                <textarea asp-for="Input.Description" rows="5" maxlength="500"></textarea>
+                <span asp-validation-for="Input.Description" class="field-validation-error"></span>
+            </div>
+        </div>
+
+        <div class="product-form-actions">
+            <button type="submit" class="product-form-save">Save product</button>
+            <a asp-page="/Officer/Products/Index" class="product-form-cancel">Cancel</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+}
