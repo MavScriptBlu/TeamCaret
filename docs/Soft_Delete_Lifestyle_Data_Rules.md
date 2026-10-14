@@ -13,7 +13,7 @@
 | Document cascading rules and FK constraints for historical order line references | Section 3 |
 | Notes documented in project architecture space | This doc |
 
-**Stack:** ASP.NET Core Web API with EF Core and SQL Server (Azure SQL in production), per the repo README. This doc defines the rules; it doesn't include implementation code.
+**Stack:** ASP.NET Core Web API with EF Core and PostgreSQL, per the repo README. This doc defines the rules; it doesn't include implementation code.
 
 | # | Rule | Schema change? |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ The only code that reaches a product from an order is cancellation. It looks up 
 
 ## 3. Foreign keys and cascade rules
 
-Order history is protected by the database as well as the app: `FK_OrderLines_Products` is `NO ACTION`, so SQL Server refuses to delete any product that appears on an order, even from a script run outside the app.
+Order history is protected by the database as well as the app: `FK_OrderLines_Products` is `NO ACTION`, so PostgreSQL refuses to delete any product that appears on an order, even from a script run outside the app.
 
 | Relationship | SQL `ON DELETE` | Effect |
 | --- | --- | --- |

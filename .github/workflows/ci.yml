@@ -48,13 +48,28 @@ jobs:
       - name: Build and start the app
         run: task up
 
+      # pg_isready ships inside the Postgres image
       - name: Wait until Postgres is ready
         run: |
+          set -a; . ./.env; set +a
           for attempt in $(seq 1 30); do
-            docker compose exec -T ccos-db pg_isready -U ccos-db && exit 0
+            docker compose exec -T ccos-db pg_isready -U "$POSTGRES_USER" && exit 0
             sleep 2
           done
           echo "Postgres never got ready"; docker compose logs ccos-db; exit 1
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Same as `task migrate`, but CI has no user secrets, so it passes the connection string directly
+      - name: Apply the database migrations
+        run: |
+          set -a; . ./.env; set +a
+          dotnet tool restore
+          CCOS_CONNECTION_STRING="Host=localhost;Port=${POSTGRES_PORT:-5432};Database=$POSTGRES_DB;Username=$POSTGRES_USER;Password=$POSTGRES_PASSWORD" \
+            dotnet ef database update --project backend/CCOS.Data
 
       # The website's Products page calls the API, so this checks the containers work together
       - name: Check the API and website answer

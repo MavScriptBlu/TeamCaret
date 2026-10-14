@@ -20,16 +20,16 @@ design.
 
 - ASP.NET Core (Web API backend + Razor Pages frontend)
 - Entity Framework Core
-- SQL Server (Azure SQL in production), under review: see `docs/database-setup.md`
-- PostgreSQL 16 in a container for local development (Docker or Podman)
+- PostgreSQL 17 in a container for local development (Docker or Podman), via the Npgsql EF Core provider
+- SQLite sample file as a fallback when you run the API with no connection string
 - Docker/Podman containers for the API and website too (`task up` runs all three)
 - ASP.NET Core Identity for authentication
 - Deployed to Azure App Service
 
 ## Local Database Setup
 
-1. Copy `.env.example`, rename the copy to `.env`, and put your own password in it.
-   `.env` is gitignored, so never commit it.
+1. Copy `.env.example` and rename the copy to `.env`. The shared dev settings in it work
+   as they are, so you don't have to type anything. `.env` is gitignored, so never commit it.
 2. Start Docker Desktop, then from the repo root run:
 
    ```bash
@@ -43,10 +43,12 @@ design.
    just the database, or `task up` for the whole app (see below). `task down` stops it all.
    Run `task` to see every shortcut.
 
-3. Connect with DBeaver (or any Postgres tool) using the values from your `.env`.
+3. Put the connection string in your user secrets and create the tables with `task migrate`.
+   Then `dotnet run` the API and it uses PostgreSQL. Exact commands are in `backend/README.md`.
+4. Want to look at the tables? Connect DBeaver to `localhost:5432`, user `ccos-db`,
+   and the password from your `.env`.
 
-Full steps, troubleshooting, and Postgres vs SQLite notes are in
-`docs/database-setup.md`.
+Full steps and troubleshooting are in `docs/database-setup.md`.
 
 ## Run the Whole App in Containers
 
@@ -67,9 +69,9 @@ The first `task up` takes a few minutes because it downloads .NET. After that it
 Each project has its own `Dockerfile` (`backend/CCOS.Api/Dockerfile`, `frontend/CCOS.Web/Dockerfile`),
 and `.dockerignore` keeps your `.env` and build junk out of the images.
 
-Heads up: the API still uses its own SQLite file with sample data, not the Postgres container.
-That data resets whenever the API container is rebuilt. Switching the API to Postgres is a
-separate change (Dylan's database work). Port taken? Set `WEB_PORT` or `API_PORT` in your `.env`.
+Heads up: the API container still uses its own SQLite file with sample data, not the PostgreSQL
+container. That data resets whenever the API container is rebuilt. To work against PostgreSQL, run
+the API with `dotnet run` (see `backend/README.md`). Port taken? Set `WEB_PORT` or `API_PORT` in your `.env`.
 
 ## Build, Test, and CI
 
@@ -91,8 +93,9 @@ If CI says your formatting is off, run `task format` and commit what it changed.
 `Microsoft.AspNetCore.Mvc.Testing`, which runs the site in memory and lets a test load a page.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request. It runs
-`task build`, `task lint` and `task test`, and it also runs `task up` and checks that the database,
-API, and website all answer, then stops them with `task down`. If the CI check goes red on a PR, click it to see which step failed.
+`task build`, `task lint` and `task test`, and it also runs `task up`, waits for PostgreSQL, applies
+every migration with `dotnet ef database update`, checks that the API and website answer, then stops
+them with `task down`. If the CI check goes red on a PR, click it to see which step failed.
 
 Dependabot (`.github/dependabot.yml`) opens a PR once a week when a NuGet package or
 GitHub Action has an update. CI runs on it, so merge it if it's green.
@@ -105,7 +108,7 @@ TeamCaret/
 ├── frontend/        Razor Pages app that calls the backend API (view layer)
 ├── shared/         DTOs/enums shared between backend and frontend (the API contract)
 ├── docs/           Proposal, ERD, schema, backlog, changelog
-├── docker-compose.yml  Local Postgres, API, and website containers (reads .env)
+├── docker-compose.yml  Local PostgreSQL, API, and website containers (reads .env)
 ├── .dockerignore   Keeps .env and build output out of Docker images
 ├── Taskfile.yml    Shortcuts: `task up`, `task down`, `task build`, `task test`, `task lint`, and more
 ├── .github/workflows/ci.yml  GitHub Actions: build, lint, test, and app start check
@@ -113,6 +116,7 @@ TeamCaret/
 ├── .editorconfig   Code style rules (spacing, naming) every editor reads
 ├── Directory.Build.props  Turns on .NET code checks for every project
 ├── .env.example    Template for your local .env (copy it, add your password)
+├── .config/dotnet-tools.json  Pins the `dotnet ef` tool version (`dotnet tool restore` installs it)
 ├── .gitignore
 └── README.md
 ```

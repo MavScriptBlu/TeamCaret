@@ -2,22 +2,24 @@
 # Works with Docker (docker compose up -d --build) or Podman (podman compose up -d --build).
 # Easiest way: `task up` (whole app) or `task db` (just the database).
 services:
+  # PostgreSQL 17. This is the one shared CCOS database.
   ccos-db:
-    image: docker.io/library/postgres:16 # full name so Podman doesn't ask which registry
+    image: docker.io/library/postgres:17 # full name so Podman doesn't ask which registry
     container_name: ccos-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_USER} # all three come from your .env, never typed in here
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops
+      - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops or restarts
 
   # The API (backend/CCOS.Api). Open http://localhost:8081/api/products to see it answer.
-  # For now it still uses its own SQLite file inside the container (not the Postgres above),
-  # so its sample data resets whenever the container is rebuilt.
+  # For now the API container still uses its own SQLite sample file (not the PostgreSQL above),
+  # so its sample data resets whenever the container is rebuilt. Running the API with
+  # `dotnet run` and your user secrets is what talks to PostgreSQL (see backend/README.md).
   ccos-api:
     build:
       context: . # repo root, so the build can reach shared/

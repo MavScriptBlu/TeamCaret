@@ -1,6 +1,6 @@
 # Cyber Cougars Club Order & Event System (CCOS)
 
-Database Schema (SQL Server / Azure SQL)
+Database Schema (PostgreSQL)
 
 ---
 

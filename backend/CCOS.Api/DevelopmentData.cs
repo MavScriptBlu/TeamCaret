@@ -6,7 +6,7 @@ namespace CCOS.Api;
 
 /// <summary>
 /// Local development database: a SQLite file used when no ConnectionStrings:CCOS is set,
-/// so the app runs without SQL Server. Real databases (SQL Server, Azure SQL later) use the
+/// so the app runs without a database server. A real PostgreSQL database uses the
 /// EF Core migrations instead.
 /// </summary>
 public static class DevelopmentData

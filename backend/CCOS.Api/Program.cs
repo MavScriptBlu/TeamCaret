@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
-// Database: SQL Server (Azure SQL later) when ConnectionStrings:CCOS is set.
+// Database: PostgreSQL when ConnectionStrings:CCOS is set.
 // Without it, Development uses a local SQLite file so the app runs without a database server.
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
@@ -29,7 +29,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
     else
     {
-        options.UseSqlServer(connectionString);
+        options.UseNpgsql(connectionString);
     }
 });
 builder.Services.AddScoped<ProductRepository>();

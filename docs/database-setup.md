@@ -1,10 +1,17 @@
-# CCOS database setup (Postgres + Docker or Podman + DBeaver)
+# CCOS database setup (PostgreSQL + Docker or Podman + DBeaver)
 
-## Get Postgres running
+CCOS uses **PostgreSQL 17** running in a container (`postgres:17`, Npgsql provider for EF Core).
+Everyone gets the same database engine on their own computer, and the EF Core migrations
+are written for it.
+
+The short version for coders (user secrets, migrations, running the API) is in
+`backend/README.md`. This doc covers the container side, Podman, Task, and DBeaver.
+
+## Get PostgreSQL running
 
 1. Open Docker Desktop and make sure it says it's running. (On Podman? Skip to [Using Podman](#using-podman) below.)
 2. In the repo root, copy `.env.example` and rename the copy to `.env`. (`.env` is gitignored, never commit it.)
-3. Open `.env` and set `POSTGRES_PASSWORD` to your own password. Save.
+3. The shared dev settings inside work as they are (`POSTGRES_PASSWORD=ccos-dev-password`). The password only protects a database on your own computer. Want your own? Change it BEFORE the first start. Changed it later? Run `task reset` (it wipes local data) or PostgreSQL keeps the old one.
 4. Open a terminal in the repo root and run:
    ```
    docker compose up -d ccos-db
@@ -15,6 +22,9 @@
    docker ps
    ```
    You should see `ccos-db` with `0.0.0.0:5432->5432`.
+6. Create the tables: `task migrate` (or the two commands in `backend/README.md`). You need the user secret from `backend/README.md` step 3 first.
+
+Your data lives in the `ccos-data` volume, so it survives restarts and reboots.
 
 ## Using Podman
 
@@ -28,10 +38,10 @@ Podman runs the exact same `docker-compose.yml`. Nobody else on the team has to 
    ```
    podman machine start
    ```
-3. Do the `.env` steps from above (copy `.env.example` to `.env`, set your password).
+3. Do the `.env` steps from above (copy `.env.example` to `.env`).
 4. From the repo root:
    ```
-   podman compose up -d
+   podman compose up -d ccos-db
    podman ps
    ```
    You should see `ccos-db` with `0.0.0.0:5432->5432`.
@@ -66,57 +76,67 @@ winget install Task.Task
 
 Then from the repo root:
 
-| Command      | What it does                                                |
-| ------------ | ----------------------------------------------------------- |
-| `task db`    | Starts only the database and shows what's running          |
-| `task up`    | Builds and starts the whole app (database, API, website)   |
-| `task down`  | Stops everything (your data stays)                         |
-| `task logs`  | Shows logs from all three (Ctrl+C to quit)                 |
-| `task reset` | WIPES the database and starts fresh (asks you first)       |
-| `task`       | Lists all of these (plus build, test, format and lint)      |
+| Command        | What it does                                                    |
+| -------------- | --------------------------------------------------------------- |
+| `task db`      | Starts only the database and shows what's running              |
+| `task migrate` | Creates or updates the tables (uses your user secret)          |
+| `task up`      | Builds and starts the whole app (database, API, website)       |
+| `task down`    | Stops everything (your data stays)                             |
+| `task logs`    | Shows logs from all three (Ctrl+C to quit)                     |
+| `task reset`   | WIPES the database and starts fresh (asks you first)           |
+| `task`         | Lists all of these (plus build, test, format and lint)          |
 
-Want the details on one? Run `task --summary up` (or `reset`). If your `.env` is missing or the password is blank, `task up` stops and tells you what to fix instead of starting a broken database.
+Want the details on one? Run `task --summary up` (or `migrate`, `reset`). If your `.env` is missing or the password is blank, `task up` stops and tells you what to fix instead of starting a broken database.
+
+Task uses Docker by default. On Podman, add `CONTAINER=podman` to your `.env`. (The PowerShell `docker` alias doesn't work inside Task, so use this instead.)
+
+## Shortcuts with Task
+
+The repo has a `Taskfile.yml` so you don't have to remember the long commands.
+
+Install Task once (Windows):
+
+```
+winget install Task.Task
+```
+
+Then from the repo root:
+
+| Command        | What it does                                                    |
+| -------------- | --------------------------------------------------------------- |
+| `task db`      | Starts only the database and shows what's running              |
+| `task migrate` | Creates or updates the tables (uses your user secret)          |
+| `task up`      | Builds and starts the whole app (database, API, website)       |
+| `task down`    | Stops everything (your data stays)                             |
+| `task logs`    | Shows logs from all three (Ctrl+C to quit)                     |
+| `task reset`   | WIPES the database and starts fresh (asks you first)           |
+| `task`         | Lists all of these (plus build, test, format and lint)          |
+
+Want the details on one? Run `task --summary up` (or `migrate`, `reset`). If your `.env` is missing or the password is blank, `task up` stops and tells you what to fix instead of starting a broken database.
 
 Task uses Docker by default. On Podman, add `CONTAINER=podman` to your `.env`. (The PowerShell `docker` alias doesn't work inside Task, so use this instead.)
 
 ## Connect DBeaver
 
-Use the values from your `.env`: host `localhost`, port `POSTGRES_PORT` (5432), database `POSTGRES_DB` (postgres), user `POSTGRES_USER` (ccos-db), and your password.
+New connection, pick **PostgreSQL**. Then: host `localhost`, port `5432` (or your `POSTGRES_PORT`), database `postgres`, user `ccos-db`, and your `POSTGRES_PASSWORD` (`ccos-dev-password` unless you changed it).
 Hit **Test Connection**. If it asks to download a driver, say yes. Green = done.
+
+The tables only show up after you've run `task migrate` once. Look under `postgres` > `Schemas` > `public` > `Tables`.
 
 ## If it breaks
 
-- **"password authentication failed"**: the password in `.env` and DBeaver don't match. If you changed it AFTER the first run, the old one is baked in. Fix: `docker compose down -v` (wipes the db, it's empty anyway) then `docker compose up -d`.
-- **"port is already allocated"**: something else (usually a Postgres you installed on Windows) is on 5432. Either stop that one, or set `POSTGRES_PORT=5433` in `.env` and use port 5433 in DBeaver.
-- **Stop it**: `docker compose stop`. **Start again**: `docker compose up -d`. Your data stays.
+- **`28P01 password authentication failed for user "ccos-db"`**: the password in your user secret or DBeaver doesn't match the one the database was created with. PostgreSQL only reads `POSTGRES_PASSWORD` the first time the volume is made, so editing `.env` later changes nothing. Keep your data: `docker compose exec ccos-db psql -U ccos-db -d postgres -c "ALTER ROLE CURRENT_USER PASSWORD 'ccos-dev-password'"` (swap `docker` for `podman` if that's you). Don't care about the data: `task reset` then `task migrate`.
+- **`ccos-db` starts then stops**: `docker compose logs ccos-db` shows why. An empty `POSTGRES_PASSWORD` in `.env` is the usual cause.
+- **"port is already allocated"**: something else (usually a PostgreSQL you installed on Windows) is on 5432. Either stop that one, or set `POSTGRES_PORT=5433` in `.env` and use port 5433 in DBeaver and your user secret.
+- **Stop it**: `docker compose stop`. **Start again**: `docker compose up -d ccos-db`. Your data stays.
 
-## Connection string for the app (hand this to Dylan)
+## Why PostgreSQL (decided 2026-10-14, CAR-45)
 
-```
-Host=localhost;Port=5432;Database=postgres;Username=ccos-db;Password=YOUR_PASSWORD
-```
+The team settled on PostgreSQL 17 for CAR-45. It runs the same everywhere (Windows, Mac, Linux, CI), it's free, and the Npgsql provider covers everything we use in EF Core.
 
-Keep the real password out of GitHub (user secrets, or an appsettings.Development.json that's gitignored).
+- Event overselling (CAR-30) stays blocked. Concurrency uses PostgreSQL's built-in `xmin` column as the EF Core concurrency token, and booking still does one conditional `UPDATE`.
+- Times are stored as `timestamp(0) with time zone` with `now()` defaults.
+- The migrations were regenerated from scratch as one `InitialPostgresSchema` migration.
 
----
-
-## Postgres vs SQLite: the team convo
-
-Heads up: the original proposal says **SQL Server**. Whatever the team lands on, update the proposal so it matches.
-
-**Good news: you don't really have to pick for the whole team.** CCOS uses EF Core, and EF Core can talk to either one. The difference in code is one NuGet package plus one line in `Program.cs`:
-
-|                 | Postgres                                                  | SQLite                                     |
-| --------------- | --------------------------------------------------------- | ------------------------------------------ |
-| NuGet package   | `Npgsql.EntityFrameworkCore.PostgreSQL`                   | `Microsoft.EntityFrameworkCore.Sqlite`     |
-| Program.cs line | `options.UseNpgsql(connString)`                           | `options.UseSqlite("Data Source=ccos.db")` |
-| Setup           | Needs Docker or Podman running                            | Zero setup, it's just a file               |
-| Feels like      | A real server, closer to what the club would actually run | Great for quick local testing              |
-
-**Fair points for SQLite:** nobody needs Docker or Podman, nothing to install, the db is one file you can delete and recreate.
-
-**Fair points for Postgres:** it's a real multi-user server (closer to production), and DBeaver + Docker is a solid skill to show off.
-
-**The "both" option:** pick the provider from a setting (like `"DbProvider": "Postgres"` or `"Sqlite"` in appsettings) and have Program.cs choose. Catch: EF migrations get made for one provider at a time, so either keep two migration folders, or agree on one "official" db for migrations and use the other just for local messing around.
-
-Simplest deal to pitch: **Postgres is the official one, SQLite is allowed for quick local testing.**
+SQLite is still allowed for quick local testing: run the API in Development with no
+connection string and it uses a sample SQLite file (see `backend/README.md`).

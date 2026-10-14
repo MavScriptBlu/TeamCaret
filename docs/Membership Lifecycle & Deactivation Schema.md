@@ -96,7 +96,7 @@ INT NULL FK → Admins
 Which admin marked them as left; cleared on rejoin
 
 
-The ERD's IsCurrent column is dropped. A stored flag goes stale the day dues run out. The schema doc's PERSISTED computed version can't be created either, because SQL Server doesn't allow GETDATE() in a persisted column.
+The ERD's IsCurrent column is dropped. A stored flag goes stale the day dues run out. The schema doc's PERSISTED computed version can't be created either, because PostgreSQL doesn't allow now() or CURRENT_DATE in a stored generated column.
 
 stateDiagram-v2
 
@@ -178,7 +178,7 @@ Deletes their Officers row, which only holds the current title.
 
 When an officer's dues simply expire, nothing is written. Their officer access pauses because the access check requires an Active member, and it comes back when they renew.
 
-Why the two CASCADE rules change: with CASCADE, deleting one Customer row (for example from a cleanup script) would silently delete their membership and current title too. With NO ACTION, SQL Server refuses that delete instead. EF Core uses cascade by default for required relationships, so the mapping must say Restrict explicitly (Section 4).
+Why the two CASCADE rules change: with CASCADE, deleting one Customer row (for example from a cleanup script) would silently delete their membership and current title too. With NO ACTION, PostgreSQL refuses that delete instead. EF Core uses cascade by default for required relationships, so the mapping must say Restrict explicitly (Section 4).
 3. Queries
 Every member query takes today (the club's local date) as a parameter instead of reading the clock inside the query. This keeps all queries on the same definition of "today" and lets tests pass any date they want.
 
@@ -369,7 +369,7 @@ Mapping checks after the migration is generated:
 Every foreign key into Customers, Members and Admins shows onDelete: ReferentialAction.Restrict. None show Cascade, which is EF's default for required relationships.
 Members.MemberId and Officers.OfficerId are not identity columns.
 Members has no IsCurrent column and no status column.
-MemberExpiration, JoinedDate, DeactivatedDate, GrantedDate and RevokedDate are date, not datetime2.
+MemberExpiration, JoinedDate, DeactivatedDate, GrantedDate and RevokedDate are date, not timestamp.
 The filtered unique index on OfficerHistory(MemberId) WHERE RevokedDate IS NULL exists.
 Decisions
 Question
@@ -377,7 +377,7 @@ Decision
 Reason
 Store the status, or work it out?
 Work it out from IsActive + MemberExpiration
-A stored status goes stale the day dues run out, and SQL Server can't persist a date-based computed column
+A stored status goes stale the day dues run out, and PostgreSQL can't store a date-based generated column
 Enum or lookup table?
 C# enum only
 Status isn't stored, so a lookup table would have nothing to point at
