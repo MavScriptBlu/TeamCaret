@@ -124,6 +124,10 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
         }
     }
 
+
+    /// <summary>
+    /// Reads validation errors from an HTTP response and adds them to ModelState.
+    /// </summary>
     private async Task AddApiValidationErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         ValidationProblemDetails? problem;
@@ -143,6 +147,7 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
             return;
         }
 
+        // Add each validation error to ModelState, prefixing keys with "Input." if not already present
         foreach (var (key, messages) in problem.Errors)
         {
             var modelStateKey = key.StartsWith("Input.", StringComparison.OrdinalIgnoreCase)
