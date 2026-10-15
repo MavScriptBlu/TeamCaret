@@ -44,6 +44,7 @@ tasks:
       See backend/README.md if you haven't set the user secret yet.
     cmds:
       - dotnet tool restore
+      - dotnet restore backend/CCOS.Data/CCOS.Data.csproj
       - dotnet ef database update --project backend/CCOS.Data
 
   down:
