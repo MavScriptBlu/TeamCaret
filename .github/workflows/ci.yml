@@ -63,6 +63,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore NuGet packages
+        run: dotnet restore CCOS.slnx
+
       # Same as `task migrate`, but CI has no user secrets, so it passes the connection string directly
       - name: Apply the database migrations
         run: |

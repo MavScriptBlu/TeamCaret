@@ -1,6 +1,8 @@
-CAR-30: Event, Ticket & Venue Relational Schema
+# CAR-30: Event, Ticket & Venue Relational Schema
+
 Oct 2, 2026 · @Dylan
 Story: As a club officer, I want relational database model specifications for Events, Venues, and Tickets, so that ticket sales cannot exceed venue capacity and event schedules are stored reliably.
+
 In short: a Venue hosts Events. Each Event has one or more TicketTypes (for example "General" and "Member"), which are sold through normal orders. Each admission sold becomes one TicketRegistration row. The Event keeps a running count of tickets sold, and PostgreSQL itself refuses any sale that would push that count past the event's capacity. Capacity can never be set higher than the venue holds.
 Acceptance criterion
 Covered in
@@ -13,7 +15,9 @@ Section 3
 Document DbContext relationship mappings and navigation properties
 Section 4
 Based on: the current ERD on Dev, where tickets are Products linked to an Event (EVENT ||--o{ PRODUCT : "has ticket products") and are bought through Orders and OrderLines alongside swag. The first Product migration leaves EventId out, so the Event migration adds it.
+
 #
+
 Rule
 Schema change?
 R1
@@ -40,7 +44,9 @@ Yes: adds IsActive to Venues and Events
 R8
 Every foreign key in this area is ON DELETE NO ACTION
 No
-1. Entities, fields and constraints
+
+## 1. Entities, fields and constraints
+
 Four entities cover this story. Venue and Event are their own tables. TicketType lives in Products so tickets can be sold through the same orders as swag. TicketRegistration is a new table with one row per admission.
 The dashed line is a count, not a key: TicketsSold on the event goes up and down as registrations are created and canceled.
 Venues
@@ -141,7 +147,9 @@ CanceledAtUtc
 TIMESTAMPTZ(0) NULL
 Set when the order is canceled
 An order line for 3 tickets creates 3 registrations. The price paid stays on the order line (UnitPrice), so it isn't repeated here.
-2. Capacity validation and concurrency
+
+## Capacity validation and concurrency
+
 Overselling is blocked in the database, not just in the app. TicketsSold can only go up through one conditional UPDATE that also checks capacity, and a CHECK constraint refuses any value over TicketCapacity, even from code that forgets the condition.
 Capacity rules
 Rule
@@ -164,8 +172,13 @@ App validation
 Saving an event: no other active event at the venue overlaps StartsAtUtc–EndsAtUtc
 Lowering a venue's capacity is refused while any upcoming active event there has a higher TicketCapacity.
 Booking (inside the order's transaction)
-1. Check the event is active and hasn't started, the ticket type is active, and, for a members-only event, the buyer is a current member.
-2. Reserve the seats with one statement per event:
+
+## 2.1 Booking tickets
+
+- Check the event is active and hasn't started, the ticket type is active, and, for a members-only event, the buyer is a current member.
+- Reserve the seats with one statement per event:
+
+```csharp
 var reserved = await db.Events
     .Where(e => e.EventId == eventId
              && e.IsActive
@@ -174,19 +187,31 @@ var reserved = await db.Events
 
 if (reserved == 0)   // sold out, or not enough seats left
     throw new SoldOutException(eventId);   // whole order rolls back
-3. Insert the order line, then one TicketRegistrations row per admission with Status = 'Purchased'.
-4. Commit. If anything fails, the rollback also undoes the seat reservation.
+```
+
+- Insert the order line, then one TicketRegistrations row per admission with Status = 'Purchased'.
+- Commit. If anything fails, the rollback also undoes the seat reservation.
+
 Why two buyers can't take the last seat: PostgreSQL locks the event row while the UPDATE runs. The second buyer's UPDATE waits, then checks TicketsSold + quantity <= TicketCapacity against the new count, matches no row, and returns 0. This works at PostgreSQL's default isolation level (read committed): the waiting UPDATE re-checks the row after the first one commits.
+
 Orders with tickets to more than one event reserve seats in EventId order. Two orders then always lock events in the same order and can't deadlock each other.
+
 Canceling an order runs in one transaction: set its registrations to Status = 'Canceled' with CanceledAtUtc, then lower TicketsSold by the same number with one ExecuteUpdate. The seats go straight back on sale.
+
 Officer edits use optimistic concurrency. Events.RowVersion is EF's concurrency token. Every save of an event, and every booking or cancellation, changes it. If an officer saves an edit after a ticket sold, or after another officer saved, EF throws DbUpdateConcurrencyException. The edit screen then reloads the event and asks them to review and save again. No one silently overwrites a newer capacity or schedule.
+
 Consistency check (for tests and the admin dashboard): TicketsSold should always equal the number of Purchased registrations for that event:
+
+```sql
 SELECT e.EventId, e.TicketsSold, COUNT(r.TicketRegistrationId) AS Purchased
 FROM Events e
 LEFT JOIN TicketRegistrations r ON r.EventId = e.EventId AND r.Status = 'Purchased'
 GROUP BY e.EventId, e.TicketsSold
 HAVING e.TicketsSold <> COUNT(r.TicketRegistrationId);   -- should return no rows
-3. Indexes
+```
+
+## Indexes
+
 Two indexes on Events cover the date-range and venue queries. The rest support foreign keys and the ticket counts.
 Index
 Columns
@@ -213,7 +238,9 @@ IX_TicketRegistrations_TicketTypeId
 (TicketTypeId)
 The TicketTypeId foreign key
 IX_Events_VenueId_StartsAtUtc replaces the schema doc's IX_Events_VenueId, since its first column already serves venue lookups.
-Query shapes these indexes expect
+
+### Query shapes these indexes expect
+
 Query
 Condition
 Events in a date range
@@ -225,7 +252,9 @@ VenueId = @venueId AND StartsAtUtc >= @fromUtc
 Overlap at a venue
 VenueId = @venueId AND IsActive = true AND StartsAtUtc < @newEndUtc AND EndsAtUtc > @newStartUtc
 Ranges are half-open (>= start, < end), so an event at exactly midnight falls in one day, not two. The app turns club-time bounds, such as "October 2026 in America/Chicago", into UTC before querying. The query must compare the raw column: wrapping it in a function, such as CAST(StartsAtUtc AS date), stops PostgreSQL from using the index.
-4. DbContext mappings and navigation properties
+
+## 4. DbContext mappings and navigation properties
+
 Every relationship is DeleteBehavior.Restrict (SQL NO ACTION). TicketType is mapped as a subtype of Product using EF's table-per-hierarchy, with ProductType as the discriminator column.
 Entity
 Navigation properties
@@ -233,18 +262,30 @@ Notes
 Venue
 Address (one VenueAddress), Events (many)
 
-Event
+### Event
+
 Venue (required), TicketTypes (many), Registrations (many)
+
+### TicketRegistration
+
 RowVersion concurrency token; no global query filter
 TicketType : Product
 Event (required)
 Adds EventId; inherits name, prices and IsActive from Product
+
 TicketRegistration
 Event (required), OrderLine (required)
+
 Keeps TicketTypeId as a plain foreign key, with no TicketType navigation
-Why TicketRegistration has no TicketType navigation: Product has the IsActive global query filter from CAR-24, and TicketType inherits it. A required navigation to a filtered entity makes EF silently drop the registrations of archived ticket types from query results, the same problem CAR-24 designed out for order lines. Attendee lists join to the ticket type by TicketTypeId and bypass the filter on purpose.
-Why Event has no global query filter: registrations and ticket types must always reach their event, even a canceled one. Public event queries add IsActive themselves (Section 3).
+
+### Why TicketRegistration has no TicketType navigation
+
+- Product has the IsActive global query filter from CAR-24, and TicketType inherits it. A required navigation to a filtered entity makes EF silently drop the registrations of archived ticket types from query results, the same problem CAR-24 designed out for order lines. Attendee lists join to the ticket type by TicketTypeId and bypass the filter on purpose.
+- Why Event has no global query filter: registrations and ticket types must always reach their event, even a canceled one. Public event queries add IsActive themselves (Section 3).
+
 // Product / TicketType: one table, told apart by ProductType
+
+```csharp
 modelBuilder.Entity<Product>(b =>
 {
     b.HasDiscriminator<string>("ProductType")
@@ -319,8 +360,12 @@ modelBuilder.Entity<TicketRegistration>(b =>
     b.HasIndex(r => new { r.EventId, r.Status });
     b.HasIndex(r => r.OrderLineId);
 });
+```
+
 RegistrationStatus is a C# enum (Purchased, Canceled) stored as text, matching the CHECK.
-Other mapping notes
+
+## Other mapping notes
+
 • EF reads DateTime values back with Kind = Unspecified. Add a value converter on StartsAtUtc, EndsAtUtc, CreatedAtUtc and CanceledAtUtc that marks them as UTC, so converting to club time is always correct.
 • db.Products returns swag and ticket types together. The swag catalog filters with .Where(p => !(p is TicketType)); ticket types are read through db.Set<TicketType>().
 Mapping checks after the migration is generated:
@@ -328,7 +373,9 @@ Mapping checks after the migration is generated:
 • Products has a ProductType column, EventId is nullable, and CK_Products_TicketEvent exists.
 • Events has TicketsSold with default 0, RowVersion mapped to PostgreSQL's xmin column, and the three CHECK constraints.
 • Both Events indexes include their INCLUDE columns, and the first has the IsActive = true filter.
-Decisions
+
+## Decisions
+
 Question
 Decision
 Reason

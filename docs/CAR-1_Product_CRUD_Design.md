@@ -6,17 +6,18 @@ reviewed in class and used as the spec once coding starts.
 
 Covers the officer-facing user stories from the backlog:
 
-- As an officer, I want to create/edit/delete products, so I can control what's available to order.
-- As an officer, I want to set a regular price and a member price per product, so members automatically see their discount.
-- As an officer, I want to set/update stock quantity, so availability stays accurate.
-- As an officer, I want to deactivate a product without deleting it, so past orders referencing it still display correctly.
-- As a customer, I want to browse available products, so I can find what I want to order.
-- As a customer, I want to see member vs. regular pricing on products, so I understand what I'll be charged.
+- [ ] As an officer, I want to create/edit/delete products, so I can control what's available to order.
+- [ ] As an officer, I want to set a regular price and a member price per product, so members automatically see their discount.
+- [ ] As an officer, I want to set/update stock quantity, so availability stays accurate.
+- [ ] As an officer, I want to deactivate a product without deleting it, so past orders referencing it still display correctly.
+- [ ] As a customer, I want to browse available products, so I can find what I want to order.
+- [ ] As a customer, I want to see member vs. regular pricing on products, so I understand what I'll be charged.
 
 ## 1. Database Design
 
 Reuses the `Products` table already defined in
 `docs/CyberCougar OES Schema.md` and `docs/ERD_ Cyber Cougars Club Order & Event System (CCOS).md`
+
 - no schema changes needed for this feature.
 
 ```sql
@@ -113,7 +114,7 @@ authenticated customer has a current `Member` record; otherwise it returns
 
 ### 3.1 Officer: Product List (`/officer/products`)
 
-```
+```table
 +--------------------------------------------------------------------+
 | Products                                          [+ New Product]  |
 +--------------------------------------------------------------------+

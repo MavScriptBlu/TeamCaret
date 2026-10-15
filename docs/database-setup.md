@@ -10,18 +10,26 @@ The short version for coders (user secrets, migrations, running the API) is in
 ## Get PostgreSQL running
 
 1. Open Docker Desktop and make sure it says it's running. (On Podman? Skip to [Using Podman](#using-podman) below.)
+
 2. In the repo root, copy `.env.example` and rename the copy to `.env`. (`.env` is gitignored, never commit it.)
+
 3. The shared dev settings inside work as they are (`POSTGRES_PASSWORD=ccos-dev-password`). The password only protects a database on your own computer. Want your own? Change it BEFORE the first start. Changed it later? Run `task reset` (it wipes local data) or PostgreSQL keeps the old one.
+
 4. Open a terminal in the repo root and run:
-   ```
+
+   ```cmd
    docker compose up -d ccos-db
    ```
+
    (`ccos-db` starts just the database. Leave it off and you get the whole app, which `task up` does too.)
 5. Check it's alive:
-   ```
+
+   ```cmd
    docker ps
    ```
+
    You should see `ccos-db` with `0.0.0.0:5432->5432`.
+
 6. Create the tables: `task migrate` (or the two commands in `backend/README.md`). You need the user secret from `backend/README.md` step 3 first.
 
 Your data lives in the `ccos-data` volume, so it survives restarts and reboots.
@@ -31,19 +39,25 @@ Your data lives in the `ccos-data` volume, so it survives restarts and reboots.
 Podman runs the exact same `docker-compose.yml`. Nobody else on the team has to change anything.
 
 1. One time only, make the Podman VM:
-   ```
+
+   ```cmd
    podman machine init
    ```
+
 2. Every time you boot up (this is the Podman version of "open Docker Desktop"):
-   ```
+
+   ```cmd
    podman machine start
    ```
+
 3. Do the `.env` steps from above (copy `.env.example` to `.env`).
 4. From the repo root:
-   ```
+
+   ```cmd
    podman compose up -d ccos-db
    podman ps
    ```
+
    You should see `ccos-db` with `0.0.0.0:5432->5432`.
 
 `podman compose` hands the work to a compose tool behind the scenes. Podman Desktop sets that up for you. If you get "looking up compose provider failed", install one: `pip install podman-compose`.
@@ -70,7 +84,7 @@ The repo has a `Taskfile.yml` so you don't have to remember the long commands.
 
 Install Task once (Windows):
 
-```
+```cmd
 winget install Task.Task
 ```
 
@@ -94,13 +108,13 @@ Task uses Docker by default. On Podman, add `CONTAINER=podman` to your `.env`. (
 
 | Piece    | Container  | Open it on your computer                  | Port inside Docker | Change it with  |
 | -------- | ---------- | ----------------------------------------- | ------------------ | --------------- |
-| Website  | `ccos-web` | http://localhost:8080                     | 8080               | `WEB_PORT`      |
-| API      | `ccos-api` | http://localhost:8081/api/products        | 8080               | `API_PORT`      |
+| Website  | `ccos-web` | <http://localhost:8080>                     | 8080               | `WEB_PORT`      |
+| API      | `ccos-api` | <http://localhost:8081/api/products>        | 8080               | `API_PORT`      |
 | Database | `ccos-db`  | `localhost:5432` (DBeaver, `dotnet ef`)   | 5432               | `POSTGRES_PORT` |
 
 - Set the "Change it with" names in your `.env` only if something else already uses the port.
 - Containers talk to each other by name, not `localhost`. The website reaches the API at `http://ccos-api:8080/`.
-- Running the API yourself with `dotnet run`? It listens on http://localhost:5173 instead.
+- Running the API yourself with `dotnet run`? It listens on <http://localhost:5173> instead.
 
 ## Connect DBeaver
 

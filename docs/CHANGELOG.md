@@ -4,6 +4,9 @@ Database and design decisions, newest first.
 
 ## 2026-10-14 · CAR-45 Shared PostgreSQL 17 database with EF Core migrations
 
+## 2026-10-15 · CAR-45 Fix the CI migration step
+
+- CI: the "App starts" job now runs `dotnet restore CCOS.slnx` before applying migrations. `dotnet ef` needs `obj/project.assets.json`, which only exists after a restore, so the step was failing with `NETSDK1004`.
 - `docker-compose.yml`: `ccos-db` is PostgreSQL 17 (`postgres:17`) on port 5432, with the named volume `ccos-data`. The password comes from `.env`, and `.env.example` (committed) has the shared dev password, so nobody has to invent one.
 - `CCOS.Data`, `CCOS.Api` and `AppDbContextFactory` use the Npgsql provider (`Npgsql.EntityFrameworkCore.PostgreSQL`). EF Core is pinned to 10.0.12 in `CCOS.Data` so every project builds against the same version.
 - `AppDbContext`: check constraints and query filters use PostgreSQL syntax, times are `timestamp(0) with time zone` with `now()` defaults.
@@ -22,7 +25,7 @@ Database and design decisions, newest first.
 ## 2026-10-13 · CAR-45 Run the API and website in containers
 
 - Added `backend/CCOS.Api/Dockerfile` and `frontend/CCOS.Web/Dockerfile` (.NET 10, multi-stage build, runs as the non-root `app` user, listens on 8080 inside the container).
-- `docker-compose.yml` now runs three containers: `ccos-db`, `ccos-api` (http://localhost:8081) and `ccos-web` (http://localhost:8080). The website reaches the API by its service name (`http://ccos-api:8080/`).
+- `docker-compose.yml` now runs three containers: `ccos-db`, `ccos-api` (<http://localhost:8081>) and `ccos-web` (<http://localhost:8080>). The website reaches the API by its service name (`http://ccos-api:8080/`).
 - Added `.dockerignore` so `.env`, `bin/`, `obj/` and local `.db` files never go into an image.
 - Taskfile: `task up` now builds and starts the whole app, new `task db` starts only Postgres, `task logs` shows all three, `task reset` rebuilds too.
 - CI: the database job is now "App starts". It runs `task up`, checks Postgres, then checks `/api/products` and the website's `/Products` page both answer.
