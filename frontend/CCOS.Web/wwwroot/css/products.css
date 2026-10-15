@@ -523,32 +523,62 @@ a.product-card:hover {
 
 /* ---------- Officer product creation form ---------- */
 .product-create-page {
-    max-width: 780px;
+    max-width: 1100px;
     margin-inline: auto;
 }
 
-    .product-create-page h1 {
-        font-size: 34px;
-        line-height: 1.15;
-        font-weight: 800;
-    }
-
-    .product-create-page > p {
-        margin: var(--s2) 0 var(--s5);
-        color: var(--muted);
-    }
-
 .product-create-form {
-    padding: var(--s5);
-    border: 1px solid var(--divider);
-    border-radius: var(--r-sm);
-    background: var(--raised);
+    margin: 0;
 }
 
 .product-create-grid {
     display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--s6);
+}
+
+.product-create-images {
+    display: grid;
+    gap: var(--s3);
+    min-width: 0;
+}
+
+.product-image-drop {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.product-image-drop-large {
+    aspect-ratio: 4 / 3;
+}
+
+.product-create-image-thumbnails {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--s4);
+    gap: var(--s3);
+}
+
+.product-image-drop-small {
+    aspect-ratio: 1;
+}
+
+.product-image-preview {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-image-drop [data-image-status] {
+    position: relative;
+    z-index: 1;
+}
+
+.product-create-fields {
+    min-width: 0;
 }
 
 .product-form-field {
@@ -567,10 +597,6 @@ a.product-card:hover {
     width: 100%;
     min-height: 42px;
     padding: var(--s2) var(--s3);
-    border: 1px solid #bdb5b3;
-    border-radius: var(--r-sm);
-    background: var(--raised);
-    font: inherit;
 }
 
 .product-form-field textarea {
@@ -578,8 +604,14 @@ a.product-card:hover {
     resize: vertical;
 }
 
-.product-form-field-wide {
-    grid-column: 1 / -1;
+.product-form-name-field input.event-form-name {
+    width: 100%;
+}
+
+.product-create-prices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s3);
 }
 
 .product-form-field .field-validation-error {
@@ -602,37 +634,15 @@ a.product-card:hover {
 }
 
 .product-form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s3);
-    margin-top: var(--s5);
+    justify-content: flex-start;
 }
 
-.product-form-save,
-.product-form-cancel {
-    display: inline-flex;
-    min-height: 42px;
-    align-items: center;
-    justify-content: center;
-    padding: 0 var(--s4);
-    border: 1px solid var(--maroon);
-    border-radius: var(--r-sm);
-    font: inherit;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
+.product-form-actions > * {
+    flex: 1 1 0;
+    max-width: 220px;
 }
 
-.product-form-save {
-    background: var(--maroon);
-    color: #fff;
-}
-
-.product-form-cancel {
-    background: var(--raised);
-    color: var(--brand-text);
-}
-
+/* This is used by the officer product dashboard, so keep it. */
 .product-created-message {
     margin: 0 0 var(--s4);
     padding: var(--s3) var(--s4);
@@ -642,16 +652,18 @@ a.product-card:hover {
     color: #205632;
 }
 
-@media (max-width: 600px) {
-    .product-create-form {
-        padding: var(--s4);
-    }
-
+@media (max-width: 760px) {
     .product-create-grid {
         grid-template-columns: minmax(0, 1fr);
     }
+}
 
-    .product-form-field-wide {
-        grid-column: auto;
+@media (max-width: 520px) {
+    .product-create-prices {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .product-form-actions > * {
+        max-width: none;
     }
 }
