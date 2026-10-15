@@ -22,7 +22,7 @@ Database and design decisions, newest first.
 ## 2026-10-13 · CAR-45 Run the API and website in containers
 
 - Added `backend/CCOS.Api/Dockerfile` and `frontend/CCOS.Web/Dockerfile` (.NET 10, multi-stage build, runs as the non-root `app` user, listens on 8080 inside the container).
-- `docker-compose.yml` now runs three containers: `ccos-db`, `ccos-api` (http://localhost:8081) and `ccos-web` (http://localhost:8080). The website reaches the API by its service name (`http://ccos-api:8080/`).
+- `docker-compose.yml` now runs three containers: `ccos-db`, `ccos-api` (<http://localhost:8081>) and `ccos-web` (<http://localhost:8080>). The website reaches the API by its service name (`http://ccos-api:8080/`).
 - Added `.dockerignore` so `.env`, `bin/`, `obj/` and local `.db` files never go into an image.
 - Taskfile: `task up` now builds and starts the whole app, new `task db` starts only Postgres, `task logs` shows all three, `task reset` rebuilds too.
 - CI: the database job is now "App starts". It runs `task up`, checks Postgres, then checks `/api/products` and the website's `/Products` page both answer.

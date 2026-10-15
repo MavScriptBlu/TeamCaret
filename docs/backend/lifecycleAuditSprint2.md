@@ -17,7 +17,7 @@ Why: every table tied to money or membership (`OrderLines`, `TicketRegistrations
 ## 2. Entity-by-Entity Notes
 
 | Entity | Soft-delete field | Who can deactivate | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Product | `IsActive` | Officer | Locked in Sprint 1/2. Deactivated products still hang onto their past `OrderLines`. |
 | Member | `IsActive` + `MemberExpiration` | Admin (leaving the club); expiring is automatic | Expires on its own when `MemberExpiration` passes and comes back when they renew. Leaving the club is an admin setting `IsActive` to false. Status (Active/Expired/Inactive) is worked out from both, never stored. See Membership Lifecycle & Deactivation Schema. |
 | Officer | `Officers` row closed, `OfficerHistory.RevokedDate` set | Advisor (Admin) | Losing officer status shouldn't nuke the Member record underneath it. You're still a member after you step down. |
@@ -29,22 +29,26 @@ Why: every table tied to money or membership (`OrderLines`, `TicketRegistrations
 ## 3. Audit Policy
 
 ### What actually gets logged
+
 Anything that touches money, membership status, or access level needs a trail. That doesn't mean we're bolting on a separate audit table for everything right out the gate. It means every entity above is built so its own history *is* the audit trail (status changes, soft-delete flags with timestamps) instead of us needing some extra log to piece together what happened after the fact.
 
 Money's the one place that needs more than status flags. Treasury (Sprint 6) gets its own dedicated audit log. Every edit or void needs who changed it, when, and what it looked like before. That's its own ticket (CAR-26) instead of us trying to cram it into the current schema.
 
 ### What every audit record needs, minimum
+
 - Who did it: tied to the actual Customer/Member/Officer record, not just a name typed in somewhere
 - What changed: before and after, not just "record updated" (that tells us nothing)
 - When: full timestamp, not just a date
 - Why: required on money voids/edits specifically, optional everywhere else
 
 ### Who sees the audit stuff
+
 - Officers see audit history for whatever they manage: Product changes, Order/Ticket status.
 - Treasury audit logs (once built) are Officer-visible, but voids/edits on money specifically should get a second officer's eyes on it. Not full approval necessarily, just visibility. It's club money, more than one person should know when it moves.
 - Troy (Advisor) gets the same read access as an Officer. That's already how the ERD sets up the access model. Advisor sits next to Officer, not under it.
 
 ### Retention
+
 We don't purge audit history as part of normal ops, period. If storage ever actually becomes a problem (unlikely at club scale), that's a manual call an Officer makes, not something that runs on its own.
 
 ## 4. Why This Matters Heading Into Sprint 3+

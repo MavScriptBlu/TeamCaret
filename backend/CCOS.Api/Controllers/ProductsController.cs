@@ -50,7 +50,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/products: create a new product.
+    /// POST /api/products: CREATE a new product.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPost]
@@ -74,7 +74,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
-    /// PUT /api/products/{id}: update an existing product.
+    /// PUT /api/products/{id}: UPDATE an existing product.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
@@ -113,7 +113,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
-    /// DELETE /api/products/{id}: soft-delete a product (IsActive = false).
+    /// DELETE /api/products/{id}: SOFT-DELETE a product (IsActive = false).
     /// Rows are never removed per acceptance criteria.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>

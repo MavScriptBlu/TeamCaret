@@ -17,7 +17,7 @@ public sealed class ProductRepository(AppDbContext db)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a new merchandise product.
+    /// CREATEs a new merchandise product.
     /// </summary>
     public async Task<Product> CreateAsync(
         string category,
@@ -90,7 +90,7 @@ public sealed class ProductRepository(AppDbContext db)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Updates an existing merchandise product. Returns the updated product, or null if not found.
+    /// UPDATEs an existing merchandise product. Returns the updated product, or null if not found.
     /// IgnoreQueryFilters so officers can reactivate a soft-deleted product.
     /// </summary>
     public async Task<Product?> UpdateAsync(
@@ -125,7 +125,7 @@ public sealed class ProductRepository(AppDbContext db)
     }
 
     /// <summary>
-    /// Reactivates a soft-deleted product. Returns true if found and reactivated, false if not found.
+    /// REACTIVATEs a soft-deleted product. Returns true if found and reactivated, false if not found.
     /// </summary>
     public async Task<bool> ReactivateAsync(int productId, CancellationToken cancellationToken = default)
     {
@@ -149,7 +149,7 @@ public sealed class ProductRepository(AppDbContext db)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Soft-deletes a product (sets IsActive to false). Rows are never removed.
+    /// SOFT-DELETEs a product (sets IsActive to false). Rows are never removed.
     /// Returns true if found and deactivated, false if not found or already inactive.
     /// </summary>
     public async Task<bool> SoftDeleteAsync(int productId, CancellationToken cancellationToken = default)

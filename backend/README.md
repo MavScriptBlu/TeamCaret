@@ -21,7 +21,7 @@ Do this once per computer. After that it's just step 2 and step 5.
 
 ### 1. Install Docker Desktop
 
-Get it from https://www.docker.com/products/docker-desktop and open it. Wait until it
+Get it from <https://www.docker.com/products/docker-desktop> and open it. Wait until it
 says it's running. (On Podman? `podman machine start` instead, details in
 `docs/database-setup.md`.)
 
@@ -61,7 +61,7 @@ Check it saved with `dotnet user-secrets list --project backend/CCOS.Api`.
 
 ### 4. Create the tables (apply the migrations)
 
-```
+```powershell
 dotnet tool restore
 dotnet ef database update --project backend/CCOS.Data
 ```
@@ -74,7 +74,7 @@ It's safe to run again any time, it skips migrations that are already applied.
 
 ### 5. Run the API
 
-```
+```powershell
 dotnet run --project backend/CCOS.Api
 ```
 
@@ -96,7 +96,7 @@ stops the API with an error on purpose.
 
 To switch from PostgreSQL back to the SQLite sample:
 
-```
+```powershell
 dotnet user-secrets remove "ConnectionStrings:CCOS" --project backend/CCOS.Api
 ```
 
@@ -104,7 +104,7 @@ dotnet user-secrets remove "ConnectionStrings:CCOS" --project backend/CCOS.Api
 
 After you change an entity or `AppDbContext`:
 
-```
+```powershell
 dotnet ef migrations add YourChangeName --project backend/CCOS.Data
 dotnet ef database update --project backend/CCOS.Data
 ```
