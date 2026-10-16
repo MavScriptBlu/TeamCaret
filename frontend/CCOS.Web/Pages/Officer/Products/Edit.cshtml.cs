@@ -1,9 +1,9 @@
+using System.Net;
+using System.Text.Json;
+using CCOS.Shared;
+using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using CCOS.Web.Services;
-using System.Text.Json;
-using System.Net;
-using CCOS.Shared;
 
 namespace CCOS.Web.Pages.Officer.Products;
 
@@ -25,7 +25,7 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
         {
             var products = await productsApi.GetForEditAsync(id, cancellationToken);
 
-            if ( products is null)
+            if (products is null)
             {
                 return ShowProductNotFound();
             }
