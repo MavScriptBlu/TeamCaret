@@ -17,7 +17,7 @@
 
 | # | Rule | Schema change? |
 | --- | --- | --- |
-| R1 | `Products.IsActive BIT NOT NULL DEFAULT 1`; new products start active | No, already in schema |
+| R1 | `Products.IsActive BOOLEAN NOT NULL DEFAULT TRUE`; new products start active | No, already in schema |
 | R2 | "Delete" archives the product (`IsActive = 0`). Officers can't hard-delete products | No |
 | R3 | Archived products can be restored (`IsActive = 1`) | No |
 | R4 | An EF Core global query filter hides archived products from every product query unless code explicitly opts out | No (EF config) |
