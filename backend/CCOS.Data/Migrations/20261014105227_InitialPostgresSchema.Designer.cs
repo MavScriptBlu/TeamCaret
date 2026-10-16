@@ -3,17 +3,17 @@ using System;
 using CCOS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace CCOS.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261003020421_AddEventTicketVenueSchema")]
-    partial class AddEventTicketVenueSchema
+    [Migration("20261014105227_InitialPostgresSchema")]
+    partial class InitialPostgresSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,78 +21,78 @@ namespace CCOS.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.12")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CCOS.Data.Entities.Event", b =>
                 {
                     b.Property<int>("EventId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EventId"));
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("EndsAtUtc")
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("MembersOnly")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<DateTime>("StartsAtUtc")
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<int>("TicketCapacity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TicketsSold")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0);
 
                     b.Property<int>("VenueId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("EventId");
 
                     b.HasIndex("StartsAtUtc")
-                        .HasFilter("[IsActive] = 1");
+                        .HasFilter("\"IsActive\" = true");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("StartsAtUtc"), new[] { "EndsAtUtc", "Name", "VenueId", "MembersOnly" });
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("StartsAtUtc"), new[] { "EndsAtUtc", "Name", "VenueId", "MembersOnly" });
 
                     b.HasIndex("VenueId", "StartsAtUtc");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("VenueId", "StartsAtUtc"), new[] { "EndsAtUtc", "IsActive" });
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("VenueId", "StartsAtUtc"), new[] { "EndsAtUtc", "IsActive" });
 
                     b.ToTable("Events", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Events_TicketCapacity", "[TicketCapacity] > 0");
+                            t.HasCheckConstraint("CK_Events_TicketCapacity", "\"TicketCapacity\" > 0");
 
-                            t.HasCheckConstraint("CK_Events_TicketsSold", "[TicketsSold] >= 0 AND [TicketsSold] <= [TicketCapacity]");
+                            t.HasCheckConstraint("CK_Events_TicketsSold", "\"TicketsSold\" >= 0 AND \"TicketsSold\" <= \"TicketCapacity\"");
 
-                            t.HasCheckConstraint("CK_Events_Times", "[EndsAtUtc] > [StartsAtUtc]");
+                            t.HasCheckConstraint("CK_Events_Times", "\"EndsAtUtc\" > \"StartsAtUtc\"");
                         });
                 });
 
@@ -100,33 +100,33 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("OrderId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderId"));
 
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasDefaultValue("Pending");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(10,2)");
 
                     b.HasKey("OrderId");
 
                     b.ToTable("Orders", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Orders_Status", "[Status] IN ('Pending', 'Fulfilled', 'Canceled')");
+                            t.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Fulfilled', 'Canceled')");
 
-                            t.HasCheckConstraint("CK_Orders_TotalAmount", "[TotalAmount] >= 0");
+                            t.HasCheckConstraint("CK_Orders_TotalAmount", "\"TotalAmount\" >= 0");
                         });
                 });
 
@@ -134,22 +134,26 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("OrderLineId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderLineId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderLineId"));
 
                     b.Property<int>("OrderId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductNameSnapshot")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(10,2)");
 
                     b.HasKey("OrderLineId");
 
@@ -161,9 +165,9 @@ namespace CCOS.Data.Migrations
 
                     b.ToTable("OrderLines", null, t =>
                         {
-                            t.HasCheckConstraint("CK_OrderLines_Quantity", "[Quantity] > 0");
+                            t.HasCheckConstraint("CK_OrderLines_Quantity", "\"Quantity\" > 0");
 
-                            t.HasCheckConstraint("CK_OrderLines_UnitPrice", "[UnitPrice] >= 0");
+                            t.HasCheckConstraint("CK_OrderLines_UnitPrice", "\"UnitPrice\" >= 0");
                         });
                 });
 
@@ -171,58 +175,58 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("ProductId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductId"));
 
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<decimal>("MemberPrice")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("numeric(10,2)");
 
                     b.Property<string>("ProductType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasDefaultValue("Item");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductId");
 
                     b.ToTable("Products", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Products_MemberPrice", "[MemberPrice] >= 0");
+                            t.HasCheckConstraint("CK_Products_MemberPrice", "\"MemberPrice\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_Price", "[Price] >= 0");
+                            t.HasCheckConstraint("CK_Products_Price", "\"Price\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_StockQuantity", "[StockQuantity] >= 0");
+                            t.HasCheckConstraint("CK_Products_StockQuantity", "\"StockQuantity\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_TicketEvent", "(ProductType = 'Ticket' AND EventId IS NOT NULL) OR (ProductType = 'Item' AND EventId IS NULL)");
+                            t.HasCheckConstraint("CK_Products_TicketEvent", "(\"ProductType\" = 'Ticket' AND \"EventId\" IS NOT NULL) OR (\"ProductType\" = 'Item' AND \"EventId\" IS NULL)");
                         });
 
                     b.HasDiscriminator<string>("ProductType").HasValue("Item");
@@ -234,33 +238,33 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("TicketRegistrationId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TicketRegistrationId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TicketRegistrationId"));
 
                     b.Property<DateTime?>("CanceledAtUtc")
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<int>("EventId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("OrderLineId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("character varying(10)")
                         .HasDefaultValue("Purchased");
 
                     b.Property<int>("TicketTypeId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("TicketRegistrationId");
 
@@ -272,7 +276,7 @@ namespace CCOS.Data.Migrations
 
                     b.ToTable("TicketRegistrations", null, t =>
                         {
-                            t.HasCheckConstraint("CK_TicketRegistrations_Status", "[Status] IN ('Purchased', 'Canceled')");
+                            t.HasCheckConstraint("CK_TicketRegistrations_Status", "\"Status\" IN ('Purchased', 'Canceled')");
                         });
                 });
 
@@ -280,22 +284,22 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("VenueId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VenueId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VenueId"));
 
                     b.Property<int>("Capacity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("VenueId");
 
@@ -305,7 +309,7 @@ namespace CCOS.Data.Migrations
 
                     b.ToTable("Venues", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Venues_Capacity", "[Capacity] > 0");
+                            t.HasCheckConstraint("CK_Venues_Capacity", "\"Capacity\" > 0");
                         });
                 });
 
@@ -313,36 +317,36 @@ namespace CCOS.Data.Migrations
                 {
                     b.Property<int>("VenueAddressId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VenueAddressId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VenueAddressId"));
 
                     b.Property<string>("AddressLine1")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("AddressLine2")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
+                        .HasColumnType("character varying(2)");
 
                     b.Property<int>("VenueId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ZipCode")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.HasKey("VenueAddressId");
 
@@ -357,21 +361,21 @@ namespace CCOS.Data.Migrations
                     b.HasBaseType("CCOS.Data.Entities.Product");
 
                     b.Property<int?>("EventId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasIndex("EventId")
                         .HasDatabaseName("IX_Products_EventId")
-                        .HasFilter("[EventId] IS NOT NULL");
+                        .HasFilter("\"EventId\" IS NOT NULL");
 
                     b.ToTable(t =>
                         {
-                            t.HasCheckConstraint("CK_Products_MemberPrice", "[MemberPrice] >= 0");
+                            t.HasCheckConstraint("CK_Products_MemberPrice", "\"MemberPrice\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_Price", "[Price] >= 0");
+                            t.HasCheckConstraint("CK_Products_Price", "\"Price\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_StockQuantity", "[StockQuantity] >= 0");
+                            t.HasCheckConstraint("CK_Products_StockQuantity", "\"StockQuantity\" >= 0");
 
-                            t.HasCheckConstraint("CK_Products_TicketEvent", "(ProductType = 'Ticket' AND EventId IS NOT NULL) OR (ProductType = 'Item' AND EventId IS NULL)");
+                            t.HasCheckConstraint("CK_Products_TicketEvent", "(\"ProductType\" = 'Ticket' AND \"EventId\" IS NOT NULL) OR (\"ProductType\" = 'Item' AND \"EventId\" IS NULL)");
                         });
 
                     b.HasDiscriminator().HasValue("Ticket");
