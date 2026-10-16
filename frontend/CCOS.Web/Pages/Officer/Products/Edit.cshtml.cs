@@ -25,7 +25,7 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
         {
             var products = await productsApi.GetForEditAsync(id, cancellationToken);
 
-            if ( products is null)
+            if (products is null)
             {
                 return ShowProductNotFound();
             }
