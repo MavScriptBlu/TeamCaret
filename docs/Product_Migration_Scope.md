@@ -1,6 +1,6 @@
-## Product Migration Scope
+# Product Migration Scope
 
-### Initial Product Table
+## Initial Product Table
 
 The initial Product migration will include:
 

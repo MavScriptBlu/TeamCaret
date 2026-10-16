@@ -1,0 +1,56 @@
+# CCOS local stack: database, API, and website. Values come from the .env file in this same folder.
+# Works with Docker (docker compose up -d --build) or Podman (podman compose up -d --build).
+# Easiest way: `task up` (whole app) or `task db` (just the database).
+services:
+  # PostgreSQL 17. This is the one shared CCOS database.
+  ccos-db:
+    image: docker.io/library/postgres:17 # full name so Podman doesn't ask which registry
+    container_name: ccos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER} # all three come from your .env, never typed in here
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ccos-data:/var/lib/postgresql/data # keeps your data when the container stops or restarts
+
+  # The API (backend/CCOS.Api). Open http://localhost:8081/api/products to see it answer.
+  # It talks to the ccos-db container above (host name ccos-db, port 5432 inside the Docker network)
+  # with the same user, password and database as your .env. The tables come from `task migrate`,
+  # so run that once after the first `task up` (see backend/README.md).
+  ccos-api:
+    build:
+      context: . # repo root, so the build can reach shared/
+      dockerfile: backend/CCOS.Api/Dockerfile
+    container_name: ccos-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # This is ConnectionStrings:CCOS written the way environment variables spell it (double underscore).
+      # Inside Docker the database is reached by its service name, not localhost.
+      ConnectionStrings__CCOS: "Host=ccos-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    ports:
+      - "${API_PORT:-8081}:8080" # inside the container .NET listens on 8080
+    depends_on:
+      - ccos-db
+
+  # The website (frontend/CCOS.Web). Open http://localhost:8080
+  ccos-web:
+    build:
+      context: .
+      dockerfile: frontend/CCOS.Web/Dockerfile
+    container_name: ccos-web
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Inside Docker the site reaches the API by its service name, not localhost
+      Api__BaseUrl: http://ccos-api:8080/
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      - ccos-api
+
+volumes:
+  ccos-data:

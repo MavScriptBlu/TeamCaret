@@ -1,0 +1,20 @@
+# Dependabot opens a PR each week when a NuGet package or a GitHub Action has an update.
+# Review it like any other PR: CI runs on it, merge it if it's green.
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for all the Microsoft/EF Core packages instead of ten separate ones
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

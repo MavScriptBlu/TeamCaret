@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
-// Database: SQL Server (Azure SQL later) when ConnectionStrings:CCOS is set.
+// Database: PostgreSQL when ConnectionStrings:CCOS is set.
 // Without it, Development uses a local SQLite file so the app runs without a database server.
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
@@ -29,16 +29,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
     else
     {
-        options.UseSqlServer(connectionString);
+        options.UseNpgsql(connectionString);
     }
 });
 builder.Services.AddScoped<ProductRepository>();
 
 var app = builder.Build();
 
-if (useLocalDatabase)
+// Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
+if (app.Environment.IsDevelopment())
 {
-    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services);
+    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
 }
 
 // Configure the HTTP request pipeline.
@@ -58,7 +59,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),

@@ -148,7 +148,7 @@ erDiagram
         int TicketsSold
         bool MembersOnly
         bool IsActive
-        rowversion RowVersion
+        xid RowVersion
     }
 
     PRODUCT {
