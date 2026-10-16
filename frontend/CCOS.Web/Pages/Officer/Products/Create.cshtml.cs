@@ -88,7 +88,7 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
-        [StringLength(1000)]
+        [StringLength(500)]
         public string? Description { get; set; }
 
         [Required]
