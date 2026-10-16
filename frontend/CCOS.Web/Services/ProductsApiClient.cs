@@ -44,7 +44,7 @@ public sealed class ProductsApiClient(HttpClient http)
     /// <summary>
     /// sends a new product to POST /api/products, caller checks and disposes the returned response
     /// </summary>
-     public Task<HttpResponseMessage> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
+    public Task<HttpResponseMessage> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
     {
         return http.PostAsJsonAsync("api/products", request, cancellationToken);
     }
