@@ -26,10 +26,12 @@ namespace CCOS.Web.Pages.Officer.Products
 
         [Required]
         [Range(typeof(decimal), "0", "10000.00", ErrorMessage = "The member price must be between 0 and 10000.00")]
+        [Display(Name = "Member Price")]
         public decimal? MemberPrice { get; set; }
 
         [Required]
         [Range(0, int.MaxValue, ErrorMessage = "The stock quantity must be 0 or greater")]
+        [Display(Name = "Stock Quantity")]
         public int? StockQuantity { get; set; }
 
         // New products are active by default, not shown on the form
