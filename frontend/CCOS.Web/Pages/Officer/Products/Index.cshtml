@@ -7,6 +7,11 @@
 
 <link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
 
+@if (TempData["ProductCreated"] is string message)
+{
+    <p class="product-created-message" role="status">@message</p>
+}
+
 @* Matches Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive (assets/Wireframes-Product). *@
 
 <div class="officer-head">

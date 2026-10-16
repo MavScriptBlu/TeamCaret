@@ -40,4 +40,12 @@ public sealed class ProductsApiClient(HttpClient http)
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<ProductDto>(cancellationToken);
     }
+
+    /// <summary>
+    /// sends a new product to POST /api/products, caller checks and disposes the returned response
+    /// </summary>
+    public Task<HttpResponseMessage> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        return http.PostAsJsonAsync("api/products", request, cancellationToken);
+    }
 }
