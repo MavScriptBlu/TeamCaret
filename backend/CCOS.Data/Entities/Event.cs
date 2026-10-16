@@ -12,7 +12,7 @@ public class Event
     public int TicketsSold { get; set; }
     public bool MembersOnly { get; set; }
     public bool IsActive { get; set; } = true;
-    public byte[] RowVersion { get; set; } = [];
+    public uint RowVersion { get; set; }
     public Venue Venue { get; set; } = null!;
     public ICollection<TicketType> TicketTypes { get; set; } = new List<TicketType>();
     public ICollection<TicketRegistration> Registrations { get; set; } = new List<TicketRegistration>();

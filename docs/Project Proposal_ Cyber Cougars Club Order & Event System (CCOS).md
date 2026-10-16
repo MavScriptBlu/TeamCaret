@@ -64,7 +64,7 @@ Implemented with ASP.NET Core Identity, role-based authorization on controllers/
 
 * ASP.NET Core MVC with Entity Framework Core  
 * Razor Pages or Blazor for views (team decision)  
-* SQL Server (Azure SQL in production)  
+* PostgreSQL 17 (Npgsql provider for EF Core)  
 * ASP.NET Core Identity for auth  
 * Deployed to Azure App Service
 
