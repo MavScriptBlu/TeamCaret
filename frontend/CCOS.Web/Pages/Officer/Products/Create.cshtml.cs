@@ -47,7 +47,6 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
 
                 return Page();
             }
-            
         }
         catch (HttpRequestException ex)
         {
