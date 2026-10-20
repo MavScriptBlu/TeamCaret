@@ -1,3 +1,7 @@
+
+/// <summary>
+/// Provides methods for formatting monetary values.
+/// </summary>
 using System.Globalization;
 
 namespace CCOS.Web.Services;

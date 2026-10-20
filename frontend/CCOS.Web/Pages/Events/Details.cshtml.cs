@@ -1,3 +1,8 @@
+/// <summary>
+/// Details page for a specific event.
+/// Displays event information, including date, location, categories, and ticket prices.
+/// Provides officer actions for editing or canceling the event.
+/// </summary>
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CCOS.Web.Pages.Events;

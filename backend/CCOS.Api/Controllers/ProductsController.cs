@@ -55,7 +55,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<ProductDto>> Create(
-        [FromBody] ProductInputDto input,
+        [FromBody] CreateProductRequest input,
         CancellationToken cancellationToken)
     {
         var product = await products.CreateAsync(
@@ -74,13 +74,13 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
-    /// PUT /api/products/{id}: UPDATE an existing product.
+    /// PUT /api/products/{id}: UPDATE an existing product including IsActive.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ProductDto>> Update(
         int id,
-        [FromBody] ProductInputDto input,
+        [FromBody] UpdateProductRequest input,
         CancellationToken cancellationToken)
     {
         var product = await products.UpdateAsync(
@@ -91,6 +91,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
             input.Price,
             input.MemberPrice,
             input.StockQuantity,
+            input.IsActive,
             cancellationToken);
 
         if (product is null)

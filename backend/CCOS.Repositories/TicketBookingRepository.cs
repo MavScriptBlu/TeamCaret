@@ -18,7 +18,14 @@ public sealed class TicketBookingRepository(AppDbContext db)
             cancellationToken);
     }
 
+    /// <summary>
+    /// Reserves tickets for the specified order. Groups reservations by event and ensures
+    /// that the total quantity does not exceed the event's ticket capacity.
+    /// Throws SoldOutException if any event is sold out.
+    /// Must be called within an active database transaction.
+    /// </summary>
     public async Task ReserveTicketsForOrderAsync(
+
         IEnumerable<EventTicketReservation> reservations,
         CancellationToken cancellationToken = default)
     {
@@ -65,6 +72,11 @@ public sealed class TicketBookingRepository(AppDbContext db)
         }
     }
 
+    /// <summary>
+    /// Cancels all ticket registrations for the specified order.
+    /// Updates the status to Canceled and decrements the TicketsSold count for each event.
+    /// Returns the total number of canceled registrations.
+    /// </summary>
     public async Task<int> CancelOrderRegistrationsAsync(
         int orderId,
         DateTime? canceledAtUtc = null,

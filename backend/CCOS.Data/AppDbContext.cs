@@ -1,3 +1,7 @@
+/// <summary>
+/// The application's database context, representing the session with the database.
+/// Contains DbSet properties for each entity type.
+/// </summary>
 using CCOS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 

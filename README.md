@@ -134,6 +134,7 @@ TeamCaret/
 Each of `backend/`, `frontend/`, and `shared/` has its own README describing
 what goes in it. None of the actual .NET projects exist yet - `dotnet new` them
 into place per those READMEs when implementation starts.
+into place per those READMEs when implementation starts.
 
 ## Team
 

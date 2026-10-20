@@ -1,3 +1,7 @@
+
+/// <summary>
+/// Provides methods for interacting with the product endpoints in the CCOS API.
+/// </summary>
 using System.Net;
 using CCOS.Shared;
 

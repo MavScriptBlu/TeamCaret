@@ -81,6 +81,7 @@ public class EventTicketSchemaTests
         Assert.Equal(
             new[] { "EndsAtUtc", "IsActive" },
             venueIndex.FindAnnotation("Npgsql:IndexInclude")!.Value);
+
         Assert.Equal(
             "\"EndsAtUtc\" > \"StartsAtUtc\"",
             eventEntity.GetCheckConstraints().Single(constraint => constraint.Name == "CK_Events_Times").Sql);

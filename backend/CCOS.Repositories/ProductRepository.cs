@@ -90,8 +90,8 @@ public sealed class ProductRepository(AppDbContext db)
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// UPDATEs an existing merchandise product. Returns the updated product, or null if not found.
-    /// IgnoreQueryFilters so officers can reactivate a soft-deleted product.
+    /// UPDATEs an existing merchandise product including IsActive. Returns the updated product,
+    /// or null if not found. IgnoreQueryFilters so officers can update inactive products.
     /// </summary>
     public async Task<Product?> UpdateAsync(
         int productId,
@@ -101,6 +101,7 @@ public sealed class ProductRepository(AppDbContext db)
         decimal price,
         decimal memberPrice,
         int stockQuantity,
+        bool isActive,
         CancellationToken cancellationToken = default)
     {
         var product = await db.Products
@@ -119,6 +120,7 @@ public sealed class ProductRepository(AppDbContext db)
         product.Price = price;
         product.MemberPrice = memberPrice;
         product.StockQuantity = stockQuantity;
+        product.IsActive = isActive;
 
         await db.SaveChangesAsync(cancellationToken);
         return product;
