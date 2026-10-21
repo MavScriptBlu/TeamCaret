@@ -76,7 +76,7 @@ Two named policies, `Member` and `Officer`, do all the checking; each TODO in th
 - **How a policy decides:** a small authorization handler in the API looks up the caller's `CustomerId`, then checks the Member and Officer rows as in Section 3.
 - **The website shows or hides links** (like the Officer Dashboard in the footer) with the same policies, but the real guard is the API, so a hidden link is never the only protection.
 
-## 5. Sprint 4 stories and open questions
+## 5. Sprint 4 stories
 
 Four stories cover login for Sprint 4, roughly 15–18 points, under epic CAR-18.
 
@@ -86,12 +86,6 @@ Four stories cover login for Sprint 4, roughly 15–18 points, under epic CAR-18
 | [Backend] Login API and access policies | `MapIdentityApi`, a `GET /api/me` that returns the caller's customer, member and officer status, the `Member` and `Officer` policies, tests | 5 |
 | [Frontend] Login, register and logout pages | Website cookie login, the token sent on every API call, "Log in" / "Log out" in the nav | 3 |
 | [Full stack] Lock officer pages and member pricing | The four changes in Section 4 | 2–3 |
-
-**Open questions for Blu and Seng**
-
-- [ ] The ERD's `Admin` table has its own `Username` and `PasswordHash`. Should Identity replace those, with `Admin` linking to an `AppUser`? (Recommended: yes, one login system.)
-- [ ] Do we need email confirmation and password reset in Sprint 4, or only register and login? (Recommended: login only; reset needs an email sender.)
-- [ ] How is the first officer created? (Recommended: seeded in Development, like the sample products.)
 
 ## Sources
 
