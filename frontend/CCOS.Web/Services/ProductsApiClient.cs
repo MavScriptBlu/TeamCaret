@@ -66,4 +66,12 @@ public sealed class ProductsApiClient(HttpClient http)
     {
         return http.PutAsJsonAsync($"api/products/{productId}", request, cancellationToken);
     }
+
+    /// <summary>
+    /// Sends a request to deactivate a product with DELETE /api/products/{id}; caller checks and disposes the response.
+    /// </summary>
+    public Task<HttpResponseMessage> DeleteAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        return http.DeleteAsync($"api/products/{productId}", cancellationToken);
+    }
 }
