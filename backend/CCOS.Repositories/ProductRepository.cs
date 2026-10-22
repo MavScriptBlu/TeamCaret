@@ -45,6 +45,24 @@ public sealed class ProductRepository(AppDbContext db)
         return Merchandise().FirstOrDefaultAsync(product => product.ProductId == productId, cancellationToken);
     }
 
+    /// <summary>
+    /// Deactivates one active merchandise product. Returns false if it does not exist or is already inactive.
+    /// </summary>
+    public async Task<bool> DeactivateAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        // We use AsTracking here because we want to update the entity. We also filter out TicketType products.
+        var product = await db.Products.AsTracking().Where(product => !(product is TicketType)).FirstOrDefaultAsync(product => product.ProductId == productId, cancellationToken);
+
+        if (product is null)
+        {
+            return false;
+        }
+
+        product.IsActive = false;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private IQueryable<Product> Merchandise() =>
         db.Products.AsNoTracking().Where(product => !(product is TicketType));
 }

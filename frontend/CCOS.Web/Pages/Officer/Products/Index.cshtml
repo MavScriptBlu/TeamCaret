@@ -6,6 +6,7 @@
     var createdMessage = TempData["ProductCreated"] as string;
     var savedMessage = TempData["ProductSaved"] as string;
     var deactivatedMessage = TempData["ProductDeactivated"] as string;
+    var deleteError = TempData["ProductDeleteError"] as string;
     var productMessage = deactivatedMessage ?? savedMessage ?? createdMessage;
 }
 
@@ -14,6 +15,10 @@
 @if (productMessage is not null)
 {
     <p class="product-created-message" role="status">@productMessage</p>
+}
+@if (deleteError is not null)
+{
+    <p class="products-empty" role="alert">@deleteError</p>
 }
 
 @* Matches Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive (assets/Wireframes-Product). *@
@@ -55,7 +60,8 @@ else
         {
             var product = Model.Products[i];
             <li>
-                <details class="officer-product @(product.IsActive ? "" : "is-inactive")" open="@(i == 0)">
+                <details class="officer-product @(product.IsActive ? "" : "is-inactive")"
+                          open="@(Model.ExpandedId == product.ProductId || (Model.ExpandedId is null && i == 0))">
                     <summary>
                         <span class="officer-product-name">@product.Name</span>
                         @if (!product.IsActive)
@@ -113,12 +119,8 @@ else
                                 </button>
                             </form>
 						}
-						<span class="officer-product-links">
-							@* Quick Edit remains a placeholder. *@
-                             <button type="button" class="officer-pill">Quick Edit</button>
-                             <a class="officer-pill" asp-page="/Officer/Products/Edit" asp-route-id="@product.ProductId">Edit product page</a>
-						</span>
-						<span class="officer-product-links">
+                        <span class="officer-product-links">
+                            @* Quick Edit remains a placeholder. *@
                             <button type="button" class="officer-pill">Quick Edit</button>
                             <a class="officer-pill" asp-page="/Officer/Products/Edit" asp-route-id="@product.ProductId">Edit product page</a>
                         </span>
@@ -141,7 +143,7 @@ else
     <div class="officer-delete-dialog-actions">
 
         <button type="button" class="officer-delete" id="confirmProductDelete">
-            Yes
+            Yes, deactivate
         </button>
         <button type="button" class="officer-pill" id="cancelProductDelete" autofocus>
             No

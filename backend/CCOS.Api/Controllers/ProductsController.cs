@@ -50,6 +50,22 @@ public class ProductsController(ProductRepository products) : ControllerBase
     }
 
     /// <summary>
+    /// DELETE /api/products/{id}: deactivate an active merchandise product, or return 404.
+    /// TODO: restrict this action to officers once login exists.
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var deactivated = await products.DeactivateAsync(id, cancellationToken);
+        if (!deactivated)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
     /// Per the CAR-1 design, only a logged-in customer with a current Member record gets
     /// member pricing. There's no login yet, so member prices are shared with everyone
     /// for now. TODO: check the caller's Member record once ASP.NET Core Identity is in.
