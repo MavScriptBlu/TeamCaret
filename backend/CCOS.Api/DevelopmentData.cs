@@ -19,9 +19,11 @@ public static class DevelopmentData
     /// </summary>
     public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
     {
+        // This runs once at startup, outside a web request, so make our own scope to get a database connection.
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Step 1: make sure the tables exist.
         if (useLocalDatabase)
         {
             await db.Database.EnsureCreatedAsync();
@@ -32,12 +34,14 @@ public static class DevelopmentData
             await db.Database.MigrateAsync();
         }
 
+        // Step 2: only add samples to an empty table, so restarting the API never makes duplicates.
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
         if (await db.Products.IgnoreQueryFilters().AnyAsync())
         {
             return;
         }
 
+        // Step 3: add the sample products.
         // The hoodie goes first so it gets ProductId 1, matching the sample on Products/Details.
         db.Products.AddRange(
             new Product

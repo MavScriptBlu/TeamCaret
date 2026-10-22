@@ -11,6 +11,7 @@ namespace CCOS.Web.Services;
 /// </summary>
 public static class Money
 {
+    // Fixed to US formatting so prices look the same no matter what language the server is set to.
     private static readonly CultureInfo UsDollars = CultureInfo.GetCultureInfo("en-US");
 
     /// <summary>

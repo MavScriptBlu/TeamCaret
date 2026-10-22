@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ---- Services (things the app can use) ----
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Finds the controller classes (like ProductsController) and turns them into endpoints.
 builder.Services.AddControllers();
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,6 +32,7 @@ builder.Services.AddControllers();
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
 
+// A real (non-Development) run must never fall back to the local file, so stop right away.
 if (useLocalDatabase && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException(
@@ -37,6 +40,7 @@ if (useLocalDatabase && !builder.Environment.IsDevelopment())
         "See backend/README.md for setup instructions.");
 }
 
+// Hands out a database connection (AppDbContext) to anything that asks for one.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (useLocalDatabase)
@@ -52,19 +56,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString);
     }
 });
+
+// One ProductRepository per web request, so it shares that request's database connection.
 builder.Services.AddScoped<ProductRepository>();
 
 var app = builder.Build();
 
+// ---- Startup work ----
 // Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
 if (app.Environment.IsDevelopment())
 {
     await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
 }
 
-// Configure the HTTP request pipeline.
+// ---- Request pipeline (what happens to each incoming request, in order) ----
 if (app.Environment.IsDevelopment())
 {
+    // Publishes the API description (OpenAPI) so tools can read what endpoints exist.
     app.MapOpenApi();
 }
 
@@ -72,6 +80,8 @@ app.UseHttpsRedirection();
 
 app.MapControllers();
 
+// Leftover weather sample from the project template. Nothing in CCOS uses it, and it
+// can be deleted once the team no longer wants it as a quick "is the API up" check.
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -94,6 +104,7 @@ app.MapGet("/weatherforecast", () =>
 
 app.Run();
 
+/// <summary>One day of fake weather, for the template sample endpoint above.</summary>
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);

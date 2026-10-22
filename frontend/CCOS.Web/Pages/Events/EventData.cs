@@ -59,6 +59,7 @@ public static class SampleVenues
 /// </summary>
 public static class SampleCategories
 {
+    /// <summary>The category names offered on the officer event forms.</summary>
     public static IReadOnlyList<string> All { get; } = ["Workshop", "Social"];
 }
 
@@ -111,8 +112,8 @@ public static class SampleEvents
     /// Same rule as the "Upcoming events" query in the schema doc.
     /// </summary>
     public static IReadOnlyList<EventInfo> Upcoming() =>
-        All.Where(e => e.IsActive && e.StartsAtUtc >= DateTime.UtcNow)
-           .OrderBy(e => e.StartsAtUtc)
+        All.Where(eventInfo => eventInfo.IsActive && eventInfo.StartsAtUtc >= DateTime.UtcNow)
+           .OrderBy(eventInfo => eventInfo.StartsAtUtc)
            .ToList();
 
     /// <summary>
@@ -120,14 +121,14 @@ public static class SampleEvents
     /// Canceled events (IsActive = false) are hidden, as on the public list.
     /// </summary>
     public static EventInfo? FindActive(int eventId) =>
-        All.FirstOrDefault(e => e.EventId == eventId && e.IsActive);
+        All.FirstOrDefault(eventInfo => eventInfo.EventId == eventId && eventInfo.IsActive);
 
     /// <summary>
     /// Finds any event by id, including canceled ones, for officer pages.
     /// Null when there is no event with that id.
     /// </summary>
     public static EventInfo? Find(int eventId) =>
-        All.FirstOrDefault(e => e.EventId == eventId);
+        All.FirstOrDefault(eventInfo => eventInfo.EventId == eventId);
 }
 
 /// <summary>
@@ -147,16 +148,26 @@ public static class TicketPrices
     /// Lowest regular price across the event's active ticket types, with "from" when the
     /// ticket types have different prices. Null when no ticket types are on sale.
     /// </summary>
-    public static string? RegularPriceText(EventInfo ev) =>
-        PriceText(ev.TicketTypes.Where(t => t.IsActive).Select(t => t.Price).ToList());
+    public static string? RegularPriceText(EventInfo eventInfo) =>
+        PriceText(eventInfo.TicketTypes
+            .Where(ticketType => ticketType.IsActive)
+            .Select(ticketType => ticketType.Price)
+            .ToList());
 
     /// <summary>
     /// Lowest member price across the event's active ticket types, with "from" when the
     /// ticket types have different member prices. Null when no ticket types are on sale.
     /// </summary>
-    public static string? MemberPriceText(EventInfo ev) =>
-        PriceText(ev.TicketTypes.Where(t => t.IsActive).Select(t => t.MemberPrice).ToList());
+    public static string? MemberPriceText(EventInfo eventInfo) =>
+        PriceText(eventInfo.TicketTypes
+            .Where(ticketType => ticketType.IsActive)
+            .Select(ticketType => ticketType.MemberPrice)
+            .ToList());
 
+    /// <summary>
+    /// Shared price wording: nothing when there are no prices, the price when they all match,
+    /// or "from" plus the lowest price when they differ.
+    /// </summary>
     private static string? PriceText(IReadOnlyList<decimal> prices)
     {
         if (prices.Count == 0)

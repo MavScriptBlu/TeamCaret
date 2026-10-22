@@ -6,6 +6,13 @@ namespace CCOS.Shared;
 /// Request body for PUT /api/products/{id}. Updates an existing product including IsActive.
 /// Validation: name and category required, prices >= 0, member price &lt;= price, stock >= 0.
 /// </summary>
+/// <param name="Category">Which group the product belongs to, like Swag or Resources.</param>
+/// <param name="Name">The product name.</param>
+/// <param name="Description">Optional text describing the product.</param>
+/// <param name="Price">The regular price.</param>
+/// <param name="MemberPrice">The club member price.</param>
+/// <param name="StockQuantity">How many are on hand.</param>
+/// <param name="IsActive">False deactivates (soft deletes) the product so customers stop seeing it.</param>
 public record UpdateProductRequest(
     [Required(ErrorMessage = "Category is required.")]
     [MinLength(1, ErrorMessage = "Category is required.")]
@@ -28,6 +35,9 @@ public record UpdateProductRequest(
 
     bool IsActive) : IValidatableObject
 {
+    // Built once instead of on every validation run.
+    private static readonly string[] MemberPriceFieldNames = [nameof(MemberPrice)];
+
     /// <summary>
     /// Cross-field validation: MemberPrice must not exceed Price.
     /// </summary>
@@ -37,7 +47,7 @@ public record UpdateProductRequest(
         {
             yield return new ValidationResult(
                 "Member price cannot exceed regular price.",
-                [nameof(MemberPrice)]);
+                MemberPriceFieldNames);
         }
     }
 }

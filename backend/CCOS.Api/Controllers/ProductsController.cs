@@ -24,12 +24,14 @@ public class ProductsController(ProductRepository products) : ControllerBase
         [FromQuery] bool includeInactive,
         CancellationToken cancellationToken)
     {
+        // Officer view: everything, including deactivated products, with member prices.
         if (includeInactive)
         {
             var all = await products.ListAllMerchandiseAsync(cancellationToken);
             return all.Select(product => ToDto(product, includeMemberPrice: true)).ToList();
         }
 
+        // Customer view: active products only.
         var items = await products.ListActiveMerchandiseAsync(cancellationToken);
         return items.Select(product => ToDto(product, CanSeeMemberPrice())).ToList();
     }
@@ -41,6 +43,8 @@ public class ProductsController(ProductRepository products) : ControllerBase
     public async Task<ActionResult<ProductDto>> Get(int id, CancellationToken cancellationToken)
     {
         var product = await products.FindActiveMerchandiseAsync(id, cancellationToken);
+
+        // Missing, inactive, or a ticket type: all look the same to the caller (404).
         if (product is null)
         {
             return NotFound();
@@ -132,6 +136,10 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// </summary>
     private static bool CanSeeMemberPrice() => true;
 
+    /// <summary>
+    /// Turns a database Product into the shape sent over the wire. The member price is left
+    /// out (null) when includeMemberPrice is false.
+    /// </summary>
     private static ProductDto ToDto(Product product, bool includeMemberPrice) => new(
         product.ProductId,
         product.Category,

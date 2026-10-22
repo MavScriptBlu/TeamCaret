@@ -20,9 +20,8 @@ Section 4
 
 Based on: the current ERD on Dev (Member, Officer, OfficerHistory, Admin, Email; event tickets are Products with an EventId). The .NET projects target .NET 10, so EF Core 10.
 
-#
+## Rule
 
-Rule
 Schema change
 R1
 MemberStatus is a C# enum with three values: Active, Inactive, Expired
@@ -281,7 +280,7 @@ AdminId (identity)
 referenced by the three tables above
 Never deleted; has its own IsActive
 
-modelBuilder.Entity<Member>(b =>
+modelBuilder.Entity`<Member>`(b =>
 
 {
 
@@ -307,7 +306,7 @@ modelBuilder.Entity<Member>(b =>
 
 });
 
-modelBuilder.Entity<Officer>(b =>
+modelBuilder.Entity`<Officer>`(b =>
 
 {
 
@@ -327,7 +326,7 @@ modelBuilder.Entity<Officer>(b =>
 
 });
 
-modelBuilder.Entity<OfficerHistory>(b =>
+modelBuilder.Entity`<OfficerHistory>`(b =>
 
 {
 

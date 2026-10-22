@@ -17,9 +17,8 @@ Document DbContext relationship mappings and navigation properties
 Section 4
 Based on: the current ERD on Dev, where tickets are Products linked to an Event (EVENT ||--o{ PRODUCT : "has ticket products") and are bought through Orders and OrderLines alongside swag. The first Product migration leaves EventId out, so the Event migration adds it.
 
-#
+## Rule
 
-Rule
 Schema change?
 R1
 A TicketType is a Product with ProductType = 'Ticket' and an EventId. It's a subtype of Product in EF, stored in the same Products table
@@ -368,7 +367,7 @@ RegistrationStatus is a C# enum (Purchased, Canceled) stored as text, matching t
 ## Other mapping notes
 
 • EF reads DateTime values back with Kind = Unspecified. Add a value converter on StartsAtUtc, EndsAtUtc, CreatedAtUtc and CanceledAtUtc that marks them as UTC, so converting to club time is always correct.
-• db.Products returns swag and ticket types together. The swag catalog filters with .Where(p => !(p is TicketType)); ticket types are read through db.Set<TicketType>().
+• db.Products returns swag and ticket types together. The swag catalog filters with .Where(p => !(p is TicketType)); ticket types are read through db.Set`<TicketType>`().
 Mapping checks after the migration is generated:
 • No foreign key in this area shows Cascade.
 • Products has a ProductType column, EventId is nullable, and CK_Products_TicketEvent exists.

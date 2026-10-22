@@ -6,6 +6,12 @@ namespace CCOS.Shared;
 /// Request body for POST /api/products. Creates a new product with IsActive defaulting to true.
 /// Validation: name and category required, prices >= 0, member price &lt;= price, stock >= 0.
 /// </summary>
+/// <param name="Category">Which group the product belongs to, like Swag or Resources.</param>
+/// <param name="Name">The product name.</param>
+/// <param name="Description">Optional text describing the product.</param>
+/// <param name="Price">The regular price.</param>
+/// <param name="MemberPrice">The club member price.</param>
+/// <param name="StockQuantity">How many are on hand.</param>
 public record CreateProductRequest(
     [Required(ErrorMessage = "Category is required.")]
     [MinLength(1, ErrorMessage = "Category is required.")]
@@ -26,6 +32,9 @@ public record CreateProductRequest(
     [Range(0, int.MaxValue, ErrorMessage = "Stock quantity must be at least 0.")]
     int StockQuantity) : IValidatableObject
 {
+    // Built once instead of on every validation run.
+    private static readonly string[] MemberPriceFieldNames = [nameof(MemberPrice)];
+
     /// <summary>
     /// Cross-field validation: MemberPrice must not exceed Price.
     /// </summary>
@@ -35,7 +44,7 @@ public record CreateProductRequest(
         {
             yield return new ValidationResult(
                 "Member price cannot exceed regular price.",
-                [nameof(MemberPrice)]);
+                MemberPriceFieldNames);
         }
     }
 }

@@ -46,7 +46,8 @@ public sealed class ProductsApiClient(HttpClient http)
     }
 
     /// <summary>
-    /// sends a new product to POST /api/products, caller checks and disposes the returned response
+    /// Sends a new product to POST /api/products. The caller checks the returned response
+    /// (success or validation errors) and disposes it.
     /// </summary>
     public Task<HttpResponseMessage> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
     {
@@ -54,17 +55,20 @@ public sealed class ProductsApiClient(HttpClient http)
     }
 
     /// <summary>
-    /// Finds one product in the officer list
+    /// Finds one product (active or not) in the officer list, or null when the id isn't there.
     /// </summary>
     public async Task<ProductDto?> GetForEditAsync(int productId, CancellationToken cancellationToken = default)
     {
+        // There is no "get one including inactive" endpoint, so load the full officer list
+        // and pick the product out of it. That also lets officers edit deactivated products.
         var products = await ListAllAsync(cancellationToken);
 
-        return products.FirstOrDefault(p => p.ProductId == productId);
+        return products.FirstOrDefault(product => product.ProductId == productId);
     }
 
     /// <summary>
-    /// Sends updated product data to PUT /api/products/{id}
+    /// Sends updated product data to PUT /api/products/{id}. The caller checks the returned
+    /// response and disposes it.
     /// </summary>
     public Task<HttpResponseMessage> UpdateAsync(int productId, UpdateProductRequest request, CancellationToken cancellationToken = default)
     {
