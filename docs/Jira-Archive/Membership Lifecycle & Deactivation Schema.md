@@ -1,11 +1,13 @@
-CAR-28: Membership Lifecycle & Deactivation Schema
-Issue: CAR-28 · Author: Dylan Morzfeld · Last updated: 2026-10-01
+# CAR-28: Membership Lifecycle & Deactivation Schema
+
+## Issue: CAR-28 · Author: Dylan Morzfeld · Last updated: 2026-10-01
 
 Story: As a system administrator, I want data schema rules for member status transitions (Active, Inactive, Expired), so that historical ticket purchases and officer history remain intact when a member leaves the club.
 
 In short: member rows are never deleted. A member is Active, Expired (the expiration date has passed) or Inactive (an admin marked them as having left the club). Expired is worked out from the date and is never set by hand. Leaving the club changes two columns on the Members row and nothing else, so the Customer row, their ticket purchases and their officer history all stay.
 
-Acceptance criterion
+## Acceptance criterion
+
 Covered in
 Define MemberStatus enum/lookup and expiration date tracking attributes
 Section 1
@@ -16,12 +18,12 @@ Section 3
 Compile DbContext mapping notes in team documentation
 Section 4
 
-
 Based on: the current ERD on Dev (Member, Officer, OfficerHistory, Admin, Email; event tickets are Products with an EventId). The .NET projects target .NET 10, so EF Core 10.
 
 #
+
 Rule
-Schema change?
+Schema change
 R1
 MemberStatus is a C# enum with three values: Active, Inactive, Expired
 No (code only)
@@ -68,10 +70,9 @@ IsActive = 0 (any date)
 No
 No; their title is closed
 
-
 Inactive is checked first, so someone who left the club shows as Inactive even if their dues date is still in the future. "Today" is the club's local date (America/Chicago), not the server's UTC date, so dues don't lapse at 7 p.m. the evening before.
 
-Tracking columns on Members
+## Tracking columns on Members
 
 Column
 Type
@@ -95,8 +96,7 @@ DeactivatedByAdminId
 INT NULL FK → Admins
 Which admin marked them as left; cleared on rejoin
 
-
-The ERD's IsCurrent column is dropped. A stored flag goes stale the day dues run out. The schema doc's PERSISTED computed version can't be created either, because PostgreSQL doesn't allow now() or CURRENT_DATE in a stored generated column.
+The ERD's IsCurrent column is dropped. A stored flag goes stale the day dues run out. The schema doc's PERSISTED computed version can't be created either, because SQL Server doesn't allow GETDATE() in a persisted column.
 
 stateDiagram-v2
 
@@ -133,7 +133,6 @@ Rejoin
 IsActive = 1, clear DeactivatedDate and DeactivatedByAdminId, new MemberExpiration
 Admin
 
-
 Rejoining always reuses the same row, because MemberId is the person's CustomerId. There can never be a duplicate member.
 2. Foreign key behavior when status changes
 A status change is an UPDATE to two or three columns on Members, so no foreign key fires and no related row changes. Foreign keys only act on deletes, and CCOS never deletes customers, members or admins. Every key into those tables is therefore NO ACTION, so the database itself refuses a delete that would break history.
@@ -166,7 +165,6 @@ Members → Admins (DeactivatedByAdminId)
 NO ACTION
 New column
 Records who marked them as left
-
 
 Ticket purchases are safe by design. Orders belong to the Customer, not the Member, so membership changes can't reach them. The member price a ticket was bought at is kept in OrderLines.UnitPrice, so an expired or inactive member's old orders still show what they actually paid.
 
@@ -226,7 +224,7 @@ db.Members.Any(m => m.MemberId == customerId && m.IsActive && m.MemberExpiration
 
 No row, an inactive row or an expired row all mean "not a member right now".
 
-Historical member lookup (one person, whatever their status):
+## Historical member lookup (one person, whatever their status)
 
 db.Members
 
@@ -282,7 +280,6 @@ Admin
 AdminId (identity)
 referenced by the three tables above
 Never deleted; has its own IsActive
-
 
 modelBuilder.Entity<Member>(b =>
 
@@ -358,13 +355,13 @@ public MemberStatus StatusOn(DateOnly today) =>
 
     : MemberStatus.Active;
 
-The club's "today": one small service supplies it, so every query and screen agrees:
+## The club's "today": one small service supplies it, so every query and screen agrees
 
 public DateOnly Today => DateOnly.FromDateTime(
 
     TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Chicago"));
 
-Mapping checks after the migration is generated:
+### Mapping checks after the migration is generated
 
 Every foreign key into Customers, Members and Admins shows onDelete: ReferentialAction.Restrict. None show Cascade, which is EF's default for required relationships.
 Members.MemberId and Officers.OfficerId are not identity columns.
@@ -399,5 +396,3 @@ An officer must be a current member
 Whose "today"?
 The club's local date (America/Chicago)
 Dues shouldn't lapse at 7 p.m. the evening before because the server runs on UTC
-
-

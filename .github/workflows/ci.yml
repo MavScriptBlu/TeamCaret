@@ -15,7 +15,7 @@ jobs:
       - name: Install .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Install Task
         uses: go-task/setup-task@v2
@@ -61,7 +61,7 @@ jobs:
       - name: Install .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       # Same as `task migrate`, but CI has no user secrets, so it passes the connection string directly
       - name: Apply the database migrations

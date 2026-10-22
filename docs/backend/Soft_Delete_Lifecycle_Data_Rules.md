@@ -17,12 +17,12 @@
 
 | # | Rule | Schema change? |
 | --- | --- | --- |
-| R1 | `Products.IsActive BIT NOT NULL DEFAULT 1`; new products start active | No, already in schema |
+| R1 | `Products.IsActive BOOLEAN NOT NULL DEFAULT TRUE`; new products start active | No, already in schema |
 | R2 | "Delete" archives the product (`IsActive = 0`). Officers can't hard-delete products | No |
 | R3 | Archived products can be restored (`IsActive = 1`) | No |
 | R4 | An EF Core global query filter hides archived products from every product query unless code explicitly opts out | No (EF config) |
 | R5 | `FK_OrderLines_Products` stays `ON DELETE NO ACTION` | No, already in schema |
-| R6 | `OrderLines` gets `ProductNameSnapshot NVARCHAR(100) NOT NULL`, next to the existing `UnitPrice` snapshot | **Yes** |
+| R6 | `OrderLines` gets `ProductNameSnapshot VARCHAR(100) NOT NULL`, next to the existing `UnitPrice` snapshot | **Yes** |
 | R7 | Order history reads only from `OrderLines`. In EF, `OrderLine` keeps `ProductId` but has no `Product` navigation property | No (EF model) |
 
 ## 1. IsActive and soft delete

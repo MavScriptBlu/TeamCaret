@@ -3,7 +3,7 @@
 The ASP.NET Core Web API + Entity Framework Core side of CCOS. These are the "Web API",
 "repository", and "data" layers from the proposal's flow:
 
-```
+```structure
 view -> API client -> Web API -> repository -> data
 ```
 
@@ -35,7 +35,7 @@ From the repo root:
    (`ccos-dev-password`) is fine to keep. It only protects a database on your own computer.
 2. Start it:
 
-   ```
+   ```powershell
    docker compose up -d ccos-db
    ```
 
@@ -53,8 +53,8 @@ they can't get committed by accident.
 
 From the repo root (swap the password if you changed it in `.env`):
 
-```
-dotnet user-secrets set "ConnectionStrings:CCOS" "Host=localhost;Port=5432;Database=postgres;Username=ccos-db;Password=ccos-dev-password" --project backend/CCOS.Api
+```powershell
+dotnet user-secrets set "ConnectionStrings:CCOS" "Host=localhost;Port=5432;Database=postgres;Username=ccos-db;Password=ccos123" --project backend/CCOS.Api
 ```
 
 Check it saved with `dotnet user-secrets list --project backend/CCOS.Api`.

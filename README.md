@@ -19,7 +19,11 @@ design.
 ## Tech Stack
 
 - ASP.NET Core (Web API backend + Razor Pages frontend)
+- ASP.NET Core (Web API backend + Razor Pages frontend)
 - Entity Framework Core
+- PostgreSQL 17 in a container for local development (Docker or Podman), via the Npgsql EF Core provider
+- SQLite sample file as a fallback when you run the API with no connection string
+- Docker/Podman containers for the API and website too (`task up` runs all three)
 - PostgreSQL 17 in a container for local development (Docker or Podman), via the Npgsql EF Core provider
 - SQLite sample file as a fallback when you run the API with no connection string
 - Docker/Podman containers for the API and website too (`task up` runs all three)
@@ -116,8 +120,18 @@ GitHub Action has an update. CI runs on it, so merge it if it's green.
 TeamCaret/
 ├── backend/        ASP.NET Core Web API + EF Core (Web API, repository, data layers)
 ├── frontend/        Razor Pages app that calls the backend API (view layer)
+├── frontend/        Razor Pages app that calls the backend API (view layer)
 ├── shared/         DTOs/enums shared between backend and frontend (the API contract)
 ├── docs/           Proposal, ERD, schema, backlog, changelog
+├── docker-compose.yml  Local PostgreSQL, API, and website containers (reads .env)
+├── .dockerignore   Keeps .env and build output out of Docker images
+├── Taskfile.yml    Shortcuts: `task up`, `task down`, `task build`, `task test`, `task lint`, and more
+├── .github/workflows/ci.yml  GitHub Actions: build, lint, test, and app start check
+├── .github/dependabot.yml    Weekly update PRs for NuGet packages and Actions
+├── .editorconfig   Code style rules (spacing, naming) every editor reads
+├── Directory.Build.props  Turns on .NET code checks for every project
+├── .env.example    Template for your local .env (copy it, add your password)
+├── .config/dotnet-tools.json  Pins the `dotnet ef` tool version (`dotnet tool restore` installs it)
 ├── docker-compose.yml  Local PostgreSQL, API, and website containers (reads .env)
 ├── .dockerignore   Keeps .env and build output out of Docker images
 ├── Taskfile.yml    Shortcuts: `task up`, `task down`, `task build`, `task test`, `task lint`, and more

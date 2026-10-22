@@ -12,16 +12,25 @@ namespace CCOS.Api;
 public static class DevelopmentData
 {
     /// <summary>
-    /// Creates the local database if it doesn't exist and adds sample products the first time.
+    /// Makes sure the database has its tables, then adds sample products the first time.
+    /// SQLite builds its tables directly. PostgreSQL applies the EF Core migrations.
     /// The samples cover regular and member pricing, out of stock and an inactive product
     /// (see docs/Product_Migration_Scope.md).
     /// </summary>
-    public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services)
+    public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await db.Database.EnsureCreatedAsync();
+        if (useLocalDatabase)
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            // Creates or updates the tables, same as `task migrate`. Skips migrations already applied.
+            await db.Database.MigrateAsync();
+        }
 
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
         if (await db.Products.IgnoreQueryFilters().AnyAsync())
