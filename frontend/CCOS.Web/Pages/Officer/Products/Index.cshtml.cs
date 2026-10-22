@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-  using CCOS.Shared;
+using CCOS.Shared;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
