@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using CCOS.Shared;
+using CCOS.Web.Extentions;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -90,18 +91,21 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
 
             if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
             {
-                await AddApiValidationErrorsAsync(response, cancellationToken);
+                await ModelState.AddApiValidationErrorsAsync(
+                    response,
+                    nameof(Input),
+                    "The product could not be saved. Please check the values and try again.",
+                    cancellationToken);
+
                 return Page();
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning(
-                    "Failed to update product {ProductId}. Status code: {StatusCode}",
-                    id,
-                    response.StatusCode);
+                logger.LogWarning("Failed to update product {ProductId}. Status code: {StatusCode}", id, response.StatusCode);
 
                 ModelState.AddModelError(string.Empty, "The product could not be saved. Please try again.");
+
                 return Page();
             }
 
@@ -119,45 +123,10 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogError(ex, "The product API request timed out while saving product {ProductId}", id);
+
             ModelState.AddModelError(string.Empty, "The product API request timed out. Please try again later.");
+
             return Page();
-        }
-    }
-
-
-    /// <summary>
-    /// Reads validation errors from an HTTP response and adds them to ModelState.
-    /// </summary>
-    private async Task AddApiValidationErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        ValidationProblemDetails? problem;
-
-        try
-        {
-            problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(cancellationToken);
-        }
-        catch (JsonException)
-        {
-            problem = null;
-        }
-
-        if (problem is null || problem.Errors.Count == 0)
-        {
-            ModelState.AddModelError(string.Empty, "The product could not be saved. Please check the values and try again.");
-            return;
-        }
-
-        // Add each validation error to ModelState, prefixing keys with "Input." if not already present
-        foreach (var (key, messages) in problem.Errors)
-        {
-            var modelStateKey = key.StartsWith("Input.", StringComparison.OrdinalIgnoreCase)
-                ? key
-                : $"Input.{key}";
-
-            foreach (var message in messages)
-            {
-                ModelState.AddModelError(modelStateKey, message);
-            }
         }
     }
 
