@@ -6,6 +6,7 @@
     <Project Path="backend/CCOS.Repositories/CCOS.Repositories.csproj" />
   </Folder>
   <Folder Name="/frontend/">
+    <Project Path="frontend/CCOS.Web.Tests/CCOS.Web.Tests.csproj" />
     <Project Path="frontend/CCOS.Web/CCOS.Web.csproj" />
   </Folder>
   <Folder Name="/shared/">
