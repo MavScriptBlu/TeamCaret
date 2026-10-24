@@ -4,17 +4,4 @@
     ViewData["Title"] = "New Product";
 }
 
-<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
-
-<section class="product-create-page" aria-labelledby="product-create-title">
-    <h1 id="product-create-title" class="event-form-title">Create Product</h1>
-
-    <partial name="_ProductForm" for="Input" />
-</section>
-
-@section Scripts {
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <partial name="_ValidationScriptsPartial" />
-    <script src="~/js/product-create.js" asp-append-version="true"></script>
-}
+<h1>@ViewData["Title"]</h1>

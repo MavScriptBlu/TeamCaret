@@ -5,10 +5,6 @@ namespace CCOS.Repositories;
 /// sold out, it doesn't have enough seats left, or it has been deactivated.
 /// Callers catch this to show "sold out" instead of a crash.
 /// </summary>
-/// <param name="eventId">The event that ran out of room.</param>
-/// <summary>
-/// Exception thrown when an event is sold out or has insufficient capacity.
-/// </summary>
 public sealed class SoldOutException(int eventId)
     : InvalidOperationException($"Event {eventId} is sold out or has insufficient capacity.")
 {

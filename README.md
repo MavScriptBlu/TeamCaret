@@ -124,7 +124,7 @@ GitHub Action has an update. CI runs on it, so merge it if it's green.
 
 ## Project Structure
 
-```text
+```structure
 TeamCaret/
 ├── backend/              ASP.NET Core Web API + EF Core (Web API, repository, data layers)
 ├── frontend/             Razor Pages app that calls the backend API (view layer)
@@ -151,6 +151,7 @@ TeamCaret/
 
 Each of `backend/`, `frontend/`, and `shared/` has its own README describing
 what goes in it. None of the actual .NET projects exist yet - `dotnet new` them
+into place per those READMEs when implementation starts.
 into place per those READMEs when implementation starts.
 
 ## Team

@@ -10,7 +10,6 @@ namespace CCOS.Web.Pages.Officer.Products;
 /// what the officer typed, and sends the new product to CCOS.Api.
 /// Officer-only: lock this down with [Authorize] once login is wired up.
 /// </summary>
-/// TODO: add [Authorize] once login is wired up
 public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> logger) : PageModel
 {
     /// <summary>The values typed into the form. Filled in automatically when the form is posted.</summary>

@@ -12,9 +12,11 @@ namespace CCOS.Web.Pages.Officer.Products;
 /// the changes to CCOS.Api when the officer saves.
 /// Officer-only: lock this down with [Authorize] once login is wired up.
 /// </summary>
-/// TODO: add [Authorize] once login is wired up
 public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger) : PageModel
 {
+    /// <summary>The product id from the URL route. Exposed so the view can display it.</summary>
+    public int? Id { get; private set; }
+
     /// <summary>The values in the form. Starts as the saved product, then holds what the officer typed.</summary>
     [BindProperty]
     public ProductInput Input { get; set; } = new();
@@ -29,6 +31,8 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
     /// <param name="id">The product id from the URL.</param>
     public async Task<IActionResult> OnGetAsync(int id, CancellationToken cancellationToken)
     {
+        Id = id;
+
         try
         {
             var product = await productsApi.GetForEditAsync(id, cancellationToken);
@@ -80,6 +84,8 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
     /// <param name="id">The product id from the URL.</param>
     public async Task<IActionResult> OnPostAsync(int id, CancellationToken cancellationToken)
     {
+        Id = id;
+
         // Stop here and redisplay the form with the validation messages (see ProductInput).
         if (!ModelState.IsValid)
         {
@@ -147,7 +153,7 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
     }
 
     /// <summary>
-    /// Reads validation errors from an HTTP response and adds them to ModelState.
+    /// Reads the validation errors from the API response and adds them to ModelState.
     /// </summary>
     private async Task AddApiValidationErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

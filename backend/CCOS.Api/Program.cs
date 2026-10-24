@@ -66,7 +66,7 @@ var app = builder.Build();
 // Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
 if (app.Environment.IsDevelopment())
 {
-    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
+    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services);
 }
 
 // ---- Request pipeline (what happens to each incoming request, in order) ----
