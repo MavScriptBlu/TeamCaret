@@ -1,0 +1,15 @@
+<!--
+  Settings every project in the repo picks up automatically (no need to edit each .csproj).
+  Turns on Microsoft's built-in code checks (analyzers). They show up as warnings,
+  never errors, so a warning won't stop your build. Rules live in .editorconfig.
+-->
+<Project>
+  <PropertyGroup>
+    <!-- The recommended set of .NET code checks -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Also show .editorconfig style rules when you build -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Warnings stay warnings. Flip this later if the team wants a stricter build. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
