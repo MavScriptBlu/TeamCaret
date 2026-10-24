@@ -26,15 +26,19 @@ tasks:
       - sh: test -n "$POSTGRES_PASSWORD"
         msg: "POSTGRES_PASSWORD is empty in your .env. Copy it from .env.example, then try again."
     cmds:
+      - echo "Building and starting the database, API and website (first run takes a few minutes)..."
       - ${CONTAINER:-docker} compose up -d --build
       - ${CONTAINER:-docker} ps
+      - echo "Done. Website http://localhost:8080  API http://localhost:8081/api/products. Run 'task migrate' once if the tables don't exist yet."
 
   db:
     desc: Start only the PostgreSQL database (for DBeaver or dotnet run)
     preconditions: *needs_env
     cmds:
+      - echo "Starting the PostgreSQL database..."
       - ${CONTAINER:-docker} compose up -d ccos-db
       - ${CONTAINER:-docker} ps
+      - echo "Done. The database is running. Run 'task migrate' if you need to create the tables."
 
   migrate:
     desc: Create or update the database tables (run after `task db`)
@@ -43,9 +47,10 @@ tasks:
       (ConnectionStrings:CCOS). Safe to run again, it skips ones already applied.
       See backend/README.md if you haven't set the user secret yet.
     cmds:
+      - echo "Applying database migrations..."
       - dotnet tool restore
-      - dotnet restore backend/CCOS.Data/CCOS.Data.csproj
       - dotnet ef database update --project backend/CCOS.Data
+      - echo "Done. The database tables are up to date."
 
   down:
     desc: Stop everything (your database data stays)
@@ -53,27 +58,36 @@ tasks:
       - sh: test -f .env
         msg: "No .env found, so there's nothing set up to stop."
     cmds:
+      - echo "Stopping everything..."
       - ${CONTAINER:-docker} compose down
+      - echo "Done. Everything is stopped and your database data is kept."
 
   logs:
     desc: Show logs from the database, API and website (Ctrl+C to quit)
     cmds:
+      - echo "Showing logs. Press Ctrl+C to quit."
       - ${CONTAINER:-docker} compose logs -f
 
   build:
     desc: Build the whole solution
     cmds:
+      - echo "Building the solution..."
       - dotnet build CCOS.slnx
+      - echo "Done. The build finished (scroll up for any warnings)."
 
   test:
     desc: Run all the tests
     cmds:
-      - dotnet test CCOS.slnx
+      - echo "Running the tests..."
+      - dotnet test CCOS.slnx --logger "console;verbosity=normal"
+      - echo "Done. All tests passed."
 
   format:
     desc: Fix spacing and indents to match .editorconfig
     cmds:
+      - echo "Fixing formatting..."
       - dotnet format CCOS.slnx --severity error
+      - echo "Done. Formatting matches .editorconfig."
 
   lint:
     desc: Check formatting without changing files (CI runs this)
@@ -81,7 +95,9 @@ tasks:
       Fails if any file doesn't match .editorconfig. Fix it with `task format`.
       Code warnings (analyzers) show up in `task build` instead and never fail it.
     cmds:
+      - echo "Checking formatting..."
       - dotnet format CCOS.slnx --verify-no-changes --severity error
+      - echo "Done. Formatting is clean."
 
   reset:
     desc: WIPE the database and start fresh (use after changing the password)
@@ -93,5 +109,7 @@ tasks:
     preconditions: *needs_env
     prompt: This deletes all local database data. Keep going?
     cmds:
+      - echo "Wiping the database and starting fresh..."
       - ${CONTAINER:-docker} compose down -v
       - ${CONTAINER:-docker} compose up -d --build
+      - echo "Done. You have a new empty database. Run 'task migrate' to put the tables back."

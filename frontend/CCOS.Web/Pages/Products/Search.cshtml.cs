@@ -7,6 +7,7 @@ namespace CCOS.Web.Pages.Products;
 /// </summary>
 public class SearchModel : PageModel
 {
+    /// <summary>Runs when the page is opened. Nothing to load yet.</summary>
     public void OnGet()
     {
     }

@@ -45,6 +45,7 @@ public class CreateModel : PageModel
     [BindProperty]
     public string? Description { get; set; }
 
+    /// <summary>Shows the blank form. Nothing to load.</summary>
     public void OnGet()
     {
     }

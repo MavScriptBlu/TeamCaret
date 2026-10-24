@@ -2,11 +2,20 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-19 · Code comments and spacing pass
+
+- Added `///` summaries to every class, record and public method that didn't have one: the data layer (`AppDbContext`, entities, `UtcDateTimeConverter`), `TicketBookingRepository` and its helper types, the API (`Program.cs`, `ProductsController`, `DevelopmentData`), the shared request records, the website `Program.cs`, services, Razor page models (public pages and the officer product, event and venue pages) and the schema tests.
+- Added short `//` notes above the non-obvious steps: why `TicketBookingRepository` sorts events before locking them, how the single conditional `UPDATE` stops overselling, why `Event.RowVersion` uses `xmin`, why products use a query filter, and the "try, catch, show a friendly message" blocks on the officer product pages.
+- Added blank lines between logical blocks in the files above.
+- Renamed a few short names to full words to match the no-abbreviations rule: `ev`, `e`, `t`, `v`, `c` and `p` in lambdas and parameters (`eventInfo`, `ticketType`, `venue`, `category`, `product`), and `products` to `product` in `Officer/Products/Edit.cshtml.cs` where it held a single product.
+- No behavior changes. Only comments, blank lines and those renames.
+- Docs: `docs/CODING_STANDARDS.md` now spells out the comment rules, and the README mentions them under Build, Test, and CI.
+- Taskfile: every task now prints a short "starting" line and a "done" line, so a quiet command no longer looks like it did nothing. `task test` also lists each test as it runs.
+- Replaced constant arrays passed to methods (`[nameof(MemberPrice)]`, the expected column lists in the schema tests) with `static readonly` fields, as the analyzer suggests (CA1861).
+- Noted (not changed): `Class1.cs` in `CCOS.Shared` and the `/weatherforecast` sample in `CCOS.Api/Program.cs` are leftover template code that nothing uses.
+
 ## 2026-10-14 · CAR-45 Shared PostgreSQL 17 database with EF Core migrations
 
-## 2026-10-15 · CAR-45 Fix the CI migration step
-
-- CI: the "App starts" job now runs `dotnet restore CCOS.slnx` before applying migrations. `dotnet ef` needs `obj/project.assets.json`, which only exists after a restore, so the step was failing with `NETSDK1004`.
 - `docker-compose.yml`: `ccos-db` is PostgreSQL 17 (`postgres:17`) on port 5432, with the named volume `ccos-data`. The password comes from `.env`, and `.env.example` (committed) has the shared dev password, so nobody has to invent one.
 - `CCOS.Data`, `CCOS.Api` and `AppDbContextFactory` use the Npgsql provider (`Npgsql.EntityFrameworkCore.PostgreSQL`). EF Core is pinned to 10.0.12 in `CCOS.Data` so every project builds against the same version.
 - `AppDbContext`: check constraints and query filters use PostgreSQL syntax, times are `timestamp(0) with time zone` with `now()` defaults.

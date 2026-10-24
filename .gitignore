@@ -95,8 +95,97 @@ desktop.ini
 # --- Node (if a frontend build step ever needs it) --------------------------
 node_modules/
 npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
 
-.claude/*
-.claude/
-# Local development database for CCOS.Api (SQLite, created on first run)
+# --- Docker ----------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+
+# --- Local development databases -------------------------------------------
+# SQLite fallback for CCOS.Api (created on first run without connection string)
 ccos-dev.db*
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- Temporary files -------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.cache/
+tmp/
+temp/
+
+# --- ReSharper / DotCover --------------------------------------------------
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+*.dotCover
+
+# --- NCrunch ---------------------------------------------------------------
+*.ncrunch*
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# --- Benchmark results -----------------------------------------------------
+BenchmarkDotNet.Artifacts/
+
+# --- MiniProfiler ----------------------------------------------------------
+*.MiniProfiler
+
+# --- ServiceStack ----------------------------------------------------------
+App_Data/
+
+# --- Swagger / OpenAPI -----------------------------------------------------
+swagger.json
+
+# --- Verify (snapshot testing) ---------------------------------------------
+*.received.*
+
+# --- LINQPad ---------------------------------------------------------------
+*.lprun*
+*.linq
+
+# --- Claude Code / AI assistants -------------------------------------------
+.claude/
+.cursor/
+.aider*
+.continue/
+
+# --- Scratchpad / scratch files --------------------------------------------
+scratch/
+scratchpad/
+*.scratch.*
+
+# --- Local tool data -------------------------------------------------------
+.dotnet/
+.nuget/
+.config/dotnet-tools.json.lock
+
+# --- Windows installer artifacts -------------------------------------------
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# --- macOS -----------------------------------------------------------------
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Linux -----------------------------------------------------------------
+*~
+
+# --- Archives (don't commit zips) ------------------------------------------
+*.zip
+*.tar.gz
+*.rar
+*.7z
