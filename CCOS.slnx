@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/backend/">
+    <Project Path="backend/CCOS.Api.Tests/CCOS.Api.Tests.csproj" />
     <Project Path="backend/CCOS.Api/CCOS.Api.csproj" />
     <Project Path="backend/CCOS.Data.Tests/CCOS.Data.Tests.csproj" />
     <Project Path="backend/CCOS.Data/CCOS.Data.csproj" />
