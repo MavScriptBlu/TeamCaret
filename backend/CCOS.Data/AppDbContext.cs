@@ -16,6 +16,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // PostgreSQL stores times with whole-second precision and a time zone. SQLite (local sample data and
+        // tests) does not understand that type name, so it gets null and picks its own column type.
+        var timestampColumnType = Database.IsNpgsql() ? "timestamp(0) with time zone" : null;
+
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasDiscriminator<string>("ProductType")
@@ -26,12 +30,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasDefaultValue("Item");
             entity.ToTable("Products", table =>
             {
-                table.HasCheckConstraint("CK_Products_Price", "[Price] >= 0");
-                table.HasCheckConstraint("CK_Products_MemberPrice", "[MemberPrice] >= 0");
-                table.HasCheckConstraint("CK_Products_StockQuantity", "[StockQuantity] >= 0");
+                table.HasCheckConstraint("CK_Products_Price", "\"Price\" >= 0");
+                table.HasCheckConstraint("CK_Products_MemberPrice", "\"MemberPrice\" >= 0");
+                table.HasCheckConstraint("CK_Products_StockQuantity", "\"StockQuantity\" >= 0");
                 table.HasCheckConstraint(
                     "CK_Products_TicketEvent",
-                    "(ProductType = 'Ticket' AND EventId IS NOT NULL) OR (ProductType = 'Item' AND EventId IS NULL)");
+                    "(\"ProductType\" = 'Ticket' AND \"EventId\" IS NOT NULL) OR (\"ProductType\" = 'Item' AND \"EventId\" IS NULL)");
             });
             entity.HasKey(product => product.ProductId);
             entity.Property(product => product.Category).HasMaxLength(30).IsRequired();
@@ -51,19 +55,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(ticketType => ticketType.EventId)
                 .HasDatabaseName("IX_Products_EventId")
-                .HasFilter("[EventId] IS NOT NULL");
+                .HasFilter("\"EventId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<Order>(entity =>
         {
             entity.ToTable("Orders", table =>
             {
-                table.HasCheckConstraint("CK_Orders_Status", "[Status] IN ('Pending', 'Fulfilled', 'Canceled')");
-                table.HasCheckConstraint("CK_Orders_TotalAmount", "[TotalAmount] >= 0");
+                table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Fulfilled', 'Canceled')");
+                table.HasCheckConstraint("CK_Orders_TotalAmount", "\"TotalAmount\" >= 0");
             });
             entity.HasKey(order => order.OrderId);
             entity.Property(order => order.Status).HasMaxLength(20).HasDefaultValue("Pending");
-            entity.Property(order => order.OrderDate).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(order => order.OrderDate).HasDefaultValueSql("now()");
             entity.Property(order => order.TotalAmount).HasPrecision(10, 2);
         });
 
@@ -71,8 +75,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.ToTable("OrderLines", table =>
             {
-                table.HasCheckConstraint("CK_OrderLines_Quantity", "[Quantity] > 0");
-                table.HasCheckConstraint("CK_OrderLines_UnitPrice", "[UnitPrice] >= 0");
+                table.HasCheckConstraint("CK_OrderLines_Quantity", "\"Quantity\" > 0");
+                table.HasCheckConstraint("CK_OrderLines_UnitPrice", "\"UnitPrice\" >= 0");
             });
             entity.HasKey(line => line.OrderLineId);
             entity.Property(line => line.UnitPrice).HasPrecision(10, 2);
@@ -91,7 +95,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Venue>(entity =>
         {
             entity.ToTable("Venues", table =>
-                table.HasCheckConstraint("CK_Venues_Capacity", "[Capacity] > 0"));
+                table.HasCheckConstraint("CK_Venues_Capacity", "\"Capacity\" > 0"));
             entity.HasKey(venue => venue.VenueId);
             entity.Property(venue => venue.Name).HasMaxLength(100).IsRequired();
             entity.Property(venue => venue.IsActive).HasDefaultValue(true).HasSentinel(true);
@@ -119,30 +123,38 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.ToTable("Events", table =>
             {
-                table.HasCheckConstraint("CK_Events_Times", "[EndsAtUtc] > [StartsAtUtc]");
-                table.HasCheckConstraint("CK_Events_TicketCapacity", "[TicketCapacity] > 0");
+                table.HasCheckConstraint("CK_Events_Times", "\"EndsAtUtc\" > \"StartsAtUtc\"");
+                table.HasCheckConstraint("CK_Events_TicketCapacity", "\"TicketCapacity\" > 0");
                 table.HasCheckConstraint(
                     "CK_Events_TicketsSold",
-                    "[TicketsSold] >= 0 AND [TicketsSold] <= [TicketCapacity]");
+                    "\"TicketsSold\" >= 0 AND \"TicketsSold\" <= \"TicketCapacity\"");
             });
             entity.HasKey(@event => @event.EventId);
             entity.Property(@event => @event.Name).HasMaxLength(100).IsRequired();
             entity.Property(@event => @event.Description).HasMaxLength(500);
             entity.Property(@event => @event.StartsAtUtc)
-                .HasColumnType("datetime2(0)")
+                .HasColumnType(timestampColumnType)
                 .HasConversion<UtcDateTimeConverter>();
             entity.Property(@event => @event.EndsAtUtc)
-                .HasColumnType("datetime2(0)")
+                .HasColumnType(timestampColumnType)
                 .HasConversion<UtcDateTimeConverter>();
             entity.Property(@event => @event.TicketsSold).HasDefaultValue(0);
             entity.Property(@event => @event.MembersOnly).HasDefaultValue(false);
             entity.Property(@event => @event.IsActive).HasDefaultValue(true).HasSentinel(true);
-            if (Database.IsSqlServer())
+            if (Database.IsNpgsql())
             {
-                entity.Property(@event => @event.RowVersion).IsRowVersion();
+                // PostgreSQL has no rowversion type. Every row already carries a hidden "xmin"
+                // column that changes on each write, so we use it as the concurrency token.
+                // EF reads it back after every save, and a stale save throws instead of overwriting.
+                entity.Property(@event => @event.RowVersion)
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
             }
             else
             {
+                // SQLite (local sample data and tests) has no xmin, so the token is a plain column.
                 entity.Property(@event => @event.RowVersion).IsConcurrencyToken();
             }
             entity.HasOne(@event => @event.Venue)
@@ -157,7 +169,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     @event.VenueId,
                     @event.MembersOnly
                 })
-                .HasFilter("[IsActive] = 1");
+                .HasFilter("\"IsActive\" = true");
             entity.HasIndex(@event => new { @event.VenueId, @event.StartsAtUtc })
                 .IncludeProperties(@event => new { @event.EndsAtUtc, @event.IsActive });
         });
@@ -167,18 +179,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.ToTable("TicketRegistrations", table =>
                 table.HasCheckConstraint(
                     "CK_TicketRegistrations_Status",
-                    "[Status] IN ('Purchased', 'Canceled')"));
+                    "\"Status\" IN ('Purchased', 'Canceled')"));
             entity.HasKey(registration => registration.TicketRegistrationId);
             entity.Property(registration => registration.Status)
                 .HasConversion<string>()
                 .HasMaxLength(10)
                 .HasDefaultValue(RegistrationStatus.Purchased);
             entity.Property(registration => registration.CreatedAtUtc)
-                .HasColumnType("datetime2(0)")
-                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .HasColumnType(timestampColumnType)
+                .HasDefaultValueSql("now()")
                 .HasConversion<UtcDateTimeConverter>();
             entity.Property(registration => registration.CanceledAtUtc)
-                .HasColumnType("datetime2(0)")
+                .HasColumnType(timestampColumnType)
                 .HasConversion<UtcDateTimeConverter>();
             entity.HasOne(registration => registration.Event)
                 .WithMany(@event => @event.Registrations)

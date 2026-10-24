@@ -3,13 +3,16 @@
 @using CCOS.Web.Services
 @{
     ViewData["Title"] = "Officer Dashboard";
+    var createdMessage = TempData["ProductCreated"] as string;
+    var savedMessage = TempData["ProductSaved"] as string;
+    var productMessage = savedMessage ?? createdMessage;
 }
 
 <link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
 
-@if (TempData["ProductCreated"] is string message)
+@if (productMessage is not null)
 {
-    <p class="product-created-message" role="status">@message</p>
+    <p class="product-created-message" role="status">@productMessage</p>
 }
 
 @* Matches Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive (assets/Wireframes-Product). *@

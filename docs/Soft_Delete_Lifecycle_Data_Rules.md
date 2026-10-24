@@ -13,16 +13,16 @@
 | Document cascading rules and FK constraints for historical order line references | Section 3 |
 | Notes documented in project architecture space | This doc |
 
-**Stack:** ASP.NET Core Web API with EF Core and SQL Server (Azure SQL in production), per the repo README. This doc defines the rules; it doesn't include implementation code.
+**Stack:** ASP.NET Core Web API with EF Core and PostgreSQL, per the repo README. This doc defines the rules; it doesn't include implementation code.
 
 | # | Rule | Schema change? |
 | --- | --- | --- |
-| R1 | `Products.IsActive BIT NOT NULL DEFAULT 1`; new products start active | No, already in schema |
+| R1 | `Products.IsActive BOOLEAN NOT NULL DEFAULT TRUE`; new products start active | No, already in schema |
 | R2 | "Delete" archives the product (`IsActive = 0`). Officers can't hard-delete products | No |
 | R3 | Archived products can be restored (`IsActive = 1`) | No |
 | R4 | An EF Core global query filter hides archived products from every product query unless code explicitly opts out | No (EF config) |
 | R5 | `FK_OrderLines_Products` stays `ON DELETE NO ACTION` | No, already in schema |
-| R6 | `OrderLines` gets `ProductNameSnapshot NVARCHAR(100) NOT NULL`, next to the existing `UnitPrice` snapshot | **Yes** |
+| R6 | `OrderLines` gets `ProductNameSnapshot VARCHAR(100) NOT NULL`, next to the existing `UnitPrice` snapshot | **Yes** |
 | R7 | Order history reads only from `OrderLines`. In EF, `OrderLine` keeps `ProductId` but has no `Product` navigation property | No (EF model) |
 
 ## 1. IsActive and soft delete
@@ -58,7 +58,7 @@ The only code that reaches a product from an order is cancellation. It looks up 
 
 ## 3. Foreign keys and cascade rules
 
-Order history is protected by the database as well as the app: `FK_OrderLines_Products` is `NO ACTION`, so SQL Server refuses to delete any product that appears on an order, even from a script run outside the app.
+Order history is protected by the database as well as the app: `FK_OrderLines_Products` is `NO ACTION`, so PostgreSQL refuses to delete any product that appears on an order, even from a script run outside the app.
 
 | Relationship | SQL `ON DELETE` | Effect |
 | --- | --- | --- |

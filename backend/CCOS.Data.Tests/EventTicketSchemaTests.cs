@@ -26,7 +26,6 @@ public class EventTicketSchemaTests
         var venueEntity = model.FindEntityType(typeof(Venue))!;
 
         Assert.Empty(eventEntity.GetDeclaredQueryFilters());
-        Assert.Equal("datetime2(0)", eventEntity.FindProperty(nameof(Event.StartsAtUtc))!.GetColumnType());
         Assert.Equal(
             ["CK_Events_TicketCapacity", "CK_Events_TicketsSold", "CK_Events_Times"],
             eventEntity.GetCheckConstraints().Select(constraint => constraint.Name!).Order().ToArray());
@@ -54,10 +53,11 @@ public class EventTicketSchemaTests
     }
 
     [Fact]
-    public void SqlServer_model_uses_rowversion_and_expected_indexes()
+    public void Postgres_model_uses_xmin_and_expected_indexes()
     {
+        // Only builds the model. It never connects, so no PostgreSQL server is needed to run this test.
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer("Server=localhost;Database=CCOS;Trusted_Connection=True;TrustServerCertificate=True")
+            .UseNpgsql("Host=localhost;Database=ccos;Username=ccos;Password=not-used")
             .Options;
 
         using var db = new AppDbContext(options);
@@ -68,21 +68,30 @@ public class EventTicketSchemaTests
         var startsAtIndex = eventEntity.GetIndexes().Single(index => index.GetDatabaseName() == "IX_Events_StartsAtUtc");
         var venueIndex = eventEntity.GetIndexes().Single(index => index.GetDatabaseName() == "IX_Events_VenueId_StartsAtUtc");
 
-        Assert.Equal("rowversion", rowVersion.GetColumnType());
+        // xmin is PostgreSQL's hidden per-row change counter. It is what blocks overselling (CAR-30).
+        Assert.Equal("xmin", rowVersion.GetColumnName());
+        Assert.Equal("xid", rowVersion.GetColumnType());
+        Assert.Equal("timestamp(0) with time zone", eventEntity.FindProperty(nameof(Event.StartsAtUtc))!.GetColumnType());
+        Assert.True(rowVersion.IsConcurrencyToken);
         Assert.Equal(ValueGenerated.OnAddOrUpdate, rowVersion.ValueGenerated);
-        Assert.Equal("[IsActive] = 1", startsAtIndex.GetFilter());
+        Assert.Equal("\"IsActive\" = true", startsAtIndex.GetFilter());
         Assert.Equal(
             new[] { "EndsAtUtc", "Name", "VenueId", "MembersOnly" },
-            startsAtIndex.FindAnnotation("SqlServer:Include")!.Value);
+            startsAtIndex.FindAnnotation("Npgsql:IndexInclude")!.Value);
         Assert.Equal(
             new[] { "EndsAtUtc", "IsActive" },
-            venueIndex.FindAnnotation("SqlServer:Include")!.Value);
+            venueIndex.FindAnnotation("Npgsql:IndexInclude")!.Value);
+        Assert.Equal(
+            "\"EndsAtUtc\" > \"StartsAtUtc\"",
+            eventEntity.GetCheckConstraints().Single(constraint => constraint.Name == "CK_Events_Times").Sql);
+        Assert.Equal("now()", model.FindEntityType(typeof(TicketRegistration))!
+            .FindProperty(nameof(TicketRegistration.CreatedAtUtc))!.GetDefaultValueSql());
         Assert.Equal(
             new[] { "EventId", "Status" },
             registrationEntity.GetIndexes().Single(index =>
                 index.GetDatabaseName() == "IX_TicketRegistrations_EventId_Status")
                 .Properties.Select(property => property.Name));
-        Assert.Equal("[EventId] IS NOT NULL", model.FindEntityType(typeof(TicketType))!.GetIndexes()
+        Assert.Equal("\"EventId\" IS NOT NULL", model.FindEntityType(typeof(TicketType))!.GetIndexes()
             .Single(index => index.GetDatabaseName() == "IX_Products_EventId")
             .GetFilter());
         Assert.True(model.FindEntityType(typeof(Venue))!.GetIndexes()

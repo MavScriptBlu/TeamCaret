@@ -48,4 +48,22 @@ public sealed class ProductsApiClient(HttpClient http)
     {
         return http.PostAsJsonAsync("api/products", request, cancellationToken);
     }
+
+    /// <summary>
+    /// Finds one product in the officer list
+    /// </summary>
+    public async Task<ProductDto?> GetForEditAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        var products = await ListAllAsync(cancellationToken);
+
+        return products.FirstOrDefault(p => p.ProductId == productId);
+    }
+
+    /// <summary>
+    /// Sends updated product data to PUT /api/products/{id}
+    /// </summary>
+    public Task<HttpResponseMessage> UpdateAsync(int productId, UpdateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        return http.PutAsJsonAsync($"api/products/{productId}", request, cancellationToken);
+    }
 }

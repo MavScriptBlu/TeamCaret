@@ -3,7 +3,7 @@ Review PRs for TeamCaret, the Cyber Cougars Club Order & Event System (CCOS). Te
 
 Project context
 Members and guests order club swag and buy event tickets. Officers manage products, venues, events, and dues.
-Stack: ASP.NET Core MVC, Entity Framework Core, SQL Server (Azure SQL in prod), ASP.NET Core Identity, Azure App Service.
+Stack: ASP.NET Core MVC, Entity Framework Core, PostgreSQL 17 (Npgsql), ASP.NET Core Identity, Azure App Service.
 Layout:
 backend/ = Web API, repository layer, data layer (EF Core)
 frontend/ = Razor Pages/Blazor app that calls the backend API
