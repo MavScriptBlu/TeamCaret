@@ -3,9 +3,23 @@
 @using CCOS.Web.Services
 @{
     ViewData["Title"] = "Officer Dashboard";
+    var createdMessage = TempData["ProductCreated"] as string;
+    var savedMessage = TempData["ProductSaved"] as string;
+    var deactivatedMessage = TempData["ProductDeactivated"] as string;
+    var deleteError = TempData["ProductDeleteError"] as string;
+    var productMessage = deactivatedMessage ?? savedMessage ?? createdMessage;
 }
 
 <link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (productMessage is not null)
+{
+    <p class="product-created-message" role="status">@productMessage</p>
+}
+@if (deleteError is not null)
+{
+    <p class="products-empty" role="alert">@deleteError</p>
+}
 
 @* Matches Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive (assets/Wireframes-Product). *@
 
@@ -46,7 +60,8 @@ else
         {
             var product = Model.Products[i];
             <li>
-                <details class="officer-product @(product.IsActive ? "" : "is-inactive")" open="@(i == 0)">
+                <details class="officer-product @(product.IsActive ? "" : "is-inactive")"
+                          open="@(Model.ExpandedId == product.ProductId || (Model.ExpandedId is null && i == 0))">
                     <summary>
                         <span class="officer-product-name">@product.Name</span>
                         @if (!product.IsActive)
@@ -86,9 +101,26 @@ else
                     </div>
 
                     <div class="officer-product-actions">
-                        @* Placeholders: delete (deactivate) and quick edit don't do anything yet. *@
-                        <button type="button" class="officer-delete">Delete Product</button>
+						@if (product.IsActive)
+						{
+                            <form method="post"
+                                  asp-page-handler="Delete"
+                                  asp-route-id="@product.ProductId"
+                                  asp-route-show="@Model.Show"
+                                  class="officer-delete-form"
+                                  data-delete-form>
+                                <button type="button"
+                                        class="officer-delete"
+                                        data-delete-button
+                                        data-product-name="@product.Name"
+                                        aria-haspopup="dialog"
+                                        aria-controls="deleteProductDialog">
+                                    Delete Product
+                                </button>
+                            </form>
+						}
                         <span class="officer-product-links">
+                            @* Quick Edit remains a placeholder. *@
                             <button type="button" class="officer-pill">Quick Edit</button>
                             <a class="officer-pill" asp-page="/Officer/Products/Edit" asp-route-id="@product.ProductId">Edit product page</a>
                         </span>
@@ -97,4 +129,29 @@ else
             </li>
         }
     </ul>
+}
+
+<dialog id="deleteProductDialog" class="officer-delete-dialog" aria-modal="true" aria-labelledby="deleteProductTitle" aria-describedby="deleteProductMessage">
+    <h2 id="deleteProductTitle">Deactivate product?</h2>
+
+    <p id="deleteProductMessage">
+        Are you sure you want to deactivate <strong id="deleteProductName">this product</strong>?
+        It will no longer appear on the public Products page. Existing order history is kept,
+        and you can reactivate it from Edit.
+    </p>
+
+    <div class="officer-delete-dialog-actions">
+
+        <button type="button" class="officer-delete" id="confirmProductDelete">
+            Yes, deactivate
+        </button>
+        <button type="button" class="officer-pill" id="cancelProductDelete" autofocus>
+            No
+        </button>
+
+    </div>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/officer-product-delete.js" asp-append-version="true"></script>
 }

@@ -465,6 +465,10 @@ a.product-card:hover {
     padding: 0 var(--s4) var(--s4);
 }
 
+.officer-delete-form {
+    margin: 0;
+}
+
 .officer-product-links {
     display: flex;
     gap: var(--s2);
@@ -480,6 +484,47 @@ a.product-card:hover {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.officer-product.is-delete-confirming {
+    border: 3px solid #a12622;
+}
+
+.officer-delete-dialog {
+    position: fixed;
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: min(30rem, calc(100vw - 2rem));
+    max-width: none;
+    margin: 0;
+    padding: var(--s4);
+    transform: translate(-50%, -50%);
+    border: 2px solid #c97a7a;
+    border-radius: var(--r-sm);
+    background: var(--raised);
+    color: var(--text);
+    box-shadow: 0 12px 40px rgb(39 35 36 / 28%);
+}
+
+    .officer-delete-dialog h2 {
+        margin: 0 0 var(--s3);
+        font-size: 20px;
+    }
+
+    .officer-delete-dialog p {
+        margin: 0 0 var(--s4);
+        line-height: 1.5;
+    }
+
+    .officer-delete-dialog::backdrop {
+        background: rgb(39 35 36 / 28%);
+    }
+
+.officer-delete-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--s2);
 }
 
 /* Deactivated: dark frame and faded details, per Wireframe-SoftDelete-IsActive */
