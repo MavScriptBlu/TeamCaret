@@ -1,4 +1,7 @@
+using System.Net;
+using System.Text.Json;
 using CCOS.Shared;
+using CCOS.Web.Extensions;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -47,6 +50,17 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
             // Send the new product to the API.
             using var response = await productsApi.CreateAsync(request, cancellationToken);
 
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
+            {
+                await ModelState.AddApiValidationErrorsAsync(
+                    response,
+                    nameof(Input),
+                    "The product could not be saved. Please check the values and try again.",
+                    cancellationToken);
+
+                return Page();
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("Failed to create product. Status code: {StatusCode}", response.StatusCode);
@@ -65,9 +79,9 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
 
             return Page();
         }
+
         // The API took too long. (A visitor closing the page is not treated as an error.)
-        catch (TaskCanceledException ex)
-            when (!cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogError(ex, "The product API request timed out");
 
