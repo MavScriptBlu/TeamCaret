@@ -43,6 +43,10 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
     /// </summary>
     public bool LoadFailed { get; private set; }
 
+    /// <summary>
+    /// Loads every product (active and inactive), then applies the Show filter from the URL.
+    /// If the API can't be reached, LoadFailed is set so the page shows an error message.
+    /// </summary>
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<ProductDto> all;
@@ -50,6 +54,8 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
         {
             all = await productsApi.ListAllAsync(cancellationToken);
         }
+        // Only handle "API is down or sent bad data" problems. A timeout counts, but a visitor
+        // closing the page (cancellation) is not an error worth logging.
         catch (Exception ex) when (ex is HttpRequestException or JsonException
             || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
@@ -58,6 +64,8 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
             return;
         }
 
+        // The count is taken before filtering so the page can tell "no products yet"
+        // apart from "no products match this filter".
         TotalCount = all.Count;
         Products = Show switch
         {

@@ -26,20 +26,25 @@ public class EditModel : EventFormPageModel
     public override string CancelPage => "/Events/Details";
     public override int? CancelRouteId => Id;
 
+    /// <summary>
+    /// Looks up the event and fills the form with its current values. Sends a 404 (and
+    /// leaves Found false, so no form shows) when the id is missing or unknown.
+    /// </summary>
+    /// <param name="id">The event id from the URL.</param>
     public void OnGet(int? id)
     {
         Id = id;
 
         // Officers can edit any event, including canceled ones.
-        var ev = id is int eventId ? SampleEvents.Find(eventId) : null;
-        if (ev is null)
+        var eventInfo = id is int eventId ? SampleEvents.Find(eventId) : null;
+        if (eventInfo is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;
             return;
         }
 
         Found = true;
-        Fill(ev);
+        Fill(eventInfo);
     }
 
     /// <summary>

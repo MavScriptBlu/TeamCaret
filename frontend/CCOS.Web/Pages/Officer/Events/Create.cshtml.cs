@@ -14,6 +14,7 @@ public class CreateModel : EventFormPageModel
     public override string SaveText => "Save";
     public override string CancelPage => "/Events/Index";
 
+    /// <summary>Shows the blank form. Nothing to load.</summary>
     public void OnGet()
     {
     }
