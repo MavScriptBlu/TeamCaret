@@ -11,6 +11,7 @@ Backend documentation for the CCOS ASP.NET Core API.
 | [ERD](./ERD_%20Cyber%20Cougars%20Club%20Order%20&%20Event%20System%20(CCOS).md) | Entity Relationship Diagram |
 | [Soft_Delete_Lifecycle_Data_Rules.md](./Soft_Delete_Lifecycle_Data_Rules.md) | Soft delete and data lifecycle rules |
 | [Product_Migration_Scope.md](./Product_Migration_Scope.md) | Migration scope and planning |
+| [lifecycleAuditSprint2.md](./lifecycleAuditSprint2.md) | CRUD lifecycle and audit rules for every table |
 
 ## Tech Stack
 

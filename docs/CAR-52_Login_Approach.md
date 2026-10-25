@@ -90,5 +90,5 @@ Four stories cover login for Sprint 4, roughly 15–18 points, under epic CAR-18
 ## Sources
 
 - [Microsoft: Use Identity to secure a Web API backend](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization)
-- `docs/Membership Lifecycle & Deactivation Schema.md` (CAR-28)
+- `docs/Jira-Archive/Membership Lifecycle & Deactivation Schema.md` (CAR-28)
 - `docs/Project Proposal_ Cyber Cougars Club Order & Event System (CCOS).md`, User Roles & Auth
