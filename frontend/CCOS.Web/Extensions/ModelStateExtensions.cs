@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace CCOS.Web.Extentions;
+namespace CCOS.Web.Extensions;
 
 public static class ModelStateExtensions
 {

@@ -1,34 +1,12 @@
-@page "{id:int}"
+@page "{id:int?}"
 @model EditModel
 @{
     ViewData["Title"] = "Edit Product";
 }
 
-<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+<h1>@ViewData["Title"]</h1>
 
-@if (Model.ProductNotFound)
+@if (Model.Id is not null)
 {
-    <section class="product-create-page" aria-labelledby="product-not-found-title">
-        <h1 id="product-not-found-title" class="event-form-title">Product not found</h1>
-        <p class="products-empty" role="alert">The product may have been removed.</p>
-        <p><a asp-page="/Officer/Products/Index">Back to products</a></p>
-    </section>
-}
-else
-{
-    <section class="product-create-page" aria-labelledby="product-edit-title">
-        <h1 id="product-edit-title" class="event-form-title">Edit Product</h1>
-
-        @{
-            ViewData["IsEdit"] = true;
-        }
-        <partial name="_ProductForm" for="Input" />
-    </section>
-}
-
-@section Scripts {
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <partial name="_ValidationScriptsPartial" />
-    <script src="~/js/product-create.js" asp-append-version="true"></script>
+    <p class="text-muted">Product id: @Model.Id</p>
 }
