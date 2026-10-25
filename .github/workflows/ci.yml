@@ -15,7 +15,7 @@ jobs:
       - name: Install .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: '10.0.x'
 
       - name: Install Task
         uses: go-task/setup-task@v2
@@ -61,7 +61,10 @@ jobs:
       - name: Install .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: '10.0.x'
+
+      - name: Restore NuGet packages
+        run: dotnet restore CCOS.slnx
 
       # Same as `task migrate`, but CI has no user secrets, so it passes the connection string directly
       - name: Apply the database migrations
@@ -75,7 +78,11 @@ jobs:
       - name: Check the API and website answer
         run: |
           for attempt in $(seq 1 30); do
-            curl -fsS http://localhost:8081/api/products > /dev/null && curl -fsS http://localhost:8080/Products > /dev/null && exit 0
+          if curl -fsS http://localhost:8081/api/products > /dev/null &&
+             page=$(curl -fsS http://localhost:8080/Products) &&
+             [[ "$page" != *'role="alert"'* ]]; then
+            exit 0
+          fi
             sleep 2
           done
           echo "API or website never answered"; docker compose logs ccos-api ccos-web; exit 1
