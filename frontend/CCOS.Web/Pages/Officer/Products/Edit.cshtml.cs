@@ -159,44 +159,6 @@ public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger)
     }
 
     /// <summary>
-    /// Reads the validation errors from the API response and adds them to ModelState.
-    /// </summary>
-    private async Task AddApiValidationErrorsAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        ValidationProblemDetails? problem;
-
-        try
-        {
-            problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(cancellationToken);
-        }
-        catch (JsonException)
-        {
-            // The response body wasn't the error format we expect. Fall through to the general message.
-            problem = null;
-        }
-
-        // Nothing usable in the response, so show one general message.
-        if (problem is null || problem.Errors.Count == 0)
-        {
-            ModelState.AddModelError(string.Empty, "The product could not be saved. Please check the values and try again.");
-            return;
-        }
-
-        // Add each validation error to ModelState, prefixing keys with "Input." if not already present
-        foreach (var (key, messages) in problem.Errors)
-        {
-            var modelStateKey = key.StartsWith("Input.", StringComparison.OrdinalIgnoreCase)
-                ? key
-                : $"Input.{key}";
-
-            foreach (var message in messages)
-            {
-                ModelState.AddModelError(modelStateKey, message);
-            }
-        }
-    }
-
-    /// <summary>
     /// Marks the page as "product not found" and returns it with a 404 status.
     /// </summary>
     private IActionResult ShowProductNotFound()
