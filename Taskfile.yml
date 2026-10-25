@@ -49,6 +49,7 @@ tasks:
     cmds:
       - echo "Applying database migrations..."
       - dotnet tool restore
+      - dotnet restore backend/CCOS.Data/CCOS.Data.csproj
       - dotnet ef database update --project backend/CCOS.Data
       - echo "Done. The database tables are up to date."
 
