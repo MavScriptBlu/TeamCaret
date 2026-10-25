@@ -16,14 +16,21 @@ public static class DevelopmentData
     /// The samples cover regular and member pricing, out of stock and an inactive product
     /// (see docs/Product_Migration_Scope.md).
     /// </summary>
-    public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services)
+          public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
     {
         // This runs once at startup, outside a web request, so make our own scope to get a database connection.
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-// Step 1: make sure the tables exist (SQLite uses EnsureCreated; PostgreSQL uses migrations).
-        await db.Database.EnsureCreatedAsync();
+          // Step 1: make sure the tables exist (SQLite uses EnsureCreated; PostgreSQL uses migrations).
+          if (useLocalDatabase)
+          {
+              await db.Database.EnsureCreatedAsync();
+          }
+          else
+          {
+              await db.Database.MigrateAsync();
+          }
 
         // Step 2: only add samples to an empty table, so restarting the API never makes duplicates.
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
