@@ -5,41 +5,39 @@ using Microsoft.EntityFrameworkCore;
 namespace CCOS.Api;
 
 /// <summary>
-/// Local development database: a SQLite file used when no ConnectionStrings:CCOS is set,
-/// so the app runs without a database server. A real PostgreSQL database uses the
-/// EF Core migrations instead.
+/// Development sample data for both local databases:
+/// a SQLite file when no ConnectionStrings:CCOS is set, or PostgreSQL in Docker when it is.
+/// Only runs in Development, so sample products never reach a real database.
 /// </summary>
 public static class DevelopmentData
 {
     /// <summary>
-    /// Creates the local database if it doesn't exist and adds sample products the first time.
+    /// Makes sure the database has its tables, then adds sample products the first time.
+    /// SQLite builds its tables directly. PostgreSQL applies the EF Core migrations.
     /// The samples cover regular and member pricing, out of stock and an inactive product
     /// (see docs/Product_Migration_Scope.md).
     /// </summary>
-          public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
+    public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
     {
-        // This runs once at startup, outside a web request, so make our own scope to get a database connection.
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-          // Step 1: make sure the tables exist (SQLite uses EnsureCreated; PostgreSQL uses migrations).
-          if (useLocalDatabase)
-          {
-              await db.Database.EnsureCreatedAsync();
-          }
-          else
-          {
-              await db.Database.MigrateAsync();
-          }
+        if (useLocalDatabase)
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            // Creates or updates the tables, same as `task migrate`. Skips migrations already applied.
+            await db.Database.MigrateAsync();
+        }
 
-        // Step 2: only add samples to an empty table, so restarting the API never makes duplicates.
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
         if (await db.Products.IgnoreQueryFilters().AnyAsync())
         {
             return;
         }
 
-        // Step 3: add the sample products.
         // The hoodie goes first so it gets ProductId 1, matching the sample on Products/Details.
         db.Products.AddRange(
             new Product
