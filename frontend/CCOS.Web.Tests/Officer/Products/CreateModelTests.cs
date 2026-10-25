@@ -59,7 +59,7 @@ public class CreateModelTests
     {
         // Arrange
         _model.ModelState.AddModelError("Name", "Name is required");
-        _model.Input = new CreateModel.ProductCreateInput();
+        _model.Input = new ProductInput();
 
         // Act
         var result = await _model.OnPostAsync(CancellationToken.None);
@@ -72,7 +72,7 @@ public class CreateModelTests
     public async Task OnPostAsync_ApiCallFails_AddsModelErrorAndReturnsPageResult()
     {
         // Arrange
-        _model.Input = new CreateModel.ProductCreateInput
+        _model.Input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",
@@ -104,7 +104,7 @@ public class CreateModelTests
     public async Task OnPostAsync_HttpRequestException_AddsModelErrorAndReturnsPageResult()
     {
         // Arrange
-        _model.Input = new CreateModel.ProductCreateInput
+        _model.Input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",
@@ -136,7 +136,7 @@ public class CreateModelTests
     public async Task OnPostAsync_TaskCanceledException_AddsModelErrorAndReturnsPageResult()
     {
         // Arrange
-        _model.Input = new CreateModel.ProductCreateInput
+        _model.Input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",
@@ -168,7 +168,7 @@ public class CreateModelTests
     public async Task OnPostAsync_SuccessfulApiCall_SetsTempDataAndRedirects()
     {
         // Arrange
-        _model.Input = new CreateModel.ProductCreateInput
+        _model.Input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",

@@ -3,15 +3,15 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using CCOS.Shared;
+using CCOS.Web.Pages.Officer.Products;
+using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Contrib.HttpClient;
-using CCOS.Shared;
-using CCOS.Web.Pages.Officer.Products;
-using CCOS.Web.Services;
 using Xunit;
 
 namespace CCOS.Web.Tests.Pages.Officer.Products;
@@ -35,7 +35,7 @@ public class CreateModelTests
 
         _model = new CreateModel(_productsApi, _loggerMock.Object)
         {
-            Input = new CreateModel.ProductCreateInput
+            Input = new ProductInput
             {
                 Category = "Test Category",
                 Name = "Test Name",

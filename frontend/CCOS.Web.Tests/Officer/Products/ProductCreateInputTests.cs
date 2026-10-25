@@ -12,7 +12,7 @@ public class ProductCreateInputTests
     public void Validate_ValidPrices_ReturnsNoErrors()
     {
         // Arrange
-        var input = new CreateModel.ProductCreateInput
+        var input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",
@@ -33,7 +33,7 @@ public class ProductCreateInputTests
     public void Validate_MemberPriceGreaterThanRegularPrice_ReturnsValidationError()
     {
         // Arrange
-        var input = new CreateModel.ProductCreateInput
+        var input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",
@@ -56,7 +56,7 @@ public class ProductCreateInputTests
     public void Validate_PricesEqual_ReturnsNoErrors()
     {
         // Arrange
-        var input = new CreateModel.ProductCreateInput
+        var input = new ProductInput
         {
             Category = "Category1",
             Name = "Product 1",

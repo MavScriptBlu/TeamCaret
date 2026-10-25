@@ -4,9 +4,9 @@ using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Shared;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Data.Sqlite;
 
 namespace CCOS.Api.Tests;
 
