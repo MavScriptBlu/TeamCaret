@@ -53,6 +53,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
         return ToDto(product, CanSeeMemberPrice());
     }
 
+    /// <summary>
     /// POST /api/products: CREATE a new product.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
