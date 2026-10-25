@@ -114,7 +114,7 @@ public class EventTicketSchemaTests
             VenueIndexIncludedColumns,
             venueIndex.FindAnnotation("Npgsql:IndexInclude")!.Value);
 
-// An event must end after it starts.
+        // An event must end after it starts.
         Assert.Equal(
             "\"EndsAtUtc\" > \"StartsAtUtc\"",
             eventEntity.GetCheckConstraints().Single(constraint => constraint.Name == "CK_Events_Times").Sql);
