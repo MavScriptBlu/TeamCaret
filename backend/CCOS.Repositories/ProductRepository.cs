@@ -82,7 +82,6 @@ public sealed class ProductRepository(AppDbContext db)
         return Merchandise().FirstOrDefaultAsync(product => product.ProductId == productId, cancellationToken);
     }
 
-
     private IQueryable<Product> Merchandise() =>
         db.Products.AsNoTracking().Where(product => !(product is TicketType));
 

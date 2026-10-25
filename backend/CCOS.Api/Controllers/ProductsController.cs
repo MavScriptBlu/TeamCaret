@@ -53,7 +53,6 @@ public class ProductsController(ProductRepository products) : ControllerBase
         return ToDto(product, CanSeeMemberPrice());
     }
 
-
     /// POST /api/products: CREATE a new product.
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
@@ -127,7 +126,6 @@ public class ProductsController(ProductRepository products) : ControllerBase
     {
         var success = await products.SoftDeleteAsync(id, cancellationToken);
         return success ? NoContent() : NotFound();
-
     }
 
     /// <summary>
