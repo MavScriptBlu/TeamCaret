@@ -1,7 +1,52 @@
 @page
 @model SearchModel
 @{
-    ViewData["Title"] = "Search Products";
+    ViewData["Title"] = Model.HasQuery ? $"Search: {Model.SearchTerm}" : "Search Products";
 }
 
-<h1>@ViewData["Title"]</h1>
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@* Matches Wireframe-EmptyState (assets/Wireframes-Product) for the "no results" case (CAR-36). *@
+
+@if (!Model.HasQuery)
+{
+    <div class="products-empty">
+        <p>Type something in the search box to find merch.</p>
+        <a asp-page="/Products/Index">Browse all products</a>
+    </div>
+}
+else if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Products couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.Results.Count == 0)
+{
+    <div class="products-empty" role="status">
+        <p><strong>Search for &ldquo;@Model.SearchTerm&rdquo; returned no results :(</strong></p>
+        @if (Model.Suggestions.Count > 0)
+        {
+            <p>Check out some of these items instead!</p>
+        }
+        <a asp-page="/Products/Index">Back to Home</a>
+    </div>
+
+    @if (Model.Suggestions.Count > 0)
+    {
+        <ul class="products-grid" aria-label="Suggested products">
+            @foreach (var product in Model.Suggestions)
+            {
+                <partial name="_ProductCard" model="product" />
+            }
+        </ul>
+    }
+}
+else
+{
+    <h1>Results for &ldquo;@Model.SearchTerm&rdquo;</h1>
+    <ul class="products-grid" aria-label="Search results">
+        @foreach (var product in Model.Results)
+        {
+            <partial name="_ProductCard" model="product" />
+        }
+    </ul>
+}
