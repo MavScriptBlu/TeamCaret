@@ -4,6 +4,7 @@ using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Shared;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,19 +25,16 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
 
     public async Task InitializeAsync()
     {
+        // Tell Program.cs to skip its DbContext registration - tests handle it.
+        Environment.SetEnvironmentVariable("CCOS_TEST_MODE", "1");
+
         _connection = new SqliteConnection("Data Source=:memory:");
         await _connection.OpenAsync();
 
         var customizedFactory = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            builder.ConfigureTestServices(services =>
             {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
                 services.AddDbContext<AppDbContext>(options =>
                 {
                     options.UseSqlite(_connection);
@@ -48,14 +46,6 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         _db = _scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         await _db.Database.EnsureCreatedAsync();
-
-        // Remove dev data added by EnsureCreatedAndSeededAsync (which happens during builder.Build())
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM OrderLines");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM TicketRegistrations");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM Orders");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM Products");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM Events");
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM Venues");
 
         // Seed test data
         _db.Products.AddRange(
@@ -76,14 +66,8 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
     {
         return _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            builder.ConfigureTestServices(services =>
             {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
                 services.AddDbContext<AppDbContext>(options =>
                 {
                     options.UseSqlite(_connection);

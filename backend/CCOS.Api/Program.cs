@@ -12,32 +12,38 @@ builder.Services.AddControllers();
 
 // Database: PostgreSQL when ConnectionStrings:CCOS is set.
 // Without it, Development uses a local SQLite file so the app runs without a database server.
+// Tests set CCOS_TEST_MODE to override the DbContext themselves.
+var isTestMode = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CCOS_TEST_MODE"));
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
 
-if (useLocalDatabase && !builder.Environment.IsDevelopment())
+if (!isTestMode && useLocalDatabase && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException("ConnectionStrings:CCOS must be set outside Development.");
 }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+if (!isTestMode)
 {
-    if (useLocalDatabase)
+    builder.Services.AddDbContext<AppDbContext>(options =>
     {
-        var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
-        options.UseSqlite($"Data Source={databasePath}");
-    }
-    else
-    {
-        options.UseNpgsql(connectionString);
-    }
-});
+        if (useLocalDatabase)
+        {
+            var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
+            options.UseSqlite($"Data Source={databasePath}");
+        }
+        else
+        {
+            options.UseNpgsql(connectionString);
+        }
+    });
+}
 builder.Services.AddScoped<ProductRepository>();
 
 var app = builder.Build();
 
 // Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
-if (app.Environment.IsDevelopment())
+// Skip in test mode - tests manage their own database state.
+if (app.Environment.IsDevelopment() && !isTestMode)
 {
     await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
 }
