@@ -10,7 +10,7 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install .NET
         uses: actions/setup-dotnet@v4
@@ -36,7 +36,7 @@ jobs:
     name: App starts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Task
         uses: go-task/setup-task@v2
