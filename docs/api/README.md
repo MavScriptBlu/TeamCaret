@@ -43,18 +43,18 @@ Authorization: Bearer <token>
 ### Events
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/events` | List all events |
-| GET | `/events/{id}` | Get event by ID |
-| POST | `/events` | Create event |
-| PUT | `/events/{id}` | Update event |
+| GET | `/events` | Upcoming events: active, StartsAtUtc >= now, soonest first. Includes venue name and ticket types. |
+| GET | `/events/{id}` | One active event with venue name and active ticket types (price & member price). 404 for unknown/inactive. |
+| POST | `/events` | Create event (TODO) |
+| PUT | `/events/{id}` | Update event (TODO) |
 
 ### Venues
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/venues` | List all venues |
-| GET | `/venues/{id}` | Get venue by ID |
-| POST | `/venues` | Create venue |
-| PUT | `/venues/{id}` | Update venue |
+| GET | `/venues` | Active venues by name, for the event form dropdown. |
+| GET | `/venues/{id}` | Get venue by ID (TODO) |
+| POST | `/venues` | Create venue (TODO) |
+| PUT | `/venues/{id}` | Update venue (TODO) |
 
 ### Orders
 | Method | Endpoint | Description |

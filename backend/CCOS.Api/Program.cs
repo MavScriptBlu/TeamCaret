@@ -57,12 +57,16 @@ if (!isTestMode)
         else
         {
             // PostgreSQL: the production database.
-            // use this in Development too for consistency with prod
+            // Use this in Development too for consistency with prod.
             options.UseNpgsql(connectionString);
         }
     });
 }
+
+// One repository per web request, so it shares that request's database connection.
 builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<EventRepository>();
+builder.Services.AddScoped<VenueRepository>();
 
 var app = builder.Build();
 
