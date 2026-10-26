@@ -6,6 +6,11 @@
 
 <link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
 
+@if (TempData["VenueAdded"] is string venueAdded)
+{
+    <p class="events-message" role="status">@venueAdded</p>
+}
+
 <section class="events-hero">
     <img class="events-hero-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="Cyber Cougars logo" />
     <div>

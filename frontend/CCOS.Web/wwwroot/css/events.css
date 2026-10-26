@@ -662,3 +662,38 @@ a.events-card:hover {
         flex: 1;
     }
 }
+
+/* Venue form errors and the "Venue added" message on /Events (CAR-51) */
+.event-form .field-validation-error {
+    display: block;
+    color: #a12622;
+    font-size: 14px;
+}
+
+/* No message yet: take up no space (the stacks use flex gaps). */
+.event-form .field-validation-valid {
+    display: none;
+}
+
+.venue-validation-summary.validation-summary-errors {
+    margin-bottom: var(--s4);
+    padding: var(--s3);
+    border: 1px solid #a12622;
+    border-radius: var(--r-sm);
+    background: #fff1f0;
+    color: #a12622;
+}
+
+    .venue-validation-summary ul {
+        margin: 0;
+        padding-left: var(--s5);
+    }
+
+.events-message {
+    margin: 0 0 var(--s4);
+    padding: var(--s3) var(--s4);
+    border: 1px solid #28613b;
+    border-radius: var(--r-sm);
+    background: #edf7ef;
+    color: #205632;
+}
