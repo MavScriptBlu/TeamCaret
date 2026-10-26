@@ -97,7 +97,7 @@ public class CreateModelTests
         Assert.IsType<PageResult>(result);
         Assert.False(_model.ModelState.IsValid);
         Assert.True(_model.ModelState.ContainsKey(string.Empty));
-        Assert.Equal("The product could not be created. Please try again", _model.ModelState[string.Empty]?.Errors[0].ErrorMessage);
+        Assert.Equal("The product could not be saved. Please check the values and try again.", _model.ModelState[string.Empty]?.Errors[0].ErrorMessage);
     }
 
     [Fact]

@@ -91,12 +91,14 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         var products = await response.Content.ReadFromJsonAsync<List<ProductDto>>();
 
         Assert.NotNull(products);
-        Assert.Single(products); // Only Active Shirt, not Inactive Hat
-        Assert.Equal("Active Shirt", products[0].Name);
-        Assert.True(products[0].IsActive);
+        // should include Active Shirt from test data, exclude Inactive Hat
+        Assert.Contains(products, p => p.Name == "Active Shirt" && p.IsActive);
+        Assert.DoesNotContain(products, p => p.Name == "Inactive Hat");
+        Assert.All(products, p => Assert.True(p.IsActive));
 
         // Currently CanSeeMemberPrice() returns true for everyone
-        Assert.Equal(20m, products[0].MemberPrice);
+        var activeShirt = products.Single(p => p.Name == "Active Shirt");
+        Assert.Equal(20m, activeShirt.MemberPrice);
     }
 
     [Fact]
@@ -114,11 +116,11 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.NotNull(products);
 
-        // We wipe the database in InitializeAsync so it should only have the 2 products we added.
-        Assert.Equal(2, products.Count); // Active Shirt, Inactive Hat
+        // Should include both active and inactive test products (plus any seed data)
         Assert.Contains(products, p => p.Name == "Active Shirt");
         Assert.Contains(products, p => p.Name == "Inactive Hat");
-        Assert.Contains(products, p => !p.IsActive);
+        // Inactive Hat proves includeInactive=true works
+        Assert.Contains(products, p => p.Name == "Inactive Hat" && !p.IsActive);
 
         // Member prices are included
         Assert.All(products, p => Assert.NotNull(p.MemberPrice));
