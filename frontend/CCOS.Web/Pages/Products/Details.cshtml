@@ -1,5 +1,6 @@
 @page "{id:int}"
 @model DetailsModel
+@using CCOS.Web.Services
 @{
     var product = Model.Product;
     @if (product is null)
@@ -60,12 +61,12 @@
         <p class="product-category">@product.Category</p>
         <h1 id="product-name">@product.Name</h1>
 
-        <p class="product-price">@product.Price.ToString("C")</p>
+        <p class="product-price">@Money.Format(product.Price)</p>
 
         @if (product.MemberPrice is not null)
         {
             <p class="product-member-price">
-                Member price: @product.MemberPrice.Value.ToString("C")
+                Member price: @Money.Format(product.MemberPrice.Value)
             </p>
         }
 
