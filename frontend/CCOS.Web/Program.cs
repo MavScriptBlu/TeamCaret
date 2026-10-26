@@ -2,10 +2,12 @@ using CCOS.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ---- Services (things the app can use) ----
+// Turns the .cshtml files under Pages into web pages.
 builder.Services.AddRazorPages();
 
 // Product data comes from CCOS.Api. Run the API alongside the site (see Api:BaseUrl).
+// Pages ask for a ProductsApiClient and get one that already knows the API address.
 builder.Services.AddHttpClient<ProductsApiClient>(client =>
 {
     var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
@@ -16,9 +18,10 @@ builder.Services.AddHttpClient<ProductsApiClient>(client =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ---- Request pipeline (what happens to each incoming request, in order) ----
 if (!app.Environment.IsDevelopment())
 {
+    // Outside Development, show the friendly /Error page instead of a crash screen.
     app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();

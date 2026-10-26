@@ -1,3 +1,8 @@
+/// <summary>
+/// Details page for a specific event.
+/// Displays event information, including date, location, categories, and ticket prices.
+/// Provides officer actions for editing or canceling the event.
+/// </summary>
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CCOS.Web.Pages.Events;
@@ -25,10 +30,16 @@ public class DetailsModel : PageModel
     /// </summary>
     public string? MemberPriceText { get; private set; }
 
+    /// <summary>
+    /// Finds the event and works out the price text to show. Sends a 404 when the id is
+    /// missing or no active event matches.
+    /// </summary>
+    /// <param name="id">The event id from the URL.</param>
     public void OnGet(int? id)
     {
         Event = id is int eventId ? SampleEvents.FindActive(eventId) : null;
 
+        // Unknown or canceled event: send a 404. The page shows its "not found" message.
         if (Event is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;
@@ -38,6 +49,8 @@ public class DetailsModel : PageModel
         var regular = TicketPrices.RegularPriceText(Event);
         var member = TicketPrices.MemberPriceText(Event);
 
+        // Members-only events show just the member price. Other events show the regular price,
+        // plus the member price only when it is actually different.
         if (Event.MembersOnly)
         {
             // Only members can buy tickets, so the regular price doesn't apply.

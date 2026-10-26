@@ -76,31 +76,34 @@ public abstract class EventFormPageModel : PageModel
 
     /// <summary>Venue choices for the Location/Venue dropdown.</summary>
     public IEnumerable<SelectListItem> VenueOptions =>
-        SampleVenues.All.Select(v => new SelectListItem(v.Name, v.VenueId.ToString()));
+        SampleVenues.All.Select(venue => new SelectListItem(venue.Name, venue.VenueId.ToString()));
 
     /// <summary>Category choices for the Categories dropdown.</summary>
     public IEnumerable<SelectListItem> CategoryOptions =>
-        SampleCategories.All.Select(c => new SelectListItem(c, c));
+        SampleCategories.All.Select(category => new SelectListItem(category, category));
 
     /// <summary>
     /// Fills the form from an existing event, with times shown in club time.
     /// </summary>
-    protected void Fill(EventInfo ev)
+    protected void Fill(EventInfo eventInfo)
     {
-        var start = ClubTime.ToClubTime(ev.StartsAtUtc);
-        var end = ClubTime.ToClubTime(ev.EndsAtUtc);
-        var ticket = ev.TicketTypes.FirstOrDefault(t => t.IsActive);
+        // Times are stored in UTC, but officers think in club time, so convert before filling the form.
+        var startsAt = ClubTime.ToClubTime(eventInfo.StartsAtUtc);
+        var endsAt = ClubTime.ToClubTime(eventInfo.EndsAtUtc);
 
-        Name = ev.Name;
-        Date = DateOnly.FromDateTime(start);
-        StartTime = TimeOnly.FromDateTime(start);
-        EndTime = TimeOnly.FromDateTime(end);
-        VenueId = ev.VenueId;
-        Category = ev.Categories.FirstOrDefault();
-        TicketPrice = ticket?.Price;
-        MemberPrice = ticket?.MemberPrice;
-        TicketCapacity = ev.TicketCapacity;
-        MembersOnly = ev.MembersOnly;
-        Description = ev.Description;
+        // The form has one price box, so use the first ticket type that is still on sale.
+        var ticketType = eventInfo.TicketTypes.FirstOrDefault(candidate => candidate.IsActive);
+
+        Name = eventInfo.Name;
+        Date = DateOnly.FromDateTime(startsAt);
+        StartTime = TimeOnly.FromDateTime(startsAt);
+        EndTime = TimeOnly.FromDateTime(endsAt);
+        VenueId = eventInfo.VenueId;
+        Category = eventInfo.Categories.FirstOrDefault();
+        TicketPrice = ticketType?.Price;
+        MemberPrice = ticketType?.MemberPrice;
+        TicketCapacity = eventInfo.TicketCapacity;
+        MembersOnly = eventInfo.MembersOnly;
+        Description = eventInfo.Description;
     }
 }
