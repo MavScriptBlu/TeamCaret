@@ -14,23 +14,23 @@ namespace CCOS.Shared;
 /// <param name="StockQuantity">How many are on hand.</param>
 /// <param name="IsActive">False deactivates (soft deletes) the product so customers stop seeing it.</param>
 public record UpdateProductRequest(
-    [Required(ErrorMessage = "Category is required.")]
-    [MinLength(1, ErrorMessage = "Category is required.")]
+    [property: Required(ErrorMessage = "Category is required.")]
+    [property: MinLength(1, ErrorMessage = "Category is required.")]
     string Category,
 
-    [Required(ErrorMessage = "Name is required.")]
-    [MinLength(1, ErrorMessage = "Name is required.")]
+    [property: Required(ErrorMessage = "Name is required.")]
+    [property: MinLength(1, ErrorMessage = "Name is required.")]
     string Name,
 
     string? Description,
 
-    [Range(0, double.MaxValue, ErrorMessage = "Price must be at least 0.")]
+    [property: Range(0, double.MaxValue, ErrorMessage = "Price must be at least 0.")]
     decimal Price,
 
-    [Range(0, double.MaxValue, ErrorMessage = "Member price must be at least 0.")]
+    [property: Range(0, double.MaxValue, ErrorMessage = "Member price must be at least 0.")]
     decimal MemberPrice,
 
-    [Range(0, int.MaxValue, ErrorMessage = "Stock quantity must be at least 0.")]
+    [property: Range(0, int.MaxValue, ErrorMessage = "Stock quantity must be at least 0.")]
     int StockQuantity,
 
     bool IsActive) : IValidatableObject

@@ -57,8 +57,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 
-// One ProductRepository per web request, so it shares that request's database connection.
+// One repository per web request, so it shares that request's database connection.
 builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<EventRepository>();
+builder.Services.AddScoped<VenueRepository>();
 
 var app = builder.Build();
 
