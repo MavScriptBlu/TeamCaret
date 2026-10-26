@@ -1,0 +1,31 @@
+@model CCOS.Shared.ProductDto
+@using CCOS.Web.Services
+@* One product card in a .products-grid list, linking to the product's details page. *@
+@{
+    var inStock = Model.StockQuantity > 0;
+}
+<li>
+    <a class="product-card @(inStock ? "" : "is-out")" asp-page="/Products/Details" asp-route-id="@Model.ProductId">
+        <div class="product-card-image">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+            @if (!inStock)
+            {
+                <span class="product-card-badge">Out of stock</span>
+            }
+        </div>
+        <div class="product-card-body">
+            <span class="product-card-category">@Model.Category</span>
+            <span class="product-card-name">@Model.Name</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <span class="product-card-description">@Model.Description</span>
+            }
+            <span class="product-card-price">@Money.Format(Model.Price)</span>
+            @if (Model.MemberPrice is decimal memberPrice)
+            {
+                <span class="product-card-member">Member price: @Money.Format(memberPrice)</span>
+            }
+            <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
+        </div>
+    </a>
+</li>
