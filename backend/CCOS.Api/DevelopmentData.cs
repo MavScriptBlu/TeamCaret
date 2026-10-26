@@ -33,7 +33,16 @@ public static class DevelopmentData
         }
 
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
-        if (await db.Products.IgnoreQueryFilters().AnyAsync())
+        var hasProducts = await db.Products.IgnoreQueryFilters().AnyAsync();
+        var hasVenues = await db.Venues.AnyAsync();
+
+        // Seed venues first (events need them).
+        if (!hasVenues)
+        {
+            await SeedVenuesAndEventsAsync(db);
+        }
+
+        if (hasProducts)
         {
             return;
         }
@@ -85,6 +94,112 @@ public static class DevelopmentData
                 MemberPrice = 8.00m,
                 StockQuantity = 5,
                 IsActive = false,
+            });
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seeds the 3 sample venues and 4 sample events that match the frontend's sample data.
+    /// Events start 7 days from now so they always stay upcoming.
+    /// </summary>
+    private static async Task SeedVenuesAndEventsAsync(AppDbContext db)
+    {
+        // The 3 sample venues the pages show.
+        var venue1 = new Venue { Name = "Sample Venue, Room 101", Capacity = 100 };
+        var venue2 = new Venue { Name = "Sample Venue, Room 102", Capacity = 80 };
+        var venue3 = new Venue { Name = "Sample Venue, Room 103", Capacity = 60 };
+
+        db.Venues.AddRange(venue1, venue2, venue3);
+        await db.SaveChangesAsync();
+
+        // Events start a week from now and last 2 hours, same as the frontend samples.
+        var firstStartUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(7).AddHours(23), DateTimeKind.Utc);
+
+        var event1 = new Event
+        {
+            Venue = venue1,
+            Name = "Sample Event 1",
+            Description = "Description and further details about the event.",
+            StartsAtUtc = firstStartUtc,
+            EndsAtUtc = firstStartUtc.AddHours(2),
+            TicketCapacity = 50,
+            MembersOnly = false
+        };
+
+        var event2 = new Event
+        {
+            Venue = venue2,
+            Name = "Sample Event 2",
+            Description = "Description and further details about the event.",
+            StartsAtUtc = firstStartUtc.AddDays(7),
+            EndsAtUtc = firstStartUtc.AddDays(7).AddHours(2),
+            TicketCapacity = 40,
+            MembersOnly = false
+        };
+
+        var event3 = new Event
+        {
+            Venue = venue3,
+            Name = "Sample Event 3",
+            Description = "Description and further details about the event.",
+            StartsAtUtc = firstStartUtc.AddDays(14),
+            EndsAtUtc = firstStartUtc.AddDays(14).AddHours(2),
+            TicketCapacity = 30,
+            MembersOnly = true
+        };
+
+        var event4 = new Event
+        {
+            Venue = venue1,
+            Name = "Sample Event 4",
+            Description = "Description and further details about the event.",
+            StartsAtUtc = firstStartUtc.AddDays(21),
+            EndsAtUtc = firstStartUtc.AddDays(21).AddHours(2),
+            TicketCapacity = 50,
+            MembersOnly = false
+        };
+
+        db.Events.AddRange(event1, event2, event3, event4);
+        await db.SaveChangesAsync();
+
+        // One ticket type per event, matching the frontend samples.
+        db.TicketTypes.AddRange(
+            new TicketType
+            {
+                Event = event1,
+                Category = "Tickets",
+                Name = "General",
+                Price = 10.00m,
+                MemberPrice = 5.00m,
+                StockQuantity = 0
+            },
+            new TicketType
+            {
+                Event = event2,
+                Category = "Tickets",
+                Name = "General",
+                Price = 5.00m,
+                MemberPrice = 0.00m,
+                StockQuantity = 0
+            },
+            new TicketType
+            {
+                Event = event3,
+                Category = "Tickets",
+                Name = "General",
+                Price = 0.00m,
+                MemberPrice = 0.00m,
+                StockQuantity = 0
+            },
+            new TicketType
+            {
+                Event = event4,
+                Category = "Tickets",
+                Name = "General",
+                Price = 8.00m,
+                MemberPrice = 4.00m,
+                StockQuantity = 0
             });
 
         await db.SaveChangesAsync();
