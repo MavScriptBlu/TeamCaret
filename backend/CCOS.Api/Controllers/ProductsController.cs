@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CCOS.Api.Controllers;
 
 /// <summary>
-/// Product endpoints from docs/CAR-1_Product_CRUD_Design.md. Customers only get active
+/// Product endpoints from docs/Jira-Archive/CAR-1_Product_CRUD_Design.md. Customers only get active
 /// merchandise; the officer list asks for inactive products too.
 /// </summary>
 [ApiController]

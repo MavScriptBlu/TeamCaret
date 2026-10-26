@@ -9,11 +9,11 @@ Entity Framework Core application with a real database and role-based auth,
 scaled up from the Order Entry System (OES) pattern used in Assignment 1.1.
 
 See `docs/Project Proposal_ Cyber Cougars Club Order & Event System (CCOS).md`
-for the full proposal, `docs/ERD_...md` for the entity-relationship diagram,
-and `docs/CyberCougar OES Schema.md` for the SQL schema.
+for the full proposal, `docs/backend/ERD_...md` for the entity-relationship diagram,
+and `docs/backend/CyberCougar OES Schema.md` for the SQL schema.
 
-Feature-level design docs live alongside those, e.g.
-`docs/CAR-1_Product_CRUD_Design.md` for the Product CRUD interface + database
+Feature-level design docs live in `docs/Jira-Archive/`, e.g.
+`docs/Jira-Archive/CAR-1_Product_CRUD_Design.md` for the Product CRUD interface + database
 design.
 
 ## Tech Stack
