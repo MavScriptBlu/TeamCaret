@@ -1,4 +1,7 @@
 <Solution>
+  <Project Path="../shared/CCOS.Shared/CCOS.Shared.csproj" />
+  <Project Path="CCOS.Api.Tests/CCOS.Api.Tests.csproj" />
+  <Project Path="CCOS.Api/CCOS.Api.csproj" />
   <Project Path="CCOS.Data.Tests/CCOS.Data.Tests.csproj" />
   <Project Path="CCOS.Data/CCOS.Data.csproj" />
   <Project Path="CCOS.Repositories/CCOS.Repositories.csproj" />
