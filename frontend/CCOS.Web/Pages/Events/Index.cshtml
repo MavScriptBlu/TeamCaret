@@ -6,6 +6,11 @@
 
 <link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
 
+@if (TempData["VenueAdded"] is string venueAdded)
+{
+    <p class="events-message" role="status">@venueAdded</p>
+}
+
 <section class="events-hero">
     <img class="events-hero-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="Cyber Cougars logo" />
     <div>
@@ -30,7 +35,11 @@
         </details>
     </div>
 
-    @if (Model.UpcomingEvents.Count == 0)
+    @if (Model.LoadFailed)
+    {
+        <p class="events-empty" role="alert">Events couldn't be loaded right now. Please try again later.</p>
+    }
+    else if (Model.UpcomingEvents.Count == 0)
     {
         <p class="events-empty">No upcoming events</p>
     }

@@ -31,7 +31,8 @@ public static class ModelStateExtensions
             return;
         }
 
-        var keyPrefix = $"{prefix}.";
+        // An empty prefix (a page whose fields are top-level properties) means keys are used as they are.
+        var keyPrefix = string.IsNullOrEmpty(prefix) ? string.Empty : $"{prefix}.";
 
         // Add each error from the API response to the ModelState, prefixing the keys as necessary.
         foreach (var (key, messages) in problem.Errors)

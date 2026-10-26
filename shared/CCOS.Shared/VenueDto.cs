@@ -1,6 +1,8 @@
 namespace CCOS.Shared;
 
 /// <summary>
-/// A venue as returned by GET /api/venues. Used for the event form's venue dropdown.
+/// A venue as returned by GET /api/venues: just what the event form's venue dropdown needs.
 /// </summary>
-public record VenueDto(int VenueId, string Name);
+public record VenueDto(
+    int VenueId,
+    string Name);
