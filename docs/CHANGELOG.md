@@ -2,6 +2,12 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-26 · Officer product Save button works after a validation error
+
+- Checked the officer product create, edit and delete pages end to end against `CCOS.Api` in a browser: create, edit, deactivate from the dashboard, reactivate with the Active box on Edit, and the "not found" page all work.
+- Fixed: after the server showed a message (for example "member price cannot be greater than the regular price"), fixing the field and clicking Save did nothing. Clicking moved focus off the field, the validator cleared the message, the form got shorter and Save moved about 50px up before the click finished. `product-create.js` now keeps focus in place when Save is pressed with the mouse, so the click lands and the form submits. Used by both Create and Edit.
+- Noted (not changed): the event form has the same layout and may have the same problem.
+
 ## 2026-10-19 · Code comments and spacing pass
 
 - Added `///` summaries to every class, record and public method that didn't have one: the data layer (`AppDbContext`, entities, `UtcDateTimeConverter`), `TicketBookingRepository` and its helper types, the API (`Program.cs`, `ProductsController`, `DevelopmentData`), the shared request records, the website `Program.cs`, services, Razor page models (public pages and the officer product, event and venue pages) and the schema tests.
