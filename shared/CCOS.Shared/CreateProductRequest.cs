@@ -13,23 +13,23 @@ namespace CCOS.Shared;
 /// <param name="MemberPrice">The club member price.</param>
 /// <param name="StockQuantity">How many are on hand.</param>
 public record CreateProductRequest(
-    [property: Required(ErrorMessage = "Category is required.")]
-    [property: MinLength(1, ErrorMessage = "Category is required.")]
+    [Required(ErrorMessage = "Category is required.")]
+    [MinLength(1, ErrorMessage = "Category is required.")]
     string Category,
 
-    [property: Required(ErrorMessage = "Name is required.")]
-    [property: MinLength(1, ErrorMessage = "Name is required.")]
+    [Required(ErrorMessage = "Name is required.")]
+    [MinLength(1, ErrorMessage = "Name is required.")]
     string Name,
 
     string? Description,
 
-    [property: Range(0, double.MaxValue, ErrorMessage = "Price must be at least 0.")]
+    [Range(0, double.MaxValue, ErrorMessage = "Price must be at least 0.")]
     decimal Price,
 
-    [property: Range(0, double.MaxValue, ErrorMessage = "Member price must be at least 0.")]
+    [Range(0, double.MaxValue, ErrorMessage = "Member price must be at least 0.")]
     decimal MemberPrice,
 
-    [property: Range(0, int.MaxValue, ErrorMessage = "Stock quantity must be at least 0.")]
+    [Range(0, int.MaxValue, ErrorMessage = "Stock quantity must be at least 0.")]
     int StockQuantity) : IValidatableObject
 {
     // Built once instead of on every validation run.
