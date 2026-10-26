@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Tests set this flag so Program.cs doesn't register its own DbContext (tests bring their own).
+var isTestMode = builder.Configuration.GetValue<bool>("Testing");
+
 // ---- Services (things the app can use) ----
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

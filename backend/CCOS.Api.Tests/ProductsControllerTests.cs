@@ -55,6 +55,7 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         await _db.SaveChangesAsync();
     }
 
+    // Cleanup after tests
     public async Task DisposeAsync()
     {
         _scope.Dispose();
