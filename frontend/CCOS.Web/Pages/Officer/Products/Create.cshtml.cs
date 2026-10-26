@@ -1,32 +1,42 @@
+using System.Net;
+using System.Text.Json;
 using CCOS.Shared;
+using CCOS.Web.Extensions;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.ComponentModel.DataAnnotations;
 
 namespace CCOS.Web.Pages.Officer.Products;
 
 /// <summary>
-/// Page model for "/Officer/Products/Create" page.
+/// Page model for "/Officer/Products/Create" page. Shows the blank product form, checks
+/// what the officer typed, and sends the new product to CCOS.Api.
 /// Officer-only: lock this down with [Authorize] once login is wired up.
 /// </summary>
-/// TODO: add [Authorize] once login is wired up
 public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> logger) : PageModel
 {
+    /// <summary>The values typed into the form. Filled in automatically when the form is posted.</summary>
     [BindProperty]
-    public ProductCreateInput Input { get; set; } = new();
+    public ProductInput Input { get; set; } = new();
 
+    /// <summary>Shows the blank form. Nothing to load.</summary>
     public void OnGet()
     {
     }
 
+    /// <summary>
+    /// Runs when the form is submitted. Redisplays the form with messages if the input is invalid
+    /// or the API call fails, and goes back to the product list when the product was created.
+    /// </summary>
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        // Stop here and redisplay the form with the validation messages (see ProductInput).
         if (!ModelState.IsValid)
         {
             return Page();
         }
 
+        // The Required rules on ProductInput guarantee these numbers have values, so ! and .Value are safe.
         var request = new CreateProductRequest(
             Input.Category,
             Input.Name,
@@ -37,7 +47,19 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
 
         try
         {
+            // Send the new product to the API.
             using var response = await productsApi.CreateAsync(request, cancellationToken);
+
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
+            {
+                await ModelState.AddApiValidationErrorsAsync(
+                    response,
+                    nameof(Input),
+                    "The product could not be saved. Please check the values and try again.",
+                    cancellationToken);
+
+                return Page();
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -48,6 +70,7 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
                 return Page();
             }
         }
+        // The API is down or unreachable.
         catch (HttpRequestException ex)
         {
             logger.LogError(ex, "The product API could not be reached");
@@ -56,8 +79,9 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
 
             return Page();
         }
-        catch (TaskCanceledException ex)
-            when (!cancellationToken.IsCancellationRequested)
+
+        // The API took too long. (A visitor closing the page is not treated as an error.)
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogError(ex, "The product API request timed out");
 
@@ -66,57 +90,9 @@ public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> log
             return Page();
         }
 
+        // TempData lives for one more page load, so the list page can show this "success" message.
         TempData["ProductCreated"] = $"{Input.Name} was added successfully";
 
         return RedirectToPage("/Officer/Products/Index");
-
     }
-
-
-    /// <summary>
-    /// Input and validation for creating a new product
-    /// implements IValidatableObject to validate that the regular price is not less than the member price
-    /// </summary>
-    public sealed class ProductCreateInput : IValidatableObject
-    {
-        [Required]
-        [StringLength(30)]
-        public string Category { get; set; } = string.Empty;
-
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-
-        [StringLength(500)]
-        public string? Description { get; set; }
-
-        [Required]
-        [Range(typeof(decimal), "0", "10000.00", ErrorMessage = "The regular price must be between 0 and 10000.00")]
-        [Display(Name = "Regular Price")]
-        public decimal? Price { get; set; }
-
-        [Required]
-        [Range(typeof(decimal), "0", "10000.00", ErrorMessage = "The member price must be between 0 and 10000.00")]
-        [Display(Name = "Member Price")]
-        public decimal? MemberPrice { get; set; }
-
-        [Required]
-        [Range(0, int.MaxValue, ErrorMessage = "The stock quantity must be 0 or greater")]
-        [Display(Name = "Stock Quantity")]
-        public int? StockQuantity { get; set; }
-
-        // New products are active by default, not shown on the form
-        public bool IsActive { get; set; } = true;
-
-
-        // Implement IValidatableObject to validate that the regular price is not less than the member price
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
-            if (Price is decimal regularPrice && MemberPrice is decimal memberPrice && memberPrice > regularPrice)
-            {
-                yield return new ValidationResult("the member price cannot be greater than the regular price", new[] { nameof(MemberPrice) });
-            }
-        }
-    }
-
 }

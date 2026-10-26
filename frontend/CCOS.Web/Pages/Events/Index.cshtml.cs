@@ -26,9 +26,13 @@ public class IndexModel : PageModel
     /// </summary>
     public IReadOnlyList<NewsItem> News { get; private set; } = [];
 
+    /// <summary>
+    /// Fills the page with sample events and news.
+    /// </summary>
     /// <param name="empty">When true (/Events?empty=true), show the empty state instead of the sample data.</param>
     public void OnGet(bool empty = false)
     {
+        // Leave both lists empty so the page's "nothing yet" message shows.
         if (empty)
         {
             return;

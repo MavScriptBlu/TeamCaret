@@ -1,4 +1,11 @@
 @page "{id:int?}"
+@*
+    Details page for a specific event.
+    Displays event information, including date, location, categories, and ticket prices.
+    Provides officer actions for editing or canceling the event.
+    Author: TeamCaret
+    Created: 2024-06-18
+*@
 @model DetailsModel
 @{
     ViewData["Title"] = Model.Event?.Name ?? "Event not found";

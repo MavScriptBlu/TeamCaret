@@ -11,6 +11,11 @@
 ## Documentation
 
 - Add comments when code is complex or requires additional explanation.
+- Give every class and public method a `/// <summary>` that says what it is for in plain words. Say what it does, not how the language works.
+- Put a short `//` comment above any step that isn't obvious, like a database rule, a workaround, or a "why".
+- Skip comments on trivial properties and obvious boilerplate. A comment that repeats the code is noise.
+- Use blank lines to split a method into logical blocks (check the input, do the work, return the result).
+- Spell names out in full: `item`, not `i`, and `index`, not `idx`.
 - Keep documentation up to date when making significant changes.
 - Use meaningful commit messages that briefly explain what was changed.
 
