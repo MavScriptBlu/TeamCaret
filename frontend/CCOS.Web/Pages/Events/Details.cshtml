@@ -13,7 +13,15 @@
 
 <link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
 
-@if (Model.Event is null)
+@if (Model.LoadFailed)
+{
+    <section class="event-missing" role="alert">
+        <h1>Event unavailable</h1>
+        <p>This event couldn't be loaded right now. Please try again later.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else if (Model.Event is null)
 {
     <section class="event-missing">
         <h1>Event not found</h1>

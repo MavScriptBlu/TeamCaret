@@ -35,7 +35,11 @@
         </details>
     </div>
 
-    @if (Model.UpcomingEvents.Count == 0)
+    @if (Model.LoadFailed)
+    {
+        <p class="events-empty" role="alert">Events couldn't be loaded right now. Please try again later.</p>
+    }
+    else if (Model.UpcomingEvents.Count == 0)
     {
         <p class="events-empty">No upcoming events</p>
     }
