@@ -1,9 +1,13 @@
 # Runs on every push and pull request. Uses the same Task shortcuts we use locally.
+# Runs on every push and pull request. Uses the same Task shortcuts we use locally.
 name: CI
 
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
