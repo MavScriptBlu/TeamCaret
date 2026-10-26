@@ -290,13 +290,33 @@ public class ProductValidationTests
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Runs DataAnnotations validation on an object and returns all errors.
+    /// Runs the same validation ASP.NET Core runs on a request and returns all errors.
+    /// The request records keep their rules (like [Required]) on the constructor parameters,
+    /// because that's the only place ASP.NET Core accepts them on a record; it throws if
+    /// they're on the properties. Validator.TryValidateObject only reads properties, so this
+    /// checks each constructor parameter's rules against the matching property's value.
     /// </summary>
     private static List<ValidationResult> Validate(object model)
     {
-        var context = new ValidationContext(model);
         var results = new List<ValidationResult>();
-        Validator.TryValidateObject(model, context, results, validateAllProperties: true);
+        var type = model.GetType();
+        var constructor = type.GetConstructors().OrderByDescending(c => c.GetParameters().Length).First();
+
+        foreach (var parameter in constructor.GetParameters())
+        {
+            var rules = parameter.GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
+                .Cast<ValidationAttribute>();
+            var value = type.GetProperty(parameter.Name!)!.GetValue(model);
+            var context = new ValidationContext(model) { MemberName = parameter.Name };
+            Validator.TryValidateValue(value!, context, results, rules);
+        }
+
+        // Like ASP.NET Core, only run the cross-field rules once every field is valid on its own.
+        if (results.Count == 0 && model is IValidatableObject validatable)
+        {
+            results.AddRange(validatable.Validate(new ValidationContext(model)));
+        }
+
         return results;
     }
 }
