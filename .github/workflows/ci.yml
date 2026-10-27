@@ -1,9 +1,13 @@
 # Runs on every push and pull request. Uses the same Task shortcuts we use locally.
+# Runs on every push and pull request. Uses the same Task shortcuts we use locally.
 name: CI
 
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
@@ -42,8 +46,12 @@ jobs:
         uses: go-task/setup-task@v2
 
       # CI has no real .env, so use the example file (fake password, never a real one)
+      # Force Docker (not Podman) since GitHub runners have Docker
       - name: Make .env from the example
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          sed -i '/^CONTAINER=/d' .env
+          echo 'CONTAINER=docker' >> .env
 
       - name: Build and start the app
         run: task up

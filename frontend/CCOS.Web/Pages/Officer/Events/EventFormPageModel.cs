@@ -75,10 +75,10 @@ public abstract class EventFormPageModel : PageModel
     public virtual int? CancelRouteId => null;
 
     /// <summary>
-    /// Venues for the dropdown. Sample venues by default; Create Event replaces them with the
-    /// real venues from the database (CAR-51).
+    /// Venues for the dropdown. Create Event and Edit Event load the real venues from the
+    /// database (CAR-51, CAR-50).
     /// </summary>
-    protected IReadOnlyList<VenueInfo> Venues { get; set; } = SampleVenues.All;
+    protected IReadOnlyList<VenueInfo> Venues { get; set; } = [];
 
     /// <summary>Venue choices for the Location/Venue dropdown.</summary>
     public IEnumerable<SelectListItem> VenueOptions =>

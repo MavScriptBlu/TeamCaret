@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Tests set this flag so Program.cs doesn't register its own DbContext (tests bring their own).
+var isTestMode = builder.Configuration.GetValue<bool>("Testing");
+
 // ---- Services (things the app can use) ----
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -32,40 +35,45 @@ builder.Services.AddControllers();
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
 
-// A real (non-Development) run must never fall back to the local file, so stop right away.
-if (useLocalDatabase && !builder.Environment.IsDevelopment())
+if (!isTestMode && useLocalDatabase && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException(
         "ConnectionStrings:CCOS must be set outside Development. " +
         "See backend/README.md for setup instructions.");
 }
 
-// Hands out a database connection (AppDbContext) to anything that asks for one.
-builder.Services.AddDbContext<AppDbContext>(options =>
+if (!isTestMode)
 {
-    if (useLocalDatabase)
+    // Hands out a database connection (AppDbContext) to anything that asks for one.
+    builder.Services.AddDbContext<AppDbContext>(options =>
     {
         // SQLite fallback for Development only when no connection string is configured.
         // This file is gitignored and auto-created with seed data on first run.
-        var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
-        options.UseSqlite($"Data Source={databasePath}");
-    }
-    else
-    {
-        // PostgreSQL: the production database. Use this in Development too for parity.
-        options.UseNpgsql(connectionString);
-    }
-});
+        if (useLocalDatabase)
+        {
+            var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
+            options.UseSqlite($"Data Source={databasePath}");
+        }
+        else
+        {
+            // PostgreSQL: the production database.
+            // Use this in Development too for consistency with prod.
+            options.UseNpgsql(connectionString);
+        }
+    });
+}
 
-// One ProductRepository per web request, so it shares that request's database connection.
+// One repository per web request, so it shares that request's database connection.
 builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<VenueRepository>();
 
 var app = builder.Build();
 
 // ---- Startup work ----
 // Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
-if (app.Environment.IsDevelopment())
+// Skip in test mode - tests manage their own database state.
+if (app.Environment.IsDevelopment() && !isTestMode)
 {
     await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
 }
@@ -80,32 +88,4 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapControllers();
-
-// Leftover weather sample from the project template. Nothing in CCOS uses it, and it
-// can be deleted once the team no longer wants it as a quick "is the API up" check.
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
 app.Run();
-
-/// <summary>One day of fake weather, for the template sample endpoint above.</summary>
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

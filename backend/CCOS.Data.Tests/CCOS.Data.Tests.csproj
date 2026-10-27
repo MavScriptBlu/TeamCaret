@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CCOS.Data\CCOS.Data.csproj" />
     <ProjectReference Include="..\CCOS.Repositories\CCOS.Repositories.csproj" />
+    <ProjectReference Include="..\..\shared\CCOS.Shared\CCOS.Shared.csproj" />
   </ItemGroup>
 
 </Project>

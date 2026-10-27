@@ -1,17 +1,14 @@
-/// <summary>
-/// Details page for a specific event.
-/// Displays event information, including date, location, categories, and ticket prices.
-/// Provides officer actions for editing or canceling the event.
-/// </summary>
+using System.Text.Json;
+using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CCOS.Web.Pages.Events;
 
 /// <summary>
 /// Event page (/Events/Details/{id}): image, name, date and time, venue, categories,
-/// ticket price, RSVP and description. Shows sample data for now.
+/// ticket price, RSVP and description. Loads the event from CCOS.Api (CAR-50).
 /// </summary>
-public class DetailsModel : PageModel
+public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logger) : PageModel
 {
     /// <summary>
     /// The event to show, or null when no active event matches the id.
@@ -31,13 +28,29 @@ public class DetailsModel : PageModel
     public string? MemberPriceText { get; private set; }
 
     /// <summary>
-    /// Finds the event and works out the price text to show. Sends a 404 when the id is
-    /// missing or no active event matches.
+    /// True when the API couldn't be reached, so the page shows an error message instead.
+    /// </summary>
+    public bool LoadFailed { get; private set; }
+
+    /// <summary>
+    /// Loads the event and works out the price text to show. Sends a 404 when the id is
+    /// missing or no active event matches, and shows an error message when the API fails.
     /// </summary>
     /// <param name="id">The event id from the URL.</param>
-    public void OnGet(int? id)
+    public async Task OnGetAsync(int? id, CancellationToken cancellationToken)
     {
-        Event = id is int eventId ? SampleEvents.FindActive(eventId) : null;
+        try
+        {
+            var dto = id is int eventId ? await eventsApi.GetAsync(eventId, cancellationToken) : null;
+            Event = dto is null ? null : EventMapping.ToEventInfo(dto);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogError(ex, "Couldn't load event {EventId} from CCOS.Api.", id);
+            LoadFailed = true;
+            return;
+        }
 
         // Unknown or canceled event: send a 404. The page shows its "not found" message.
         if (Event is null)

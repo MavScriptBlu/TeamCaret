@@ -16,6 +16,15 @@ builder.Services.AddHttpClient<ProductsApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// Event data comes from CCOS.Api too (Events list, event page and Edit Event).
+builder.Services.AddHttpClient<EventsApiClient>(client =>
+{
+    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
+        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 // Venue data comes from CCOS.Api too (venue form and the event form's venue dropdown).
 builder.Services.AddHttpClient<VenuesApiClient>(client =>
 {
