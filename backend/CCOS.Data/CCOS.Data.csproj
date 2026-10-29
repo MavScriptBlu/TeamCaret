@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <!-- Login accounts (CAR-66): Identity's tables live in AppDbContext, same database and migrations. -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
     <!-- Pin EF Core to the same version as the tools so every project that references Data builds against one version. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.12" />
@@ -15,6 +17,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- MemberStatus lives in CCOS.Shared so the website can show it too (CAR-28). -->
+    <ProjectReference Include="..\..\shared\CCOS.Shared\CCOS.Shared.csproj" />
   </ItemGroup>
 
 </Project>
