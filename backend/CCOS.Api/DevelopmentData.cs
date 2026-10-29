@@ -1,5 +1,7 @@
 using CCOS.Data;
 using CCOS.Data.Entities;
+using CCOS.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CCOS.Api;
@@ -40,6 +42,12 @@ public static class DevelopmentData
         if (!hasVenues)
         {
             await SeedVenuesAndEventsAsync(db);
+        }
+
+        // Test accounts for signing in (CAR-66): one officer, one member, one guest.
+        if (!await db.Customers.AnyAsync())
+        {
+            await SeedAccountsAsync(db);
         }
 
         if (hasProducts)
@@ -203,5 +211,89 @@ public static class DevelopmentData
             });
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// The shared password for the sample accounts. Development only, and listed in
+    /// backend/README.md so everyone can sign in. Never use it for a real account.
+    /// </summary>
+    public const string SampleAccountPassword = "CcosDev!2026";
+
+    /// <summary>
+    /// Seeds three sample people, each with a login (backend/README.md, "Sample accounts"):
+    /// officer@ccos.test is a current member who holds the President title,
+    /// member@ccos.test is a current member, and guest@ccos.test has a login but no membership.
+    /// Memberships run one year from today (the club's date).
+    /// </summary>
+    private static async Task SeedAccountsAsync(AppDbContext db)
+    {
+        var today = new ClubClock().Today;
+
+        var officerCustomer = new Customer { FirstName = "Sample", LastName = "Officer" };
+        var memberCustomer = new Customer { FirstName = "Sample", LastName = "Member" };
+        var guestCustomer = new Customer { FirstName = "Sample", LastName = "Guest" };
+
+        db.Customers.AddRange(officerCustomer, memberCustomer, guestCustomer);
+
+        // Save first so each customer gets its CustomerId, which the logins and memberships reuse.
+        await db.SaveChangesAsync();
+
+        db.Users.AddRange(
+            CreateSampleLogin("officer@ccos.test", officerCustomer),
+            CreateSampleLogin("member@ccos.test", memberCustomer),
+            CreateSampleLogin("guest@ccos.test", guestCustomer));
+
+        // MemberId is the CustomerId. The guest has no member row.
+        db.Members.AddRange(
+            new Member
+            {
+                MemberId = officerCustomer.CustomerId,
+                JoinedDate = today,
+                MemberExpiration = today.AddYears(1),
+            },
+            new Member
+            {
+                MemberId = memberCustomer.CustomerId,
+                JoinedDate = today,
+                MemberExpiration = today.AddYears(1),
+            });
+
+        // The officer's current title, plus the matching open history row.
+        // GrantedByAdminId stays empty until the Admins table exists (CAR-74).
+        db.Officers.Add(new Officer
+        {
+            OfficerId = officerCustomer.CustomerId,
+            Title = "President",
+            GrantedDate = today,
+        });
+        db.OfficerHistory.Add(new OfficerHistory
+        {
+            MemberId = officerCustomer.CustomerId,
+            Title = "President",
+            GrantedDate = today,
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Builds a sign-in account for a sample customer, with the email as the user name and the
+    /// shared sample password hashed the same way Identity hashes real passwords.
+    /// </summary>
+    private static AppUser CreateSampleLogin(string email, Customer customer)
+    {
+        var user = new AppUser
+        {
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString(),
+            CustomerId = customer.CustomerId,
+        };
+
+        user.PasswordHash = new PasswordHasher<AppUser>().HashPassword(user, SampleAccountPassword);
+        return user;
     }
 }
