@@ -1,6 +1,11 @@
 using CCOS.Api;
+using CCOS.Api.Authorization;
 using CCOS.Data;
+using CCOS.Data.Entities;
 using CCOS.Repositories;
+using CCOS.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +72,48 @@ if (!isTestMode)
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<VenueRepository>();
+builder.Services.AddScoped<MemberRepository>();
+builder.Services.AddScoped<AccountRepository>();
+
+// The club's "today" (America/Chicago) for every membership check (CAR-28).
+builder.Services.AddSingleton<ClubClock>();
+
+// ---- Sign-in (CAR-67, docs/CAR-52_Login_Approach.md) ----
+// ASP.NET Core Identity with its accounts in our database. AddIdentityApiEndpoints turns on
+// bearer tokens: the website signs in through /api/auth/login, keeps the token on the server,
+// and sends it on every API call.
+builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
+    {
+        // One account per email address.
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<AppDbContext>();
+
+// This is an API: answer 401 (not signed in) and 403 (not allowed) instead of redirecting to a login page.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+
+// The two access rules. Both check the Members and Officers tables on every request,
+// so nothing about membership is cached in the token.
+builder.Services.AddScoped<IAuthorizationHandler, MembershipAuthorizationHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(ClubPolicies.Member, policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new MembershipRequirement(officerRequired: false)))
+    .AddPolicy(ClubPolicies.Officer, policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new MembershipRequirement(officerRequired: true)));
 
 var app = builder.Build();
 
@@ -87,5 +134,26 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Read the sign-in token on each request, then apply the access rules.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
+
+// Identity's built-in endpoints under /api/auth: login, refresh, forgot and reset password, and so on.
+// Its /register is turned off because it would create a login without a Customer (every login needs one);
+// accounts are created through POST /api/account/register instead (AccountController).
+var identityApi = app.MapGroup("/api/auth");
+identityApi.AddEndpointFilter(async (context, next) =>
+{
+    if (context.HttpContext.Request.Path.Value?.EndsWith("/register", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            detail: "Create accounts with POST /api/account/register.");
+    }
+
+    return await next(context);
+});
+identityApi.MapIdentityApi<AppUser>();
 app.Run();

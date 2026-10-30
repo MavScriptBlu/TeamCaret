@@ -9,19 +9,38 @@ REST API reference for the CCOS backend.
 
 ## Authentication
 
-All endpoints (except login/register) require a JWT Bearer token:
+Sign-in uses ASP.NET Core Identity in the API (CAR-67, `docs/CAR-52_Login_Approach.md`). Logging in
+returns an access token (Identity's own bearer token, not a JWT) and a refresh token. Send the access
+token on calls that need a signed-in person:
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
+
+Two access rules (policies) decide what a signed-in person can do. Both read the Members and Officers
+tables on every request, on the club's date (America/Chicago), so nothing about membership is cached in
+the token:
+
+| Policy | Passes when |
+|--------|-------------|
+| `Member` | Signed in, and a current member (active, dues paid through today) |
+| `Officer` | Signed in, a current member, and holding an officer title |
+
+Not signed in returns `401`; signed in but not allowed returns `403`. Locking the officer endpoints and
+member prices with these rules is CAR-69.
 
 ## Endpoints
 
 ### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/auth/login` | Login and get JWT |
-| POST | `/auth/register` | Register new user |
+| POST | `/account/register` | Create an account: `firstName`, `lastName`, `email`, `password`. Creates the Customer and the login together. 400 with the message on `Email` or `Password` when the email is taken or the password is too weak. |
+| POST | `/auth/login` | Sign in with `email` and `password`. Returns `accessToken`, `refreshToken` and `expiresIn` (seconds). 401 on a wrong email or password. |
+| POST | `/auth/refresh` | Trade a `refreshToken` for a new access token. |
+| POST | `/auth/forgotPassword`, `/auth/resetPassword` | Identity's password reset (no email is sent yet). |
+| GET | `/me` | Who's signed in: `customerId`, names, `email`, `memberStatus` (Active, Expired, Inactive or null for a guest), `isCurrentMember`, `isCurrentOfficer`, `officerTitle`. 401 when not signed in. |
+
+Identity's own `/auth/register` is turned off (404), because it would create a login without a Customer.
 
 ### Products
 | Method | Endpoint | Description |

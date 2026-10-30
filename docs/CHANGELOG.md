@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-30 · CAR-67 Login API and access policies
+
+- `CCOS.Api` signs people in with ASP.NET Core Identity: `AddIdentityApiEndpoints<AppUser>` plus `MapIdentityApi` under `/api/auth` (login, refresh, forgot and reset password). One account per email (`RequireUniqueEmail`). Not signed in answers 401 and not allowed answers 403, never a redirect.
+- `POST /api/account/register` creates the Customer and the login in one transaction (`AccountRepository.RegisterAsync`), so a failed login (email taken, weak password) rolls the customer back too. Identity's built-in `/api/auth/register` is turned off with a 404, because it can't create the Customer every login needs. This is the one change from the CAR-52 plan, which listed register under `MapIdentityApi`.
+- `GET /api/me` returns who's signed in (`CurrentAccountDto`): customer id, names, email, member status, current member, current officer and officer title, worked out fresh on the club's date.
+- Two policies, `Member` and `Officer` (`ClubPolicies` in `CCOS.Shared`). `MembershipAuthorizationHandler` finds the CustomerId behind the signed-in login and asks `MemberRepository` on every request, so renewals, expirations and leaving the club count right away. An officer whose dues expired fails both until they renew.
+- Nothing is locked yet: applying the policies to the officer endpoints and member prices is CAR-69.
+- Tests: `AccountApiTests` covers register and login, `/api/me` for a guest and an officer, 401 without signing in, a duplicate email (400, no leftover customer), the turned-off built-in register, a wrong password, the Member and Officer rules for guest, member, expired member, officer and expired officer, and a membership change showing up on the next request. The test password is random each run, so no credential is in the code.
+- `docs/api/README.md`: the Auth section now describes the real endpoints and policies.
+
 ## 2026-10-30 · CAR-72 API tests run in test mode · CAR-73 Dependabot targets Dev
 
 - CAR-72: `ProductsControllerTests` now turns on test mode with `builder.UseSetting("Testing", "true")`, the setting `Program.cs` actually reads. It used to set a `CCOS_TEST_MODE` environment variable that nothing read, so on a machine with a PostgreSQL user secret the API registered PostgreSQL next to the test's SQLite database and all 5 API tests failed. CI passed only because it has no user secret. The unused variable is gone.
