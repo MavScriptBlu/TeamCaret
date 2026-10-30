@@ -90,8 +90,21 @@ container as `dotnet run`. It does not use your user secret. Run `task migrate` 
 ## Sample accounts
 
 In Development, the API adds three sample logins the first time it finds no customers
-(CAR-66). They all use the password `CcosDev!2026`. It's for local testing only, so never
-use it for a real account.
+(CAR-66). They share one password, which is kept out of the code: agree on one with the team
+(ask in the team chat) and set it once on your own computer. It's for local testing only, so
+never reuse a real password.
+
+```powershell
+# For dotnet run (the API on your computer)
+dotnet user-secrets set "SampleAccounts:Password" "the-team-password" --project backend/CCOS.Api
+
+# For task up (the API in Docker): add this line to your .env instead
+# SAMPLE_ACCOUNT_PASSWORD=the-team-password
+```
+
+If it isn't set, the API skips the sample logins and logs a warning. Ran the API before
+setting it? The logins are only added when there are no customers yet, so start fresh with
+`task reset` then `task migrate` (or delete `ccos-dev.db` if you use the SQLite file).
 
 | Email | Who they are |
 | --- | --- |

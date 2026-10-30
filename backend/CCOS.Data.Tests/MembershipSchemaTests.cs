@@ -82,7 +82,7 @@ public class MembershipSchemaTests
     public void Postgres_model_stores_membership_dates_as_date()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql("Host=localhost;Database=ccos;Username=ccos;Password=not-used")
+            .UseNpgsql("Host=localhost;Database=ccos")
             .Options;
 
         using var db = new AppDbContext(options);

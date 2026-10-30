@@ -45,9 +45,25 @@ public static class DevelopmentData
         }
 
         // Test accounts for signing in (CAR-66): one officer, one member, one guest.
+        // Their shared password comes from settings (user secrets or .env), never from the code.
         if (!await db.Customers.AnyAsync())
         {
-            await SeedAccountsAsync(db);
+            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var sampleAccountSecret = configuration[SampleAccountsSettingKey];
+
+            if (string.IsNullOrWhiteSpace(sampleAccountSecret))
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger(typeof(DevelopmentData));
+                logger.LogWarning(
+                    "Sample logins were not created because {Setting} is not set. " +
+                    "See \"Sample accounts\" in backend/README.md.",
+                    SampleAccountsSettingKey);
+            }
+            else
+            {
+                await SeedAccountsAsync(db, sampleAccountSecret);
+            }
         }
 
         if (hasProducts)
@@ -214,10 +230,11 @@ public static class DevelopmentData
     }
 
     /// <summary>
-    /// The shared password for the sample accounts. Development only, and listed in
-    /// backend/README.md so everyone can sign in. Never use it for a real account.
+    /// The setting that holds the shared password for the sample accounts. Set it in user
+    /// secrets (dotnet run) or as SAMPLE_ACCOUNT_PASSWORD in .env (Docker); see backend/README.md.
+    /// It's kept out of the code so no password is ever committed.
     /// </summary>
-    public const string SampleAccountPassword = "CcosDev!2026";
+    public const string SampleAccountsSettingKey = "SampleAccounts:Password";
 
     /// <summary>
     /// Seeds three sample people, each with a login (backend/README.md, "Sample accounts"):
@@ -225,7 +242,7 @@ public static class DevelopmentData
     /// member@ccos.test is a current member, and guest@ccos.test has a login but no membership.
     /// Memberships run one year from today (the club's date).
     /// </summary>
-    private static async Task SeedAccountsAsync(AppDbContext db)
+    private static async Task SeedAccountsAsync(AppDbContext db, string sampleAccountSecret)
     {
         var today = new ClubClock().Today;
 
@@ -239,9 +256,9 @@ public static class DevelopmentData
         await db.SaveChangesAsync();
 
         db.Users.AddRange(
-            CreateSampleLogin("officer@ccos.test", officerCustomer),
-            CreateSampleLogin("member@ccos.test", memberCustomer),
-            CreateSampleLogin("guest@ccos.test", guestCustomer));
+            CreateSampleLogin("officer@ccos.test", officerCustomer, sampleAccountSecret),
+            CreateSampleLogin("member@ccos.test", memberCustomer, sampleAccountSecret),
+            CreateSampleLogin("guest@ccos.test", guestCustomer, sampleAccountSecret));
 
         // MemberId is the CustomerId. The guest has no member row.
         db.Members.AddRange(
@@ -280,7 +297,7 @@ public static class DevelopmentData
     /// Builds a sign-in account for a sample customer, with the email as the user name and the
     /// shared sample password hashed the same way Identity hashes real passwords.
     /// </summary>
-    private static AppUser CreateSampleLogin(string email, Customer customer)
+    private static AppUser CreateSampleLogin(string email, Customer customer, string sampleAccountSecret)
     {
         var user = new AppUser
         {
@@ -293,7 +310,7 @@ public static class DevelopmentData
             CustomerId = customer.CustomerId,
         };
 
-        user.PasswordHash = new PasswordHasher<AppUser>().HashPassword(user, SampleAccountPassword);
+        user.PasswordHash = new PasswordHasher<AppUser>().HashPassword(user, sampleAccountSecret);
         return user;
     }
 }
