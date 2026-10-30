@@ -2,6 +2,12 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-30 · CAR-72 API tests run in test mode · CAR-73 Dependabot targets Dev
+
+- CAR-72: `ProductsControllerTests` now turns on test mode with `builder.UseSetting("Testing", "true")`, the setting `Program.cs` actually reads. It used to set a `CCOS_TEST_MODE` environment variable that nothing read, so on a machine with a PostgreSQL user secret the API registered PostgreSQL next to the test's SQLite database and all 5 API tests failed. CI passed only because it has no user secret. The unused variable is gone.
+- CAR-73: `.github/dependabot.yml` sets `target-branch: "Dev"` for NuGet and GitHub Actions, so dependency update PRs go into Dev instead of main. Dependabot reads this file from main, so it takes effect after the next Dev → main sync.
+- Team rule (from the Sprint 3 retro): Dev is merged into main once at the end of each sprint, after the review.
+
 ## 2026-10-26 · Officer product Save button works after a validation error
 
 - Checked the officer product create, edit and delete pages end to end against `CCOS.Api` in a browser: create, edit, deactivate from the dashboard, reactivate with the Active box on Edit, and the "not found" page all work.
