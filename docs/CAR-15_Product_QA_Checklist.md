@@ -25,7 +25,7 @@ The create, edit and delete tests need CAR-46 (save endpoints) and CAR-38 (delet
    - 2 Club T-Shirt ($15 / $12, 30)
    - 3 Sticker Pack ($5 / $3, 0 in stock)
    - 4 Study Guide ($8 / $5, 12, category Resources)
-   - 5 Old Mug ($10 / $8, 5, deactivated)
+   - 5 Old Mug ($10 / $8, 5, removed)
 4. Run the site (`dotnet run` in `frontend/CCOS.Web`, http://localhost:5275)
 5. Open DBeaver on `localhost:5432` for the database checks
 
@@ -40,7 +40,7 @@ IDs 1–5 assume a fresh `task reset`; if a product was added earlier, its ID wi
 | B3 | Tick "In stock only" | Sticker Pack disappears; the other 3 stay | | |
 | B4 | Set Category to Resources | Only Study Guide shows | | |
 | B5 | Open `/Products/Details/1` | Club Hoodie with $35.00 and member price $28.00 | | |
-| B6 | Open `/Products/Details/5` (Old Mug, deactivated) | 404 Not Found, the product isn't shown | | |
+| B6 | Open `/Products/Details/5` (Old Mug, removed) | 404 Not Found, the product isn't shown | | |
 
 ## Create
 
@@ -66,29 +66,29 @@ On `/Officer/Products/Create`. Each validation row should show its error and sav
 | D2 | Change Price to 30, Save | Dashboard shows "Saved"; `/Products` shows Club Hoodie at $30.00 | | |
 | D3 | Set Member Price above Price, Save | Member price error; the saved values don't change | | |
 | D4 | Open `/Officer/Products/Edit/999` | "Product not found" page with a link back to products | | |
-| D5 | Open `/Officer/Products/Edit/5` (Old Mug) | Loads with Active unticked | | |
-| D6 | On Test Cap, untick Active, Save | Gone from `/Products`; on the dashboard as deactivated | | |
-| D7 | On Old Mug, tick Active, Save | Old Mug now shows on `/Products` (reactivated) | | |
+| D5 | Open `/Officer/Products/Edit/5` (Old Mug) | Loads with "Show in the store" unticked | | |
+| D6 | On Test Cap, untick "Show in the store", Save | Gone from `/Products`; on the dashboard as Removed | | |
+| D7 | On Old Mug, tick "Show in the store", Save | Old Mug now shows on `/Products` (restored) | | |
 
-## Delete
+## Remove
 
-On the officer dashboard (`/Officer/Products`). Delete must never remove the row.
+On the officer dashboard (`/Officer/Products`). Removing must never delete the row. (The site says "Remove" since CAR-65.)
 
 | # | Steps | Expected | Result | Bug |
 | --- | --- | --- | --- | --- |
-| E1 | Click Delete on Club T-Shirt | A confirmation dialog opens; nothing changes yet | | |
+| E1 | Click Remove product on Club T-Shirt | A confirmation dialog opens; nothing changes yet | | |
 | E2 | Click Cancel in the dialog | Dialog closes; T-Shirt still active everywhere | | |
-| E3 | Delete again and confirm | T-Shirt gone from `/Products`; on the dashboard as deactivated | | |
-| E4 | In DBeaver: `SELECT "ProductId", "Name", "IsActive" FROM "Products" WHERE "Name" = 'Club T-Shirt';` | One row, `IsActive = false` (soft delete, not removed) | | |
+| E3 | Remove again and confirm | "Product removed"; T-Shirt gone from `/Products`; on the dashboard as Removed | | |
+| E4 | In DBeaver: `SELECT "ProductId", "Name", "IsActive" FROM "Products" WHERE "Name" = 'Club T-Shirt';` | One row, `IsActive = false` (soft delete: the row stays) | | |
 | E5 | Order history | No order pages exist yet, so mark Blocked and note it; E4 proves the row stays for past orders | | |
 
 ## Empty states, filters and errors
 
 | # | Steps | Expected | Result | Bug |
 | --- | --- | --- | --- | --- |
-| F1 | `/Officer/Products?show=inactive` | Only deactivated products | | |
+| F1 | `/Officer/Products?show=inactive` (filter: Removed) | Only removed products | | |
 | F2 | `/Products` with Category Resources and "In stock only", after setting Study Guide stock to 0 | "No products match these filters." | | |
-| F3 | `/Officer/Products?show=inactive` when nothing is deactivated (run after a fresh reset and reactivating Old Mug) | "No products match this filter." | | |
+| F3 | `/Officer/Products?show=inactive` when nothing is removed (run after a fresh reset and restoring Old Mug) | "No products match this filter." | | |
 | F4 | Stop the API, reload `/Products` and `/Officer/Products` | "Products couldn't be loaded right now. Please try again later." on both, no crash | | |
 | F5 | With the API stopped, Save on the Create form | "The product API could not be reached. Please try again later"; the form keeps what you typed | | |
 

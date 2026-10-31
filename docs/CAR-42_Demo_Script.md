@@ -19,11 +19,11 @@ A clean click path through everything Sprint 3 built, plus the list of links che
 | 3 | Click **Club Hoodie** | Details page with $35.00 and the $28.00 member price |
 | 4 | Type `hoodie` in the header search, press Enter | Search results (CAR-36) |
 | 5 | Search `fire wood` | "Search for "fire wood" returned no results :(", 2 suggested products, Back to Home |
-| 6 | Footer: **Product dashboard** | Officer list of every product, including Old Mug as deactivated |
+| 6 | Footer: **Product dashboard** | Officer list of every product, including Old Mug as Removed |
 | 7 | **Create product**: Name "Demo Cap", Category Swag, Price 20, Member Price 25, Save | Member price error shows, nothing saved (CAR-14 validation) |
 | 8 | Fix Member Price to 15, Save | Back on the dashboard with "Demo Cap was added successfully"; it also shows on /Products |
 | 9 | **Edit product page** on Demo Cap, change Price to 18, Save | "Saved"; the new price shows on /Products |
-| 10 | **Delete Product** on Demo Cap, Cancel, then Delete and confirm | Dialog first, then "Product deactivated"; it's gone from /Products but stays on the dashboard (soft delete, CAR-38) |
+| 10 | **Remove product** on Demo Cap, Cancel, then Remove and confirm | Dialog first, then "Product removed"; it's gone from /Products but stays on the dashboard as Removed (soft delete, CAR-38; "Remove" wording, CAR-65) |
 | 11 | Footer: **Events** | Event pages with sample data (they load from the API in Sprint 4, CAR-50) |
 
 ## Link audit (clean `Dev`, Oct 25)
@@ -38,7 +38,7 @@ Every link and button below was clicked on a fresh checkout. Result: Pass means 
 | `/Products` | Filters, Apply, each product card | |
 | `/Products/Details/{id}` | Back to Products; unknown or inactive id shows 404 | |
 | `/Products/Search` | Results, no-results message, Back to Home, suggested cards, empty search | |
-| `/Officer/Products` | Create product, Edit product page, Delete Product dialog (Cancel and confirm), the Show filter | |
+| `/Officer/Products` | Create product, Edit product page, Remove product dialog (Cancel and confirm), the Show filter | |
 | `/Officer/Products/Create` and `/Edit/{id}` | Save, validation, Product not found link | |
 | `/Events` and `/Events/Details/{id}` | Event cards, Create event, Add venue, Edit, Back | |
 | `/Officer/Events/Create`, `/Edit/{id}`, `/Officer/Venues/Create` | Form loads, Save, Back | |
