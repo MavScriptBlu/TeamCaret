@@ -24,7 +24,7 @@ the token:
 | Policy | Passes when |
 |--------|-------------|
 | `Member` | Signed in, and a current member (active, dues paid through today) |
-| `Officer` | Signed in, a current member, and holding an officer title |
+| `Officer` | Signed in, a current member, and holding an officer title. The club's advisor (the `Advisor` role) also passes, without a membership or title. |
 
 Not signed in returns `401`; signed in but not allowed returns `403`. Locking the officer endpoints and
 member prices with these rules is CAR-69.
@@ -38,7 +38,7 @@ member prices with these rules is CAR-69.
 | POST | `/auth/login` | Sign in with `email` and `password`. Returns `accessToken`, `refreshToken` and `expiresIn` (seconds). 401 on a wrong email or password. |
 | POST | `/auth/refresh` | Trade a `refreshToken` for a new access token. |
 | POST | `/auth/forgotPassword`, `/auth/resetPassword` | Identity's password reset (no email is sent yet). |
-| GET | `/me` | Who's signed in: `customerId`, names, `email`, `memberStatus` (Active, Expired, Inactive or null for a guest), `isCurrentMember`, `isCurrentOfficer`, `officerTitle`. 401 when not signed in. |
+| GET | `/me` | Who's signed in: `customerId`, names, `email`, `memberStatus` (Active, Expired, Inactive or null for a guest), `isCurrentMember`, `isCurrentOfficer`, `officerTitle`, `isAdvisor`. 401 when not signed in. |
 
 Identity's own `/auth/register` is turned off (404), because it would create a login without a Customer.
 

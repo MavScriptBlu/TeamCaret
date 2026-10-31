@@ -87,6 +87,8 @@ builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
         // One account per email address.
         options.User.RequireUniqueEmail = true;
     })
+    // Roles, for the Advisor (ClubRoles). Members and officers come from their own tables, not roles.
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
 // This is an API: answer 401 (not signed in) and 403 (not allowed) instead of redirecting to a login page.
@@ -104,8 +106,8 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// The two access rules. Both check the Members and Officers tables on every request,
-// so nothing about membership is cached in the token.
+// The two access rules. Both check the Members and Officers tables (and the Advisor role for Officer)
+// on every request, so nothing about membership is cached in the token.
 builder.Services.AddScoped<IAuthorizationHandler, MembershipAuthorizationHandler>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(ClubPolicies.Member, policy => policy

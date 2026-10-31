@@ -58,6 +58,19 @@ public sealed class AccountRepository(AppDbContext db, UserManager<AppUser> user
     }
 
     /// <summary>
+    /// True when the login has the Advisor role. Read from the database every time, so adding or
+    /// removing the role counts on the next request.
+    /// </summary>
+    public Task<bool> IsAdvisorAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var advisorRole = ClubRoles.Advisor.ToUpperInvariant();
+        return db.UserRoles.AnyAsync(
+            userRole => userRole.UserId == userId
+                && db.Roles.Any(role => role.Id == userRole.RoleId && role.NormalizedName == advisorRole),
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Who's signed in, with their member and officer status on the given club date (CAR-28 rules:
     /// an officer must also be a current member). Null if the login doesn't exist.
     /// </summary>
@@ -88,6 +101,7 @@ public sealed class AccountRepository(AppDbContext db, UserManager<AppUser> user
 
         var status = row.Member?.StatusOn(today);
         var isCurrentMember = status == MemberStatus.Active;
+        var isAdvisor = await IsAdvisorAsync(userId, cancellationToken);
 
         return new CurrentAccountDto(
             row.CustomerId,
@@ -97,7 +111,8 @@ public sealed class AccountRepository(AppDbContext db, UserManager<AppUser> user
             status,
             isCurrentMember,
             isCurrentMember && row.OfficerTitle is not null,
-            row.OfficerTitle);
+            row.OfficerTitle,
+            isAdvisor);
     }
 }
 

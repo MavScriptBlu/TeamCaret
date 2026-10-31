@@ -9,6 +9,7 @@ using CCOS.Repositories;
 using CCOS.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
@@ -190,6 +191,32 @@ public sealed class AccountApiTests : IClassFixture<WebApplicationFactory<Progra
         Assert.False(await PassesAsync(expiredOfficer, ClubPolicies.Officer));
     }
 
+    /// <summary>
+    /// The club's advisor (Advisor role) passes the Officer policy without a membership or a title,
+    /// /api/me says so, and taking the role away counts on the next check (CAR-67, Remaining Work checklist).
+    /// </summary>
+    [Fact]
+    public async Task Advisor_passes_Officer_without_a_membership()
+    {
+        var client = _factory.CreateClient();
+        var advisor = await CreateAccountAsync(client, "advisor@ccos.test");
+        await SetAdvisorRoleAsync(advisor, isAdvisor: true);
+
+        Assert.True(await PassesAsync(advisor, ClubPolicies.Officer));
+        Assert.False(await PassesAsync(advisor, ClubPolicies.Member));
+
+        await SignInAsync(client, "advisor@ccos.test");
+        var me = await client.GetFromJsonAsync<CurrentAccountDto>("/api/me");
+        Assert.NotNull(me);
+        Assert.True(me.IsAdvisor);
+        Assert.False(me.IsCurrentMember);
+        Assert.False(me.IsCurrentOfficer);
+
+        // Role removed: no longer passes Officer, with no new sign-in needed.
+        await SetAdvisorRoleAsync(advisor, isAdvisor: false);
+        Assert.False(await PassesAsync(advisor, ClubPolicies.Officer));
+    }
+
     /// <summary>/api/me for a current officer shows them as a current member and officer, with their title.</summary>
     [Fact]
     public async Task Me_shows_a_current_officer_with_their_title()
@@ -287,6 +314,26 @@ public sealed class AccountApiTests : IClassFixture<WebApplicationFactory<Progra
         }
 
         return new TestAccount(user.Id, user.CustomerId);
+    }
+
+    /// <summary>Gives an account the Advisor role (creating the role the first time), or takes it away.</summary>
+    private async Task SetAdvisorRoleAsync(TestAccount account, bool isAdvisor)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var user = await users.FindByIdAsync(account.UserId);
+        Assert.NotNull(user);
+
+        if (!await roles.RoleExistsAsync(ClubRoles.Advisor))
+        {
+            Assert.True((await roles.CreateAsync(new IdentityRole(ClubRoles.Advisor))).Succeeded);
+        }
+
+        var result = isAdvisor
+            ? await users.AddToRoleAsync(user, ClubRoles.Advisor)
+            : await users.RemoveFromRoleAsync(user, ClubRoles.Advisor);
+        Assert.True(result.Succeeded);
     }
 
     /// <summary>

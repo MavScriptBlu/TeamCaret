@@ -13,6 +13,7 @@ namespace CCOS.Shared;
 /// <param name="IsCurrentMember">True when they get member prices and members-only events today.</param>
 /// <param name="IsCurrentOfficer">True when they hold an officer title and are a current member.</param>
 /// <param name="OfficerTitle">Their officer title (like President), or null if they don't hold one.</param>
+/// <param name="IsAdvisor">True for the club's advisor, who has the same edit power as an officer.</param>
 public record CurrentAccountDto(
     int CustomerId,
     string FirstName,
@@ -21,4 +22,5 @@ public record CurrentAccountDto(
     MemberStatus? MemberStatus,
     bool IsCurrentMember,
     bool IsCurrentOfficer,
-    string? OfficerTitle);
+    string? OfficerTitle,
+    bool IsAdvisor);

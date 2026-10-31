@@ -7,8 +7,9 @@ namespace CCOS.Api.Authorization;
 /// <summary>
 /// Checks a MembershipRequirement on every request: finds the CustomerId behind the signed-in
 /// login, then asks MemberRepository whether they're a current member (or current officer) on
-/// the club's date. Nothing about membership is stored in the sign-in token, so renewals,
-/// expirations and leaving the club take effect on the very next request.
+/// the club's date. The club's advisor (Advisor role) also passes Officer. Nothing about membership
+/// or roles is stored in the sign-in token, so renewals, expirations, leaving the club and role
+/// changes take effect on the very next request.
 /// </summary>
 public sealed class MembershipAuthorizationHandler(
     AccountRepository accounts,
@@ -27,6 +28,13 @@ public sealed class MembershipAuthorizationHandler(
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null)
         {
+            return;
+        }
+
+        // The advisor has an officer's edit power without a membership or title (CAR-67).
+        if (requirement.OfficerRequired && await accounts.IsAdvisorAsync(userId))
+        {
+            context.Succeed(requirement);
             return;
         }
 
