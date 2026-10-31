@@ -87,12 +87,43 @@ still there next time and everyone on the same database sees the same data.
 `docker-compose.yml` (host `ccos-db`, built from your `.env`), so it uses the same PostgreSQL
 container as `dotnet run`. It does not use your user secret. Run `task migrate` once so the tables exist.
 
+## Sample accounts
+
+In Development, the API adds three sample logins the first time it finds no customers
+(CAR-66). They share one password, which is kept out of the code: agree on one with the team
+(ask in the team chat) and set it once on your own computer. It's for local testing only, so
+never reuse a real password.
+
+```powershell
+# For dotnet run (the API on your computer)
+dotnet user-secrets set "SampleAccounts:Password" "the-team-password" --project backend/CCOS.Api
+
+# For task up (the API in Docker): add this line to your .env instead
+# SAMPLE_ACCOUNT_PASSWORD=the-team-password
+```
+
+If it isn't set, the API skips the sample logins and logs a warning. Ran the API before
+setting it? The logins are only added when there are no customers yet, so start fresh with
+`task reset` then `task migrate` (or delete `ccos-dev.db` if you use the SQLite file).
+
+| Email | Who they are |
+| --- | --- |
+| `officer@ccos.test` | Current member who holds the President title (officer pages) |
+| `member@ccos.test` | Current member (member prices, members-only events) |
+| `guest@ccos.test` | Has a login, but isn't a member |
+
+Memberships run one year from the day they were added. Signing in arrives with CAR-67 and
+CAR-68; until then the accounts are only in the database.
+
 ## No database? No problem
 
 If there's no `ConnectionStrings:CCOS` (no user secret set), the API in **Development**
 falls back to a local SQLite file (`backend/CCOS.Api/ccos-dev.db`) with sample products.
 Handy for quick UI work. Anywhere other than Development, a missing connection string
 stops the API with an error on purpose.
+
+The SQLite file is only built once. If yours was made before a table was added (for example
+the CAR-66 login tables), delete `backend/CCOS.Api/ccos-dev.db` and run the API again to rebuild it.
 
 To switch from PostgreSQL back to the SQLite sample:
 

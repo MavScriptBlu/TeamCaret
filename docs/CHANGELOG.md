@@ -8,6 +8,17 @@ Database and design decisions, newest first.
 - CAR-73: `.github/dependabot.yml` sets `target-branch: "Dev"` for NuGet and GitHub Actions, so dependency update PRs go into Dev instead of main. Dependabot reads this file from main, so it takes effect after the next Dev → main sync.
 - Team rule (from the Sprint 3 retro): Dev is merged into main once at the end of each sprint, after the review.
 
+## 2026-10-28 · CAR-66 Membership and login tables
+
+- New tables from the CAR-28 design: `Customers`, `Members`, `Officers` and `OfficerHistory`. `MemberId` is the `CustomerId` and `OfficerId` is the `MemberId` (not generated). Membership dates are `DateOnly` (`date` in PostgreSQL). Status isn't stored: `Member.StatusOn(today)` works it out from `IsActive` and `MemberExpiration`, and `MemberStatus` lives in `CCOS.Shared`.
+- `AppDbContext` is now an `IdentityDbContext<AppUser>`, so ASP.NET Core Identity's tables (`AspNetUsers` and the rest) are in the same database and migrations (CAR-52). `AppUser.CustomerId` is required and unique: one login per customer. Added `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.12 to `CCOS.Data`, and `CCOS.Data` now references `CCOS.Shared`.
+- Every relationship is Restrict (no cascade deletes), including Identity's own, which default to cascade. Members have no query filter. `OfficerHistory` has a filtered unique index (`UX_OfficerHistory_MemberId_Open`), so a member can't have two open titles.
+- **Admins deferred:** the Admins table isn't built yet (CAR-74). `Members.DeactivatedByAdminId`, `Officers.GrantedByAdminId` and `OfficerHistory.GrantedByAdminId` exist as optional columns with no link to another table. This is different from the ERD and CAR-28 until CAR-74 is done.
+- `CCOS.Repositories`: `ClubClock` gives the club's date (America/Chicago), and `MemberRepository` answers "current member?" and "current officer?" with that date passed in. An officer must also be a current member.
+- `DevelopmentData` seeds three sample logins (officer, member, guest) when there are no customers. Their shared password is never in the code: it's read from the `SampleAccounts:Password` setting (user secrets for `dotnet run`, `SAMPLE_ACCOUNT_PASSWORD` in `.env` for Docker). If it isn't set, the sample logins are skipped with a warning. Codacy flagged the first version, which had the password in the code. Setup is in `backend/README.md`.
+- Tests: `MembershipSchemaTests` covers the model rules, `date` columns on PostgreSQL, member status, the club time zone, the current-member and current-officer rules, and the one-open-title index.
+- If you use the SQLite fallback, delete `backend/CCOS.Api/ccos-dev.db` once so it rebuilds with the new tables.
+
 ## 2026-10-26 · Officer product Save button works after a validation error
 
 - Checked the officer product create, edit and delete pages end to end against `CCOS.Api` in a browser: create, edit, deactivate from the dashboard, reactivate with the Active box on Edit, and the "not found" page all work.
