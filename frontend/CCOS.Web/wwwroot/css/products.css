@@ -678,6 +678,13 @@ a.product-card:hover {
     font-size: 13px;
 }
 
+/* Short help under the "Show in the store" box on Edit (CAR-65). */
+.product-form-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
 .product-validation-summary.validation-summary-errors {
     margin-bottom: var(--s4);
     padding: var(--s3);

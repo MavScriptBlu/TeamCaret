@@ -2,6 +2,14 @@
 
 Database and design decisions, newest first.
 
+## 2026-10-30 · CAR-65 "Remove" instead of "Delete" / "Deactivate"
+
+- Instructor feedback from the Sprint 3 review: nothing is ever deleted, so the site says "Remove" and "Restore". On the officer product dashboard: the **Remove product** button, the **Removed** badge, "Removed from the store. Restore it from Edit.", the **Remove product?** dialog ("Yes, remove", and it now says nothing is deleted), and the message "Product removed. You can restore it from Edit." Errors say "removed" too.
+- The dashboard filter reads **In the store** / **Removed** (was Active / Inactive), and the product facts show "In the store: Yes / No, removed" instead of `IsActive`.
+- The Edit page's Active box is now **Show in the store**, with a hint: untick to remove, tick to restore.
+- Code names didn't change (the `Delete` page handler, `IsActive`, `DELETE /api/products/{id}`, CSS classes, file names), so the API and tests are untouched. Log messages say "remove" to match.
+- Docs: the demo script (CAR-42) and the product QA checklist (CAR-15) use the new wording. Event and venue remove pages (CAR-56, CAR-58) should use the same words.
+
 ## 2026-10-26 · Officer product Save button works after a validation error
 
 - Checked the officer product create, edit and delete pages end to end against `CCOS.Api` in a browser: create, edit, deactivate from the dashboard, reactivate with the Active box on Edit, and the "not found" page all work.
