@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Shared;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
@@ -25,14 +26,12 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
 
     public async Task InitializeAsync()
     {
-        // Tell Program.cs to skip its DbContext registration - tests handle it.
-        Environment.SetEnvironmentVariable("CCOS_TEST_MODE", "1");
-
         _connection = new SqliteConnection("Data Source=:memory:");
         await _connection.OpenAsync();
 
         var customizedFactory = _factory.WithWebHostBuilder(builder =>
         {
+            UseTestMode(builder);
             builder.ConfigureTestServices(services =>
             {
                 services.AddDbContext<AppDbContext>(options =>
@@ -63,10 +62,22 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         _connection.Dispose();
     }
 
+    /// <summary>
+    /// Turns on the API's test mode (the "Testing" setting Program.cs reads), so the API skips its
+    /// own database setup and sample data and only the test's in-memory SQLite database is used.
+    /// Without it, a PostgreSQL connection string in your user secrets gets registered too and
+    /// every test fails with "Services for database providers ... have been registered" (CAR-72).
+    /// </summary>
+    private static void UseTestMode(IWebHostBuilder builder)
+    {
+        builder.UseSetting("Testing", "true");
+    }
+
     private HttpClient CreateClient()
     {
         return _factory.WithWebHostBuilder(builder =>
         {
+            UseTestMode(builder);
             builder.ConfigureTestServices(services =>
             {
                 services.AddDbContext<AppDbContext>(options =>
