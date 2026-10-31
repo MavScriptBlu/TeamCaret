@@ -3,6 +3,7 @@
 /// Contains DbSet properties for each entity type.
 /// </summary>
 using CCOS.Data.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CCOS.Data;
@@ -11,8 +12,10 @@ namespace CCOS.Data;
 /// The app's connection to the database. Each DbSet below is one table, and OnModelCreating
 /// describes the rules for every table (column sizes, required fields, check constraints,
 /// relationships, indexes). Migrations are built from what is written here.
+/// It's an IdentityDbContext, so ASP.NET Core Identity's login tables (AspNetUsers and friends)
+/// live in the same database and migration history (docs/CAR-52_Login_Approach.md).
 /// </summary>
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
     // Products and TicketTypes share one table (see the Product setup below).
     public DbSet<Product> Products => Set<Product>();
@@ -27,12 +30,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Event> Events => Set<Event>();
     public DbSet<TicketRegistration> TicketRegistrations => Set<TicketRegistration>();
 
+    // Membership (CAR-28, CAR-66). Login accounts are Identity's Users table (AppUser).
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Member> Members => Set<Member>();
+    public DbSet<Officer> Officers => Set<Officer>();
+    public DbSet<OfficerHistory> OfficerHistory => Set<OfficerHistory>();
+
     /// <summary>
     /// Sets up the tables, relationships and rules. Check constraints are written in
     /// PostgreSQL syntax (double quotes around column names).
     /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Identity sets up its own tables first (AspNetUsers, AspNetRoles, claims, logins, tokens).
+        base.OnModelCreating(modelBuilder);
+
         // PostgreSQL stores times with whole-second precision and a time zone. SQLite (local sample data and
         // tests) does not understand that type name, so it gets null and picks its own column type.
         var timestampColumnType = Database.IsNpgsql() ? "timestamp(0) with time zone" : null;
@@ -281,5 +293,96 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(registration => registration.OrderLineId);
             entity.HasIndex(registration => registration.TicketTypeId);
         });
+
+        // ---- Membership (CAR-28 mapping notes, CAR-66) ----
+        // Every relationship is Restrict (SQL NO ACTION): customers, members and officer history
+        // are never deleted, so nothing may cascade into them. Status is never stored, and
+        // members have no query filter, because most member screens need expired and inactive members too.
+        // The "granted by" and "deactivated by" admin columns aren't linked yet; the Admins table comes in CAR-74.
+
+        // ---- Customers ----
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.ToTable("Customers");
+            entity.HasKey(customer => customer.CustomerId);
+            entity.Property(customer => customer.FirstName).HasMaxLength(50).IsRequired();
+            entity.Property(customer => customer.LastName).HasMaxLength(50).IsRequired();
+        });
+
+        // ---- Login accounts (Identity's AspNetUsers table) ----
+        // Every login belongs to exactly one customer, and a customer has at most one login.
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.HasOne(user => user.Customer)
+                .WithOne()
+                .HasForeignKey<AppUser>(user => user.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(user => user.CustomerId)
+                .IsUnique()
+                .HasDatabaseName("UX_AspNetUsers_CustomerId");
+        });
+
+        // ---- Members ----
+        // MemberId is the CustomerId, so the database must not generate it. Dates are DateOnly,
+        // which PostgreSQL stores as date (no time).
+        modelBuilder.Entity<Member>(entity =>
+        {
+            entity.ToTable("Members");
+            entity.HasKey(member => member.MemberId);
+            entity.Property(member => member.MemberId).ValueGeneratedNever();
+            entity.Property(member => member.IsActive).HasDefaultValue(true).HasSentinel(true);
+
+            entity.HasOne(member => member.Customer)
+                .WithOne(customer => customer.Member)
+                .HasForeignKey<Member>(member => member.MemberId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Speeds up the roster queries (current members, by status).
+            entity.HasIndex(member => new { member.IsActive, member.MemberExpiration })
+                .HasDatabaseName("IX_Members_IsActive_MemberExpiration");
+        });
+
+        // ---- Officers ----
+        // Holds only the current title. OfficerId is the MemberId, so it isn't generated either.
+        modelBuilder.Entity<Officer>(entity =>
+        {
+            entity.ToTable("Officers");
+            entity.HasKey(officer => officer.OfficerId);
+            entity.Property(officer => officer.OfficerId).ValueGeneratedNever();
+            entity.Property(officer => officer.Title).HasMaxLength(50).IsRequired();
+
+            entity.HasOne(officer => officer.Member)
+                .WithOne(member => member.Officer)
+                .HasForeignKey<Officer>(officer => officer.OfficerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---- Officer history ----
+        // Every title a member has held. At most one open row (no RevokedDate) per member.
+        modelBuilder.Entity<OfficerHistory>(entity =>
+        {
+            entity.ToTable("OfficerHistory");
+            entity.HasKey(history => history.OfficerHistoryId);
+            entity.Property(history => history.Title).HasMaxLength(50).IsRequired();
+
+            entity.HasOne(history => history.Member)
+                .WithMany(member => member.OfficerHistory)
+                .HasForeignKey(history => history.MemberId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(history => history.MemberId)
+                .IsUnique()
+                .HasFilter("\"RevokedDate\" IS NULL")
+                .HasDatabaseName("UX_OfficerHistory_MemberId_Open");
+        });
+
+        // Identity's own relationships (claims, logins, tokens and roles pointing at a user)
+        // default to cascade delete. We never delete accounts, so they follow the same
+        // "block deletes" rule as every other table.
+        foreach (var foreignKey in modelBuilder.Model.GetEntityTypes()
+                     .SelectMany(entityType => entityType.GetForeignKeys()))
+        {
+            foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 }
