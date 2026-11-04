@@ -1,0 +1,53 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Create an account";
+}
+
+<link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+
+@* Create an account (CAR-68). Errors from the server show above the form and next to each field. *@
+<section class="account-card" aria-labelledby="registerTitle">
+    <h1 id="registerTitle" class="account-title">Create an account</h1>
+
+    <form method="post" class="account-form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="account-summary" role="alert"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="account-name-row">
+            <div class="account-field">
+                <label asp-for="FirstName">First name</label>
+                <input asp-for="FirstName" autocomplete="given-name" maxlength="50" />
+                <span asp-validation-for="FirstName" class="field-validation-error"></span>
+            </div>
+            <div class="account-field">
+                <label asp-for="LastName">Last name</label>
+                <input asp-for="LastName" autocomplete="family-name" maxlength="50" />
+                <span asp-validation-for="LastName" class="field-validation-error"></span>
+            </div>
+        </div>
+
+        <div class="account-field">
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" autocomplete="email" maxlength="256" />
+            <span asp-validation-for="Email" class="field-validation-error"></span>
+        </div>
+
+        <div class="account-field">
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" autocomplete="new-password" aria-describedby="passwordHint" />
+            <span id="passwordHint" class="account-hint">At least 6 characters, with an uppercase letter, a lowercase letter, a number and a symbol.</span>
+            <span asp-validation-for="Password" class="field-validation-error"></span>
+        </div>
+
+        <div class="account-field">
+            <label asp-for="ConfirmPassword">Confirm password</label>
+            <input asp-for="ConfirmPassword" autocomplete="new-password" />
+            <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+        </div>
+
+        <button type="submit" class="account-submit">Create account</button>
+    </form>
+
+    <p class="account-switch">Already have an account? <a asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl">Log in</a></p>
+</section>

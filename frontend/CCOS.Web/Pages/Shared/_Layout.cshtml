@@ -27,13 +27,22 @@
                 <input type="search" name="q" placeholder="Search merch and events" aria-label="Search" />
             </form>
 
-            @* Placeholder until login exists. Swap for a link to the account page later. *@
-            <button type="button" class="avatar" aria-label="Account">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
-                </svg>
-            </button>
+            @* Account (CAR-68): "Log in" when signed out; first name and "Log out" when signed in.
+               Log out is a POST form (with the anti-forgery token) so another site can't sign people out. *@
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="account-nav">
+                    <span class="account-greeting">Hi, @User.Identity.Name</span>
+                    <form method="post" asp-page="/Account/Logout" class="account-logout">
+                        <button type="submit" class="account-nav-link">Log out</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <a class="account-nav-link" asp-page="/Account/Login"
+                   asp-route-returnUrl="@(Context.Request.Path.StartsWithSegments("/Account") ? null : Context.Request.Path + Context.Request.QueryString)">Log in</a>
+            }
         </div>
     </header>
 

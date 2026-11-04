@@ -1,0 +1,122 @@
+/* Log in and Create account pages (CAR-68). */
+.account-card {
+    width: 100%;
+    max-width: 460px;
+    margin: var(--s6) auto;
+    padding: var(--s5);
+    background: var(--raised);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+}
+
+.account-title {
+    margin: 0 0 var(--s4);
+    font-size: 26px;
+    line-height: 1.2;
+}
+
+.account-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s4);
+}
+
+.account-name-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s3);
+}
+
+.account-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--s1);
+}
+
+    .account-field label {
+        font-weight: 600;
+    }
+
+    .account-field input {
+        width: 100%;
+        min-height: 42px;
+        padding: var(--s2) var(--s3);
+        font: inherit;
+        border: 1px solid #8a8284;
+        border-radius: var(--r-sm);
+    }
+
+        .account-field input:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 1px;
+        }
+
+    .account-field .field-validation-error {
+        color: #a12622;
+        font-size: 13px;
+    }
+
+.account-hint {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.account-summary.validation-summary-errors {
+    padding: var(--s3);
+    border: 1px solid #a12622;
+    border-radius: var(--r-sm);
+    background: #fff1f0;
+    color: #a12622;
+}
+
+    .account-summary ul {
+        margin: 0;
+        padding-left: var(--s5);
+    }
+
+.account-summary.validation-summary-valid {
+    display: none;
+}
+
+.account-submit {
+    min-height: 44px;
+    padding: 0 var(--s5);
+    background: var(--maroon);
+    color: var(--on-dark);
+    border: 0;
+    border-radius: var(--r-sm);
+    font: 700 15px/1 var(--font);
+    cursor: pointer;
+}
+
+    .account-submit:hover {
+        background: #6a1024;
+    }
+
+    .account-submit:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+    }
+
+.account-switch {
+    margin: var(--s4) 0 0;
+    color: var(--muted);
+}
+
+    .account-switch a {
+        color: var(--brand-text);
+        font-weight: 600;
+    }
+
+@media (max-width: 420px) {
+    .account-card {
+        margin: var(--s4) auto;
+        padding: var(--s4);
+    }
+
+    .account-name-row {
+        grid-template-columns: 1fr;
+    }
+}
