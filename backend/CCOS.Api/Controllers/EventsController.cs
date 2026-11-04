@@ -164,6 +164,14 @@ public class EventsController(EventRepository events) : ControllerBase
                     nameof(input.TicketCapacity),
                     $"{result.TicketsSold} tickets are already sold, so the capacity can't be lower than that.");
                 return ValidationProblem(ModelState);
+
+            // Saved: nothing to report, carry on and load the event to send back.
+            case EventUpdateStatus.Saved:
+                break;
+
+            // A new status got added to the enum but not handled here. Fail loudly, don't pretend it saved.
+            default:
+                throw new InvalidOperationException($"Unhandled event update status: {result.Status}.");
         }
 
         var saved = await events.FindAsync(id, cancellationToken);

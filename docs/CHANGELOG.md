@@ -2,6 +2,12 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-04 · Codacy: explicit status handling in the event update
+
+- `EventsController.Update`: the switch on the update result now handles `Saved` on purpose, and the `default` throws `InvalidOperationException` so a new status can't be silently treated as saved. No behavior change today.
+- Codacy also flagged the missing `[ValidateAntiForgeryToken]` on `POST /api/events`. Not changed on purpose: the events API is stateless JSON with no cookie login, so a CSRF token has nothing to protect. Revisit when login (CAR-1) lands.
+- Codacy also flagged the officer endpoints for having no authorization. Still open on purpose: there is no login yet, and each officer endpoint carries a `TODO` pointing at CAR-1.
+
 ## 2026-11-04 · Performance: batched ticket updates and CancellationToken in the sample data
 
 - `TicketBookingRepository`: reserving seats for an order used to run one `UPDATE` per event, and canceling an order ran two per event (the N+1 pattern). Reserving is now one `UPDATE` for the whole order. Canceling is one `UPDATE` for the registrations plus one for the events.
