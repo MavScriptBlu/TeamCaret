@@ -2,6 +2,39 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-04 · Performance: batched ticket updates and CancellationToken in the sample data
+
+- `TicketBookingRepository`: reserving seats for an order used to run one `UPDATE` per event, and canceling an order ran two per event (the N+1 pattern). Reserving is now one `UPDATE` for the whole order. Canceling is one `UPDATE` for the registrations plus one for the events.
+- Same promises as before: an event that is full, removed or missing means the whole reserve changes nothing and throws `SoldOutException` (now naming the first such event), the database still re-checks the room on each row, and `CK_Events_TicketsSold` is the last safety net. Canceling twice is still harmless.
+- Tradeoff: the old loop took events one at a time in event id order so two orders could not lock each other out. One statement lets the database pick the lock order, so its deadlock detection protects us now. If it ever picks an order as the loser, that order fails and can be retried.
+- The batched cancel stops (and rolls back) with `InvalidOperationException` if only some of an order's tickets were still purchased, because it can no longer tell how many seats each event gets back. A plain double cancel still returns 0.
+- The `UPDATE` text only holds `{0}`, `{1}` slots; the ids and amounts go in as real parameters. It uses SQL that SQLite and PostgreSQL both understand. The 13 new tests (`TicketBookingBatchTests`) run on SQLite. I also ran them once against a local PostgreSQL 16 and they passed. Not run on PostgreSQL 17 yet.
+- `DevelopmentData.EnsureCreatedAndSeededAsync` and its seed methods take a `CancellationToken`, and `Program.cs` passes the app's stopping token, so shutting down during startup stops the sample-data setup early.
+
+## 2026-11-04 · CAR-55 and CAR-56 Events save, and event Remove / Restore
+
+- New API calls: `POST /api/events`, `PUT /api/events/{id}`, `DELETE /api/events/{id}`, plus `GET /api/events/officer` and `GET /api/events/officer/{id}` so removed and past events can be listed and opened. Creating an event also creates its "General" ticket type. Updating changes the prices on the first ticket type still on sale.
+- Shared rules in `EventRules` (end after start, member price not above ticket price). A capacity below the tickets already sold is refused, a removed venue can't be picked for a new event, and a save that loses a race with another officer gets a 409 (the `xmin` check).
+- Create Event and Edit Event now save. The form checks every field and shows the message under the field. Club time is converted to UTC with `ClubTime.ToUtc`; a time that doesn't exist when the clocks spring forward is refused with a message.
+- Remove wording (follows CAR-65): the event page menu says **Remove event** and opens the shared "Remove?" dialog with the soft-delete disclaimer (nothing is erased, the event is only hidden and can be restored). The old "Cancel event" dialog, which did nothing, is gone. Edit Event has a **Show in the event list** box (untick removes, tick restores).
+- New officer list at `/Officer/Events` ("Manage events"): filter **In the event list** / **Removed**, **Remove event** and **Restore event** buttons, linked from the menu on `/Events` and the nav.
+- Not changed: the Category box is still sample data and isn't saved (no category column yet).
+- Tests: 23 new API tests and 41 new website tests (the form rules, UTC conversion including summer time, API error messages on the right fields, remove and restore).
+
+## 2026-11-04 · CAR-58 Venue pages: list, edit, Remove / Restore
+
+- New pages under `/Officer/Venues`: a list of every venue (removed ones too) with a filter, **Remove venue** with the shared "Remove?" dialog and soft-delete disclaimer, and **Restore venue**. A venue with no address (the sample venues) is sent to Edit to add one before it can be restored.
+- New **Edit Venue** page with the same form as Create, plus the **Show in the venue list** box. The form is now shared (`VenueFormPageModel` and `_VenueForm`), so Create and Edit say the same things.
+- The Remove dialog and its script are generic (`_RemoveDialog`, `officer-remove-dialog.js`), so events use them too. The dialog adds a line saying nothing is permanently erased.
+- "Manage venues" links added to the nav, the footer and the menu on `/Events`.
+
+## 2026-11-04 · CAR-57 Venue endpoints and CAR-63 ZIP code rule
+
+- CAR-57: `GET /api/venues/officer`, `GET /api/venues/{id}`, `PUT /api/venues/{id}` and `DELETE /api/venues/{id}` (a soft delete: `IsActive = false`). "Officer list" is read as the list officers use: every venue including removed ones, with its address.
+- `PUT` with `isActive: true` restores a removed venue. The unique-name check skips the venue being edited, so saving a venue under its own name works.
+- CAR-63: ZIP codes must be 5 digits or ZIP+4 (`^\d{5}(-\d{4})?$`) on the API (`CreateVenueRequest`, `UpdateVenueRequest`) and on the Razor forms. One rule in `CCOS.Shared.ZipCodeRules` feeds both, so the messages match.
+- Tests: ZIP rule (5-digit, ZIP+4, invalid), venue GET, list, PUT and DELETE.
+
 ## 2026-10-30 · CAR-65 "Remove" instead of "Delete" / "Deactivate"
 
 - Instructor feedback from the Sprint 3 review: nothing is ever deleted, so the site says "Remove" and "Restore". On the officer product dashboard: the **Remove product** button, the **Removed** badge, "Removed from the store. Restore it from Edit.", the **Remove product?** dialog ("Yes, remove", and it now says nothing is deleted), and the message "Product removed. You can restore it from Edit." Errors say "removed" too.
@@ -9,6 +42,7 @@ Database and design decisions, newest first.
 - The Edit page's Active box is now **Show in the store**, with a hint: untick to remove, tick to restore.
 - Code names didn't change (the `Delete` page handler, `IsActive`, `DELETE /api/products/{id}`, CSS classes, file names), so the API and tests are untouched. Log messages say "remove" to match.
 - Docs: the demo script (CAR-42) and the product QA checklist (CAR-15) use the new wording. Event and venue remove pages (CAR-56, CAR-58) should use the same words.
+
 ## 2026-10-30 · CAR-72 API tests run in test mode · CAR-73 Dependabot targets Dev
 
 - CAR-72: `ProductsControllerTests` now turns on test mode with `builder.UseSetting("Testing", "true")`, the setting `Program.cs` actually reads. It used to set a `CCOS_TEST_MODE` environment variable that nothing read, so on a machine with a PostgreSQL user secret the API registered PostgreSQL next to the test's SQLite database and all 5 API tests failed. CI passed only because it has no user secret. The unused variable is gone.

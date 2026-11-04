@@ -697,3 +697,9 @@ a.events-card:hover {
     background: #edf7ef;
     color: #205632;
 }
+
+/* Small helper text under a form box (used on the Edit Venue page's remove/restore box) */
+.event-form-hint {
+    font-size: 14px;
+    color: var(--muted);
+}

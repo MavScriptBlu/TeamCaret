@@ -1,12 +1,15 @@
+using System.Net;
 using System.Text.Json;
 using CCOS.Web.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CCOS.Web.Pages.Events;
 
 /// <summary>
 /// Event page (/Events/Details/{id}): image, name, date and time, venue, categories,
-/// ticket price, RSVP and description. Loads the event from CCOS.Api (CAR-50).
+/// ticket price, RSVP and description. Loads the event from CCOS.Api (CAR-50). The officer
+/// menu can remove the event (CAR-56): it is only hidden (soft-deleted) and can be restored.
 /// </summary>
 public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logger) : PageModel
 {
@@ -74,5 +77,52 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
             PriceText = regular;
             MemberPriceText = member != regular ? member : null;
         }
+    }
+
+    /// <summary>
+    /// The Remove event button (after the officer says yes in the dialog). Soft-removes the event
+    /// through DELETE /api/events/{id}, then goes to the Events page. The row stays in the database.
+    /// </summary>
+    /// <param name="id">The event id from the URL.</param>
+    public async Task<IActionResult> OnPostRemoveAsync(int? id, CancellationToken cancellationToken)
+    {
+        if (id is not int eventId)
+        {
+            TempData["EventError"] = "The event could not be identified. Please try again.";
+            return RedirectToPage("/Events/Index");
+        }
+
+        try
+        {
+            using var response = await eventsApi.DeleteAsync(eventId, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                TempData["EventError"] = "That event could not be found. It may already be gone.";
+                return RedirectToPage("/Events/Index");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Failed to remove event {EventId}. Status code: {StatusCode}", eventId, response.StatusCode);
+                TempData["EventError"] = "The event could not be removed. Please try again.";
+                return RedirectToPage("/Events/Details", new { id = eventId });
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "The event API could not be reached while removing event {EventId}", eventId);
+            TempData["EventError"] = "The event API could not be reached. Please try again later.";
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(ex, "The event API request timed out while removing event {EventId}", eventId);
+            TempData["EventError"] = "The event API request timed out. Please try again later.";
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+
+        TempData["EventRemoved"] = "Event removed. You can restore it from the officer event list.";
+        return RedirectToPage("/Events/Index");
     }
 }
