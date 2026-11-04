@@ -120,3 +120,19 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* "Log in first" note on the Log in page and the "Officers only" screen (CAR-69). */
+.account-notice {
+    margin: 0 0 var(--s4);
+    padding: var(--s3);
+    border-left: 4px solid var(--maroon);
+    background: var(--surface);
+    font-weight: 600;
+}
+
+.account-link-button {
+    display: inline-flex;
+    align-items: center;
+    margin-top: var(--s2);
+    text-decoration: none;
+}

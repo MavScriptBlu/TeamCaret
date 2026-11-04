@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-04 · CAR-69 Lock officer pages and member pricing
+
+- API: the officer product list (`?includeInactive=true`) and product create, update, reactivate and remove need the `Officer` policy, and so does adding a venue. Not signed in answers 401; signed in but not an officer answers 403. The event create and update endpoints don't exist yet (CAR-54, CAR-57); `EventsController` has a note to give them the same `[Authorize(Policy = ClubPolicies.Officer)]`.
+- API: member prices on `GET /api/products` and `/api/products/{id}` only go to callers who pass the `Member` policy, which checks the dues date (`MemberExpiration`) on the club's date on every request. Guests, expired members and visitors who aren't signed in get `memberPrice: null`. Officers are current members, so they see them; the advisor (no membership) doesn't.
+- Website: `AuthorizeFolder("/Officer", "Officer")` locks every officer page. A visitor who isn't signed in goes to Log in with a "Log in first to see that page." note; a signed-in person who isn't an officer sees the new "Officers only" screen (`/Account/AccessDenied`).
+- Website: the sign-in cookie now notes whether the person is a current member and an officer (an advisor counts as an officer), read from `/api/me` at sign-in and again each time the token is renewed (about hourly). It only decides which pages open and which links show; the API's database check is the real guard.
+- The officer links in the menu and footer (Product dashboard, Create event, Add venue) only show for officers.
+- Public lists were already limited to active products and active, upcoming events, so no change there. Ticket prices on events are unchanged: members-only events show the member price as their price, and checking membership when tickets are bought belongs with ordering.
+- The "lock this down with [Authorize]" and "restrict to officers" TODO comments are gone.
+
 ## 2026-11-04 · CAR-68 Log in, create account and log out pages
 
 - New pages in `CCOS.Web`: `/Account/Login`, `/Account/Register` and `/Account/Logout`. A wrong email or password shows one message ("Email or password is incorrect.") so the page never says which emails have accounts. Create account shows the API's messages (email already used, weak password) next to the right field, then signs the person in right away.

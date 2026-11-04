@@ -10,6 +10,12 @@
 <section class="account-card" aria-labelledby="loginTitle">
     <h1 id="loginTitle" class="account-title">Log in</h1>
 
+    @if (Model.LoginFirst)
+    {
+        @* A locked page sent the visitor here (CAR-69). *@
+        <p class="account-notice" role="status">Log in first to see that page.</p>
+    }
+
     <form method="post" class="account-form" novalidate>
         <div asp-validation-summary="ModelOnly" class="account-summary" role="alert"></div>
         <input type="hidden" asp-for="ReturnUrl" />

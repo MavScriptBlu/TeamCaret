@@ -13,7 +13,7 @@ namespace CCOS.Web.Pages.Officer.Venues;
 /// to CCOS.Api (CAR-51), then goes to /Events with a "Venue added" message.
 /// Fields follow the Venue and VenueAddress tables (see "Event, Ticket &amp; Venue
 /// Relational Schema" in docs). The image and description are display-only for now.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class CreateModel(VenuesApiClient venuesApi, ILogger<CreateModel> logger) : PageModel
 {

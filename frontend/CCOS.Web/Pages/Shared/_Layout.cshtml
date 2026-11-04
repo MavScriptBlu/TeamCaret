@@ -55,9 +55,13 @@
         <nav class="navlinks">
             <a href="/Products">Merch</a>
             <a href="/Events">Events</a>
-            <a href="/Officer/Products/Index">Product dashboard</a>
-            <a href="/Officer/Events/Create">Create event</a>
-            <a href="/Officer/Venues/Create">Add venue</a>
+            @* Officer links only show for officers (CAR-69). The pages and the API check on their own too. *@
+            @if (User.IsOfficer())
+            {
+                <a href="/Officer/Products/Index">Product dashboard</a>
+                <a href="/Officer/Events/Create">Create event</a>
+                <a href="/Officer/Venues/Create">Add venue</a>
+            }
         </nav>
     </aside>
 
@@ -80,12 +84,15 @@
                     <h4>Club</h4>
                     <a href="/Events/Index">Events</a>
                 </div>
-                <div>
-                    <h4>Officers</h4>
-                    <a href="/Officer/Products/Index">Product dashboard</a>
-                    <a href="/Officer/Events/Create">Create event</a>
-                    <a href="/Officer/Venues/Create">Add venue</a>
-                </div>
+                @if (User.IsOfficer())
+                {
+                    <div>
+                        <h4>Officers</h4>
+                        <a href="/Officer/Products/Index">Product dashboard</a>
+                        <a href="/Officer/Events/Create">Create event</a>
+                        <a href="/Officer/Venues/Create">Add venue</a>
+                    </div>
+                }
             </div>
         </div>
     </footer>

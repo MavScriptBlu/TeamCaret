@@ -29,6 +29,13 @@ public class LoginModel(AccountApiClient accounts, ILogger<LoginModel> logger) :
     [BindProperty(SupportsGet = true)]
     public string? ReturnUrl { get; set; }
 
+    /// <summary>
+    /// True when a locked page sent the person here (CAR-69), so the page says "Log in first".
+    /// Set by the cookie's OnRedirectToLogin in Program.cs, not by the header's Log in link.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public bool LoginFirst { get; set; }
+
     /// <summary>Shows the form, or skips it when the person is already signed in.</summary>
     public IActionResult OnGet()
     {

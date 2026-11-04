@@ -8,8 +8,10 @@ namespace CCOS.Web.Services;
 
 /// <summary>
 /// How a signed-in visit is kept (CAR-68): one encrypted, HttpOnly cookie that holds the person's
-/// name and CustomerId plus their API tokens. Membership and officer status are NOT kept here;
-/// the API checks those on every call (CAR-67), so the cookie can't grant access by itself.
+/// name and CustomerId plus their API tokens. It also notes whether they were a current member or
+/// an officer when the token was last renewed (CAR-69), so the website can show the right links
+/// and lock the officer pages. That's only for the website: the API still checks the database on
+/// every call (CAR-67), so the cookie can't grant access to any data by itself.
 /// </summary>
 public static class AccountSession
 {
@@ -20,6 +22,12 @@ public static class AccountSession
 
     /// <summary>The claim that holds the person's CustomerId.</summary>
     public const string CustomerIdClaim = "ccos:customer_id";
+
+    /// <summary>Present ("true") when the person is a current member (CAR-69).</summary>
+    public const string MemberClaim = "ccos:member";
+
+    /// <summary>Present ("true") when the person is a current officer or the club's advisor (CAR-69).</summary>
+    public const string OfficerClaim = "ccos:officer";
 
     /// <summary>Refresh the access token a minute before it runs out, so a call never goes out with a dead one.</summary>
     private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(1);
@@ -64,7 +72,10 @@ public static class AccountSession
         return SignInOutcome.SignedIn;
     }
 
-    /// <summary>The signed-in person as the website sees them: first name (shown in the nav), last name, email and CustomerId.</summary>
+    /// <summary>
+    /// The signed-in person as the website sees them: first name (shown in the nav), last name,
+    /// email and CustomerId, plus member and officer flags (an advisor counts as an officer, same as the API).
+    /// </summary>
     public static ClaimsPrincipal CreatePrincipal(CurrentAccountDto account)
     {
         var claims = new List<Claim>
@@ -75,6 +86,16 @@ public static class AccountSession
             new(ClaimTypes.Email, account.Email),
             new(CustomerIdClaim, account.CustomerId.ToString(CultureInfo.InvariantCulture)),
         };
+
+        if (account.IsCurrentMember)
+        {
+            claims.Add(new Claim(MemberClaim, "true"));
+        }
+
+        if (account.IsCurrentOfficer || account.IsAdvisor)
+        {
+            claims.Add(new Claim(OfficerClaim, "true"));
+        }
 
         return new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
     }
@@ -130,12 +151,20 @@ public static class AccountSession
         var refreshToken = context.Properties.GetTokenValue(RefreshTokenName);
         var accounts = context.HttpContext.RequestServices.GetRequiredService<AccountApiClient>();
         LoginTokens? refreshed = null;
+        CurrentAccountDto? account = null;
 
         if (!string.IsNullOrEmpty(refreshToken))
         {
             try
             {
                 refreshed = await accounts.RefreshAsync(refreshToken, context.HttpContext.RequestAborted);
+
+                // Read the person again too, so a renewal, an expired membership or a new officer
+                // title shows up in the website's links and locked pages (CAR-69).
+                if (refreshed is not null)
+                {
+                    account = await accounts.GetMeAsync(refreshed.AccessToken, context.HttpContext.RequestAborted);
+                }
             }
             // The API is down or slow: log it, then treat it like a failed refresh and sign the person out.
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -146,7 +175,7 @@ public static class AccountSession
             }
         }
 
-        if (refreshed is null)
+        if (refreshed is null || account is null)
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -154,6 +183,7 @@ public static class AccountSession
         }
 
         StoreTokens(context.Properties, refreshed, now);
+        context.ReplacePrincipal(CreatePrincipal(account));
         context.ShouldRenew = true;
     }
 

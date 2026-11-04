@@ -116,7 +116,8 @@ setting it? The logins are only added when there are no customers yet, so start 
 
 Memberships run one year from the day they were added. To use one, click **Log in** in the
 website's header (`/Account/Login`) and sign in with its email and the password you set above
-(CAR-68). Officer pages aren't locked yet; that's CAR-69.
+(CAR-68). Only `officer@` and `advisor@` can open the officer pages, and only `officer@` and
+`member@` see member prices (CAR-69).
 
 ## No database? No problem
 

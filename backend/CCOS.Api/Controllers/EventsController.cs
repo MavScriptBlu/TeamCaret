@@ -8,6 +8,8 @@ namespace CCOS.Api.Controllers;
 /// <summary>
 /// Event endpoints for the Events pages. The public list only shows upcoming events
 /// (active and starting from now on, soonest first).
+/// When create, update and remove endpoints are added (CAR-54, CAR-57), give each one
+/// [Authorize(Policy = ClubPolicies.Officer)] like ProductsController (CAR-69).
 /// </summary>
 [ApiController]
 [Route("api/events")]

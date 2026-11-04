@@ -209,6 +209,30 @@ public class AccountPagesTests
         Assert.Equal("access-123", sent.Parameter);
     }
 
+    [Theory]
+    [InlineData(false, false, false, false, false)] // guest
+    [InlineData(true, false, false, true, false)]   // member
+    [InlineData(true, true, false, true, true)]     // officer
+    [InlineData(false, false, true, false, true)]   // advisor (no membership)
+    public void CreatePrincipal_SetsMemberAndOfficerFlags(bool isMember, bool isOfficer, bool isAdvisor, bool expectMember, bool expectOfficer)
+    {
+        var account = new CurrentAccountDto(7, "Morgan", "Lee", Email, isMember ? MemberStatus.Active : null, isMember, isOfficer, isOfficer ? "President" : null, isAdvisor);
+
+        var user = AccountSession.CreatePrincipal(account);
+
+        Assert.Equal(expectMember, user.IsCurrentMember());
+        Assert.Equal(expectOfficer, user.IsOfficer());
+    }
+
+    [Fact]
+    public void IsOfficer_NotSignedIn_IsFalse()
+    {
+        // A flag on an identity that isn't signed in never counts.
+        var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim(AccountSession.OfficerClaim, "true")]));
+
+        Assert.False(user.IsOfficer());
+    }
+
     [Fact]
     public async Task BearerHandler_SignedOut_SendsNoToken()
     {
