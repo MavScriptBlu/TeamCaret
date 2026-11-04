@@ -9,7 +9,8 @@ view -> API client -> Web API -> repository -> data
 
 - **CCOS.Api**: ASP.NET Core Web API. Controllers, `Program.cs`, appsettings.
 - **CCOS.Repositories**: repository classes that wrap EF Core, including the ticket
-  booking logic (rolls back if an event sells out).
+  booking logic (rolls back if an event sells out). An order with several events reserves
+  or cancels its seats with one `UPDATE` for all of them.
 - **CCOS.Data**: `AppDbContext`, the entity classes, and the EF Core migrations.
 - **CCOS.Data.Tests**: xUnit tests for the data layer.
 
