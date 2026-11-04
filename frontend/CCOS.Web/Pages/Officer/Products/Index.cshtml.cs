@@ -94,9 +94,9 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                logger.LogWarning("Could not deactivate product {ProductId}; it was not found or is already deactivated.", id);
+                logger.LogWarning("Could not remove product {ProductId}; it was not found or is already removed.", id);
 
-                TempData["ProductDeleteError"] = "That product could not be found or is already deactivated. Refresh the list and try again.";
+                TempData["ProductDeleteError"] = "That product could not be found or is already removed. Refresh the list and try again.";
 
                 // An already-inactive product won't appear in the Active filter.
                 var notFoundFilter = show == "active" ? "inactive" : NormalizeFilter(show);
@@ -105,14 +105,14 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Failed to deactivate product {ProductId}. Status code: {StatusCode}", id, response.StatusCode);
+                logger.LogWarning("Failed to remove product {ProductId}. Status code: {StatusCode}", id, response.StatusCode);
 
-                TempData["ProductDeleteError"] = "The product could not be deactivated. Please try again.";
+                TempData["ProductDeleteError"] = "The product could not be removed. Please try again.";
 
                 return RedirectToList(NormalizeFilter(show), id);
             }
 
-            TempData["ProductDeactivated"] = "Product deactivated. You can reactivate it from Edit.";
+            TempData["ProductDeactivated"] = "Product removed. You can restore it from Edit.";
 
             // An active product disappears from the Active view when deactivated.
             var successFilter = show == "active" ? "inactive" : NormalizeFilter(show);
@@ -120,7 +120,7 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "The product API could not be reached while deactivating product {ProductId}", id);
+            logger.LogError(ex, "The product API could not be reached while removing product {ProductId}", id);
 
             TempData["ProductDeleteError"] = "The product API could not be reached. Please try again later.";
 
@@ -128,7 +128,7 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(ex, "The product API request timed out while deactivating product {ProductId}", id);
+            logger.LogError(ex, "The product API request timed out while removing product {ProductId}", id);
 
             TempData["ProductDeleteError"] = "The product API request timed out. Please try again later.";
 

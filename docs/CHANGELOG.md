@@ -13,6 +13,14 @@ Database and design decisions, newest first.
 - Tests: `AccountApiTests` covers register and login, `/api/me` for a guest and an officer, 401 without signing in, a duplicate email (400, no leftover customer), the turned-off built-in register, a wrong password, the Member and Officer rules for guest, member, expired member, officer and expired officer, the advisor passing Officer (and losing it when the role is removed), and a membership change showing up on the next request. The test password is random each run, so no credential is in the code.
 - `docs/api/README.md`: the Auth section now describes the real endpoints and policies.
 
+## 2026-10-30 · CAR-65 "Remove" instead of "Delete" / "Deactivate"
+
+- Instructor feedback from the Sprint 3 review: nothing is ever deleted, so the site says "Remove" and "Restore". On the officer product dashboard: the **Remove product** button, the **Removed** badge, "Removed from the store. Restore it from Edit.", the **Remove product?** dialog ("Yes, remove", and it now says nothing is deleted), and the message "Product removed. You can restore it from Edit." Errors say "removed" too.
+- The dashboard filter reads **In the store** / **Removed** (was Active / Inactive), and the product facts show "In the store: Yes / No, removed" instead of `IsActive`.
+- The Edit page's Active box is now **Show in the store**, with a hint: untick to remove, tick to restore.
+- Code names didn't change (the `Delete` page handler, `IsActive`, `DELETE /api/products/{id}`, CSS classes, file names), so the API and tests are untouched. Log messages say "remove" to match.
+- Docs: the demo script (CAR-42) and the product QA checklist (CAR-15) use the new wording. Event and venue remove pages (CAR-56, CAR-58) should use the same words.
+
 ## 2026-10-30 · CAR-72 API tests run in test mode · CAR-73 Dependabot targets Dev
 
 - CAR-72: `ProductsControllerTests` now turns on test mode with `builder.UseSetting("Testing", "true")`, the setting `Program.cs` actually reads. It used to set a `CCOS_TEST_MODE` environment variable that nothing read, so on a machine with a PostgreSQL user secret the API registered PostgreSQL next to the test's SQLite database and all 5 API tests failed. CI passed only because it has no user secret. The unused variable is gone.

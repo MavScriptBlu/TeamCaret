@@ -95,8 +95,10 @@
                 <div class="product-form-field product-active-field">
                     <label class="event-form-check">
                         <input asp-for="IsActive" />
-                        <span>Active</span>
+                        <span>Show in the store</span>
                     </label>
+                    @* CAR-65: nothing is ever deleted, so the wording is "remove" and "restore". *@
+                    <p class="product-form-hint">Untick to remove it from the store. Tick to restore a removed product.</p>
                 </div>
             }
 
