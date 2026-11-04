@@ -9,7 +9,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Shared fields for the Create Event and Edit Event pages, rendered by _EventForm.cshtml.
 /// Fields follow the Event entity and its ticket type (see "Event, Ticket &amp; Venue
 /// Relational Schema" in docs). Nothing is saved or validated yet.
-/// Officer-only: lock these pages down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public abstract class EventFormPageModel : PageModel
 {

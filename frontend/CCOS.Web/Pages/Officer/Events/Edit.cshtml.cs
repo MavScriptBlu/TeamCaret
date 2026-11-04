@@ -9,7 +9,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Edit Event page (/Officer/Events/Edit/{id}). Loads the event and the venue dropdown from
 /// CCOS.Api (CAR-50). Save changes and Cancel both go back to the event page,
 /// /Events/Details/{id}; saving an event comes in a later story.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILogger<EditModel> logger)
     : EventFormPageModel

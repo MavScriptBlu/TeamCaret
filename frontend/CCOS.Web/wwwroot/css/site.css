@@ -305,3 +305,53 @@ footer.site {
         transition: none !important;
     }
 }
+
+/* ---------- Account links in the header (CAR-68) ---------- */
+.account-nav {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+}
+
+.account-greeting {
+    color: var(--on-dark);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.account-logout {
+    margin: 0;
+}
+
+.account-nav-link {
+    flex: none;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--s3);
+    background: var(--maroon);
+    color: var(--on-dark);
+    border: 1px solid var(--on-dark);
+    border-radius: var(--r-sm);
+    font: 600 14px/1 var(--font);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .account-nav-link:hover {
+        background: #6a1024;
+    }
+
+    .account-nav-link:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+    }
+
+/* On narrow screens keep just the Log out button. */
+@media (max-width: 560px) {
+    .account-greeting {
+        display: none;
+    }
+}

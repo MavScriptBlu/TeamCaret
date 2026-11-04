@@ -107,13 +107,13 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         Assert.DoesNotContain(products, p => p.Name == "Inactive Hat");
         Assert.All(products, p => Assert.True(p.IsActive));
 
-        // Currently CanSeeMemberPrice() returns true for everyone
+        // Not signed in: no member prices (CAR-69). Members are covered in AccessRulesTests.
         var activeShirt = products.Single(p => p.Name == "Active Shirt");
-        Assert.Equal(20m, activeShirt.MemberPrice);
+        Assert.Null(activeShirt.MemberPrice);
     }
 
     [Fact]
-    public async Task List_IncludeInactive_ReturnsAllMerchandise()
+    public async Task List_IncludeInactive_NotSignedIn_Returns401()
     {
         // Arrange
         var client = CreateClient();
@@ -121,20 +121,8 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
         // Act
         var response = await client.GetAsync("/api/products?includeInactive=true");
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var products = await response.Content.ReadFromJsonAsync<List<ProductDto>>();
-
-        Assert.NotNull(products);
-
-        // Should include both active and inactive test products (plus any seed data)
-        Assert.Contains(products, p => p.Name == "Active Shirt");
-        Assert.Contains(products, p => p.Name == "Inactive Hat");
-        // Inactive Hat proves includeInactive=true works
-        Assert.Contains(products, p => p.Name == "Inactive Hat" && !p.IsActive);
-
-        // Member prices are included
-        Assert.All(products, p => Assert.NotNull(p.MemberPrice));
+        // Assert: the officer list needs an officer (CAR-69). The officer case is in AccessRulesTests.
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
