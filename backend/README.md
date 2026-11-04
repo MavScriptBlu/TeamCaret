@@ -114,8 +114,9 @@ setting it? The logins are only added when there are no customers yet, so start 
 | `guest@ccos.test` | Has a login, but isn't a member |
 | `advisor@ccos.test` | The club's advisor: the Advisor role, no membership, but an officer's edit power (CAR-67) |
 
-Memberships run one year from the day they were added. Signing in arrives with CAR-67 and
-CAR-68; until then the accounts are only in the database.
+Memberships run one year from the day they were added. To use one, click **Log in** in the
+website's header (`/Account/Login`) and sign in with its email and the password you set above
+(CAR-68). Officer pages aren't locked yet; that's CAR-69.
 
 ## No database? No problem
 

@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-04 · CAR-68 Log in, create account and log out pages
+
+- New pages in `CCOS.Web`: `/Account/Login`, `/Account/Register` and `/Account/Logout`. A wrong email or password shows one message ("Email or password is incorrect.") so the page never says which emails have accounts. Create account shows the API's messages (email already used, weak password) next to the right field, then signs the person in right away.
+- The website signs people in with a cookie (`AddAuthentication().AddCookie`). The API's sign-in tokens from `/api/auth/login` are kept inside that encrypted cookie, never in the browser's JavaScript. `AccountSession.ValidateAsync` renews the token through `/api/auth/refresh` a minute before it runs out, and signs the person out if it can't.
+- `ApiBearerTokenHandler` adds the signed-in person's token to every call from the Products, Events and Venues clients, so CAR-69 can lock API endpoints without changing the pages. `AccountApiClient` has no handler, since it runs while signing in.
+- The header's placeholder account button is now "Log in", or "Hi, {first name}" and a "Log out" button. Log out is a POST with the anti-forgery token, so a link on another site can't sign people out.
+- After signing in, people go back to the page they came from. Only addresses on this site are allowed (`AccountSession.SafeReturnUrl`), so a link can't send them to another site.
+- Nothing is locked yet: the "Log in first" and "Officers only" screens and locking officer pages are CAR-69.
+
 ## 2026-10-30 · CAR-67 Login API and access policies
 
 - `CCOS.Api` signs people in with ASP.NET Core Identity: `AddIdentityApiEndpoints<AppUser>` plus `MapIdentityApi` under `/api/auth` (login, refresh, forgot and reset password). One account per email (`RequireUniqueEmail`). Not signed in answers 401 and not allowed answers 403, never a redirect.

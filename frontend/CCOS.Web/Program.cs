@@ -1,10 +1,44 @@
 using CCOS.Web.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Services (things the app can use) ----
 // Turns the .cshtml files under Pages into web pages.
 builder.Services.AddRazorPages();
+
+// ---- Sign-in (CAR-68) ----
+// The API does the real checking; the website remembers who's signed in with an encrypted cookie.
+// The cookie also holds the API's sign-in token, which never reaches the browser's JavaScript.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "ccos.signin";
+        options.Cookie.HttpOnly = true;
+        // https-only when the site runs on https (Azure); Docker serves plain http on localhost:8080.
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        // Same as the API's refresh token (14 days); the API token inside is renewed as needed.
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+        // Renews the API token before it runs out, and signs the person out if it can't.
+        options.Events.OnValidatePrincipal = AccountSession.ValidateAsync;
+    });
+
+// Adds the signed-in person's API token to calls from the Products, Events and Venues clients.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ApiBearerTokenHandler>();
+
+// Create account, log in, refresh and "who am I?" (no bearer handler: see AccountApiClient).
+builder.Services.AddHttpClient<AccountApiClient>(client =>
+{
+    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
+        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // Product data comes from CCOS.Api. Run the API alongside the site (see Api:BaseUrl).
 // Pages ask for a ProductsApiClient and get one that already knows the API address.
@@ -14,7 +48,7 @@ builder.Services.AddHttpClient<ProductsApiClient>(client =>
         ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
-});
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 // Event data comes from CCOS.Api too (Events list, event page and Edit Event).
 builder.Services.AddHttpClient<EventsApiClient>(client =>
@@ -23,7 +57,7 @@ builder.Services.AddHttpClient<EventsApiClient>(client =>
         ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
-});
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 // Venue data comes from CCOS.Api too (venue form and the event form's venue dropdown).
 builder.Services.AddHttpClient<VenuesApiClient>(client =>
@@ -32,7 +66,7 @@ builder.Services.AddHttpClient<VenuesApiClient>(client =>
         ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
-});
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 var app = builder.Build();
 
@@ -49,6 +83,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+// Reads the sign-in cookie, so pages know who's signed in (CAR-68).
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

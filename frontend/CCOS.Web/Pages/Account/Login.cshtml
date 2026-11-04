@@ -1,0 +1,33 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+
+@* Log in (CAR-68). Errors from the server show above the form and next to each field. *@
+<section class="account-card" aria-labelledby="loginTitle">
+    <h1 id="loginTitle" class="account-title">Log in</h1>
+
+    <form method="post" class="account-form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="account-summary" role="alert"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="account-field">
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" autocomplete="email" />
+            <span asp-validation-for="Email" class="field-validation-error"></span>
+        </div>
+
+        <div class="account-field">
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field-validation-error"></span>
+        </div>
+
+        <button type="submit" class="account-submit">Log in</button>
+    </form>
+
+    <p class="account-switch">New here? <a asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl">Create an account</a></p>
+</section>
