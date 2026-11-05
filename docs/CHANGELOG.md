@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-05 · CAR-60 Tell people when the API can't be reached
+
+- Most pages already showed their own message when the API was down (merch, search, events, the officer product pages, venue and account forms). This closes the gaps that were left.
+- A product's page (`/Products/Details/{id}`) used to answer a blank browser error when the API was down or the product didn't exist. `UseStatusCodePagesWithReExecute("/Status/{0}")` now shows `Pages/Status.cshtml`: "The club's system isn't reachable right now" for 503, "We couldn't find that page" for 404, and a general message for anything else. The real status code is kept.
+- Safety net: `ApiUnavailablePageFilter` (a global page filter) catches an API failure that a page didn't handle (can't connect, timed out, unreadable reply) and answers 503 with the same status page instead of crashing. A visitor closing the page isn't counted. Pages that show their own message keep doing so.
+- The error page (`/Error`, outside Development) no longer shows the Microsoft template text; it says something went wrong and to try again, with a reference number.
+- Messages stay on the page rather than in pop-up toasts, the same as the rest of the site.
+- Not changed: the Create and Edit Event pages leave the venue dropdown empty when venues can't be loaded. Those pages are being rewritten in PR #175, so that's a note for that PR.
+
 ## 2026-11-04 · CAR-69 Lock officer pages and member pricing
 
 - API: the officer product list (`?includeInactive=true`) and product create, update, reactivate and remove need the `Officer` policy, and so does adding a venue. Not signed in answers 401; signed in but not an officer answers 403. The event create and update endpoints don't exist yet (CAR-54, CAR-57); `EventsController` has a note to give them the same `[Authorize(Policy = ClubPolicies.Officer)]`.

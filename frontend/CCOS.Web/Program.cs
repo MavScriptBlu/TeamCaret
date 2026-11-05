@@ -1,4 +1,5 @@
 using CCOS.Shared;
+using CCOS.Web.Filters;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -11,7 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/Officer", ClubPolicies.Officer);
-});
+})
+// Safety net (CAR-60): a page that doesn't catch "the API can't be reached" answers 503
+// with the friendly status page instead of crashing.
+.AddMvcOptions(options => options.Filters.Add<ApiUnavailablePageFilter>());
 
 // The website's Officer policy reads the officer flag in the sign-in cookie (an advisor counts too).
 // It only decides which pages open; the API checks the database on every call (CAR-67).
@@ -101,6 +105,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Errors with no page of their own (404, 503 when the API is down, ...) show Pages/Status.cshtml
+// with a plain message instead of a blank browser error page (CAR-60).
+app.UseStatusCodePagesWithReExecute("/Status/{0}");
+
 app.UseRouting();
 
 // Reads the sign-in cookie, so pages know who's signed in (CAR-68).
@@ -112,3 +120,6 @@ app.MapRazorPages()
    .WithStaticAssets();
 
 app.Run();
+
+// Lets the website tests start the real site (WebApplicationFactory<Program>).
+public partial class Program { }
