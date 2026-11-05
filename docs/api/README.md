@@ -9,28 +9,50 @@ REST API reference for the CCOS backend.
 
 ## Authentication
 
-All endpoints (except login/register) require a JWT Bearer token:
+Sign-in uses ASP.NET Core Identity in the API (CAR-67, `docs/CAR-52_Login_Approach.md`). Logging in
+returns an access token (Identity's own bearer token, not a JWT) and a refresh token. Send the access
+token on calls that need a signed-in person:
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
+
+Two access rules (policies) decide what a signed-in person can do. Both read the Members and Officers
+tables on every request, on the club's date (America/Chicago), so nothing about membership is cached in
+the token:
+
+| Policy | Passes when |
+|--------|-------------|
+| `Member` | Signed in, and a current member (active, dues paid through today) |
+| `Officer` | Signed in, a current member, and holding an officer title. The club's advisor (the `Advisor` role) also passes, without a membership or title. |
+
+Not signed in returns `401`; signed in but not allowed returns `403`. Since CAR-69 the officer endpoints
+below need `Officer`, and member prices (`memberPrice`) only go to callers who pass `Member`; everyone
+else gets `null`. Browsing (GET) stays open to everyone and only returns active products and active, upcoming events.
 
 ## Endpoints
 
 ### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/auth/login` | Login and get JWT |
-| POST | `/auth/register` | Register new user |
+| POST | `/account/register` | Create an account: `firstName`, `lastName`, `email`, `password`. Creates the Customer and the login together. 400 with the message on `Email` or `Password` when the email is taken or the password is too weak. |
+| POST | `/auth/login` | Sign in with `email` and `password`. Returns `accessToken`, `refreshToken` and `expiresIn` (seconds). 401 on a wrong email or password. |
+| POST | `/auth/refresh` | Trade a `refreshToken` for a new access token. |
+| POST | `/auth/forgotPassword`, `/auth/resetPassword` | Identity's password reset (no email is sent yet). |
+| GET | `/me` | Who's signed in: `customerId`, names, `email`, `memberStatus` (Active, Expired, Inactive or null for a guest), `isCurrentMember`, `isCurrentOfficer`, `officerTitle`, `isAdvisor`. 401 when not signed in. |
+
+Identity's own `/auth/register` is turned off (404), because it would create a login without a Customer.
 
 ### Products
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/products` | List all active products |
-| GET | `/products/{id}` | Get product by ID |
-| POST | `/products` | Create product |
-| PUT | `/products/{id}` | Update product |
-| DELETE | `/products/{id}` | Soft delete product |
+| Method | Endpoint | Who | Description |
+|--------|----------|-----|-------------|
+| GET | `/products` | Everyone | Active products. `memberPrice` only for current members. |
+| GET | `/products?includeInactive=true` | Officer | Every product, including removed ones, with member prices |
+| GET | `/products/{id}` | Everyone | One active product (404 otherwise). `memberPrice` only for current members. |
+| POST | `/products` | Officer | Create product |
+| PUT | `/products/{id}` | Officer | Update product |
+| PATCH | `/products/{id}/reactivate` | Officer | Put a removed product back in the store |
+| DELETE | `/products/{id}` | Officer | Remove product (soft delete: `IsActive = false`) |
 
 ### Members
 | Method | Endpoint | Description |
@@ -45,15 +67,15 @@ Authorization: Bearer <token>
 |--------|----------|-------------|
 | GET | `/events` | Upcoming events: active, StartsAtUtc >= now, soonest first. Includes venue name and ticket types. |
 | GET | `/events/{id}` | One active event with venue name and active ticket types (price & member price). 404 for unknown/inactive. |
-| POST | `/events` | Create event (TODO) |
-| PUT | `/events/{id}` | Update event (TODO) |
+| POST | `/events` | Create event (TODO; Officer when added) |
+| PUT | `/events/{id}` | Update event (TODO; Officer when added) |
 
 ### Venues
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/venues` | Active venues by name, for the event form dropdown. |
 | GET | `/venues/{id}` | Get venue by ID (TODO) |
-| POST | `/venues` | Create venue (TODO) |
+| POST | `/venues` | Create venue and its address. Officer only. |
 | PUT | `/venues/{id}` | Update venue (TODO) |
 
 ### Orders

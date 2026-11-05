@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Products;
 /// <summary>
 /// Page model for "/Officer/Products/Create" page. Shows the blank product form, checks
 /// what the officer typed, and sends the new product to CCOS.Api.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class CreateModel(ProductsApiClient productsApi, ILogger<CreateModel> logger) : PageModel
 {

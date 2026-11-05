@@ -102,7 +102,8 @@ dotnet user-secrets set "SampleAccounts:Password" "the-team-password" --project 
 # SAMPLE_ACCOUNT_PASSWORD=the-team-password
 ```
 
-If it isn't set, the API skips the sample logins and logs a warning. Ran the API before
+If it isn't set, the API skips the sample logins and logs a warning. The advisor is added on its
+own, so a database seeded before CAR-67 gets it the next time the API starts. Ran the API before
 setting it? The logins are only added when there are no customers yet, so start fresh with
 `task reset` then `task migrate` (or delete `ccos-dev.db` if you use the SQLite file).
 
@@ -111,9 +112,12 @@ setting it? The logins are only added when there are no customers yet, so start 
 | `officer@ccos.test` | Current member who holds the President title (officer pages) |
 | `member@ccos.test` | Current member (member prices, members-only events) |
 | `guest@ccos.test` | Has a login, but isn't a member |
+| `advisor@ccos.test` | The club's advisor: the Advisor role, no membership, but an officer's edit power (CAR-67) |
 
-Memberships run one year from the day they were added. Signing in arrives with CAR-67 and
-CAR-68; until then the accounts are only in the database.
+Memberships run one year from the day they were added. To use one, click **Log in** in the
+website's header (`/Account/Login`) and sign in with its email and the password you set above
+(CAR-68). Only `officer@` and `advisor@` can open the officer pages, and only `officer@` and
+`member@` see member prices (CAR-69).
 
 ## No database? No problem
 

@@ -9,7 +9,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Create Event page (/Officer/Events/Create). Save and Cancel both go back to /Events.
 /// The venue dropdown lists the real venues from CCOS.Api (CAR-51); the event itself is
 /// not saved or validated yet.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class CreateModel(VenuesApiClient venuesApi, ILogger<CreateModel> logger) : EventFormPageModel
 {
