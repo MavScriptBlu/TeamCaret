@@ -75,7 +75,7 @@ var app = builder.Build();
 // Skip in test mode - tests manage their own database state.
 if (app.Environment.IsDevelopment() && !isTestMode)
 {
-    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
+    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase, app.Lifetime.ApplicationStopping);
 }
 
 // ---- Request pipeline (what happens to each incoming request, in order) ----

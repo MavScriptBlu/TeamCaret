@@ -12,7 +12,7 @@ namespace CCOS.Shared;
 /// <param name="AddressLine2">Building or room (optional).</param>
 /// <param name="City">City.</param>
 /// <param name="State">Two-letter state code, like WI.</param>
-/// <param name="ZipCode">ZIP code.</param>
+/// <param name="ZipCode">ZIP code: 5 digits, or ZIP+4 like 54481-1234 (CAR-63).</param>
 /// <param name="Capacity">How many people the room holds.</param>
 public record CreateVenueRequest(
     [Required(ErrorMessage = "Venue name is required.")]
@@ -36,6 +36,7 @@ public record CreateVenueRequest(
 
     [Required(ErrorMessage = "ZIP code is required.")]
     [StringLength(10, ErrorMessage = "ZIP code can be at most 10 characters.")]
+    [RegularExpression(ZipCodeRules.Pattern, ErrorMessage = ZipCodeRules.ErrorMessage)]
     string ZipCode,
 
     [Range(1, int.MaxValue, ErrorMessage = "Capacity must be at least 1.")]

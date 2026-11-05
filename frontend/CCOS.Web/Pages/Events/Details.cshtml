@@ -2,7 +2,7 @@
 @*
     Details page for a specific event.
     Displays event information, including date, location, categories, and ticket prices.
-    Provides officer actions for editing or canceling the event.
+    Provides officer actions for editing or removing the event (CAR-56: "Remove", never "Delete").
     Author: TeamCaret
     Created: 2024-06-18
 *@
@@ -12,6 +12,17 @@
 }
 
 <link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+@* The Remove dialog's styles live in products.css. *@
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (TempData["EventSaved"] is string eventSaved)
+{
+    <p class="events-message" role="status">@eventSaved</p>
+}
+@if (TempData["EventError"] is string eventError)
+{
+    <p class="events-message" role="alert">@eventError</p>
+}
 
 @if (Model.LoadFailed)
 {
@@ -50,7 +61,15 @@ else
                         </summary>
                         <div class="events-options-menu">
                             <a asp-page="/Officer/Events/Edit" asp-route-id="@ev.EventId">Edit event</a>
-                            <button type="button" class="events-options-danger" id="cancelEventButton">Cancel event</button>
+                            <form method="post" asp-page-handler="Remove" asp-route-id="@ev.EventId" data-remove-form>
+                                <button type="button"
+                                        class="events-options-danger"
+                                        id="removeEventButton"
+                                        data-remove-button
+                                        data-remove-name="@ev.Name"
+                                        aria-haspopup="dialog"
+                                        aria-controls="removeDialog">Remove event</button>
+                            </form>
                         </div>
                     </details>
                 </div>
@@ -106,23 +125,15 @@ else
         }
     </article>
 
-    <dialog class="event-dialog" id="cancelEventDialog" aria-labelledby="cancelEventTitle">
-        <p id="cancelEventTitle">Are you sure you want to cancel this event?</p>
-        @* Both buttons just close the dialog for now. *@
-        <form method="dialog" class="event-dialog-actions" asp-antiforgery="false">
-            <button value="yes" class="event-dialog-yes">Yes</button>
-            <button value="no" class="event-dialog-no">No</button>
-        </form>
-    </dialog>
+    <partial name="_RemoveDialog" model="@(new RemoveDialogModel("event", "the Events page"))" />
 }
 
 @section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
     <script>
         (function () {
             var options = document.getElementById('eventOptions');
-            var cancelButton = document.getElementById('cancelEventButton');
-            var dialog = document.getElementById('cancelEventDialog');
-            if (!options || !cancelButton || !dialog) return;
+            if (!options) return;
 
             // Close the options menu on an outside click or Escape.
             document.addEventListener('click', function (e) {
@@ -135,10 +146,9 @@ else
                 }
             });
 
-            // "Cancel event" opens the confirmation dialog.
-            cancelButton.addEventListener('click', function () {
-                options.open = false;
-                dialog.showModal();
+            // officer-remove-dialog.js opens the Remove confirmation. Close the menu behind it.
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('[data-remove-button]')) options.open = false;
             });
         })();
     </script>

@@ -2,13 +2,14 @@
 @*
     Shared form for Create Event and Edit Event. Matches Wireframe-Create-Event and
     Wirframe-Event-Edit, plus the event fields from the backlog and schema doc
-    (capacity, members only, member price). Nothing is saved or validated yet,
-    so the form has novalidate and no required fields.
+    (capacity, members only, member price). The server checks every field and shows its message
+    under the field (CAR-55). The Edit page also shows a "Show in the event list" box (CAR-56).
 *@
 
 <h1 class="event-form-title">@Model.Heading</h1>
 
 <form method="post" class="event-form" novalidate>
+    <div asp-validation-summary="ModelOnly" class="venue-validation-summary" role="alert"></div>
     <div class="event-detail-top">
         @* Image isn't in the database yet; the file is not uploaded or saved. *@
         <partial name="_ImageDrop" model="Model.ImagePrompt" />
@@ -16,6 +17,7 @@
         <div class="event-form-fields">
             <label class="visually-hidden" for="Name">Event name</label>
             <input asp-for="Name" class="event-form-name" placeholder="Event Name" maxlength="100" autocomplete="off" />
+            <span asp-validation-for="Name" class="field-validation-error"></span>
 
             <div class="event-form-row">
                 <span class="event-form-label" id="dateLabel">Date</span>
@@ -26,6 +28,9 @@
                         <span aria-hidden="true">–</span>
                         <input asp-for="EndTime" type="time" asp-format="{0:HH:mm}" aria-label="End time" />
                     </span>
+                    <span asp-validation-for="Date" class="field-validation-error"></span>
+                    <span asp-validation-for="StartTime" class="field-validation-error"></span>
+                    <span asp-validation-for="EndTime" class="field-validation-error"></span>
                 </div>
             </div>
 
@@ -35,6 +40,7 @@
                     <select asp-for="VenueId" asp-items="Model.VenueOptions">
                         <option value="">Choose a venue</option>
                     </select>
+                    <span asp-validation-for="VenueId" class="field-validation-error"></span>
                     <a class="event-form-link" asp-page="/Officer/Venues/Create">Add a venue</a>
                 </div>
             </div>
@@ -49,6 +55,7 @@
             <div class="event-form-row">
                 <label class="event-form-label" asp-for="TicketCapacity">Capacity</label>
                 <input asp-for="TicketCapacity" type="number" min="1" step="1" class="event-form-short" />
+                <span asp-validation-for="TicketCapacity" class="field-validation-error"></span>
             </div>
 
             <div class="event-form-row">
@@ -70,6 +77,23 @@
                 </label>
             </div>
 
+            <span asp-validation-for="TicketPrice" class="field-validation-error"></span>
+            <span asp-validation-for="MemberPrice" class="field-validation-error"></span>
+
+            @if (Model.ShowActiveBox)
+            {
+                <div class="event-form-row">
+                    <span class="event-form-label"></span>
+                    <div class="event-form-stack">
+                        <label class="event-form-check">
+                            <input asp-for="IsActive" />
+                            Show in the event list
+                        </label>
+                        <span class="event-form-hint">Untick to remove this event. Tick to restore it. Nothing is deleted.</span>
+                    </div>
+                </div>
+            }
+
             <div class="event-form-actions">
                 <button type="submit" class="event-rsvp">@Model.SaveText</button>
                 <a class="event-form-cancel" asp-page="@Model.CancelPage" asp-route-id="@Model.CancelRouteId">Cancel</a>
@@ -80,6 +104,7 @@
     <div class="event-detail-description">
         <label class="visually-hidden" for="Description">Description</label>
         <textarea asp-for="Description" class="event-form-description" rows="5" maxlength="500" placeholder="Description and further details"></textarea>
+        <span asp-validation-for="Description" class="field-validation-error"></span>
     </div>
 </form>
 

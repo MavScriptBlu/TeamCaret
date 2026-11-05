@@ -517,6 +517,13 @@ a.product-card:hover {
         line-height: 1.5;
     }
 
+    .officer-delete-dialog p.officer-delete-disclaimer {
+        padding: var(--s3);
+        border-left: 4px solid #c97a7a;
+        background: rgb(201 122 122 / 12%);
+        font-size: 14px;
+    }
+
     .officer-delete-dialog::backdrop {
         background: rgb(39 35 36 / 28%);
     }
