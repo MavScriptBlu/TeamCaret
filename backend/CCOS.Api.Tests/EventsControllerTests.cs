@@ -379,7 +379,7 @@ public class EventsControllerTests : IClassFixture<WebApplicationFactory<Program
         string name = "Test event",
         DateTimeOffset? startsAtUtc = null,
         DateTimeOffset? endsAtUtc = null,
-        int ticketCapacity = 20) 
+        int ticketCapacity = 20)
     {
         var start = startsAtUtc ?? DateTimeOffset.UtcNow.AddDays(30);
         return new CreateEventRequest(

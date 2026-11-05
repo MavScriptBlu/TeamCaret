@@ -71,7 +71,7 @@ public class EventsController(EventRepository events) : ControllerBase
 
         var createdEvent = result.Event!;
 
-        return CreatedAtAction(nameof(Get), new {id = createdEvent.EventId}, ToDto(createdEvent));
+        return CreatedAtAction(nameof(Get), new { id = createdEvent.EventId }, ToDto(createdEvent));
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public class EventsController(EventRepository events) : ControllerBase
             });
         }
 
-        if ( result is null)
+        if (result is null)
         {
             return NotFound();
         }

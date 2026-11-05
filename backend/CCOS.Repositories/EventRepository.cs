@@ -188,7 +188,7 @@ public sealed class EventRepository(AppDbContext db)
     /// </summary>
     public async Task<bool> DeactivateAsync(int eventId, CancellationToken cancellationToken = default)
     {
-        var @event = await db.Events.FirstOrDefaultAsync( existingEvent => existingEvent.EventId == eventId && existingEvent.IsActive, cancellationToken);
+        var @event = await db.Events.FirstOrDefaultAsync(existingEvent => existingEvent.EventId == eventId && existingEvent.IsActive, cancellationToken);
 
         if (@event is null)
         {
@@ -219,7 +219,7 @@ public sealed class EventRepository(AppDbContext db)
         if (venue is null)
         {
             // return a validation error for the venueId field if the venue does not exist or is inactive
-            return (null,new Dictionary<string, string[]>{[nameof(Event.VenueId)] = ["Venue does not exist or is inactive."]});
+            return (null, new Dictionary<string, string[]> { [nameof(Event.VenueId)] = ["Venue does not exist or is inactive."] });
         }
 
         var errors = new Dictionary<string, string[]>();
