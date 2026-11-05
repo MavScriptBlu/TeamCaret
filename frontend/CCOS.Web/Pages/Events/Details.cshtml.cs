@@ -13,6 +13,22 @@ namespace CCOS.Web.Pages.Events;
 /// </summary>
 public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logger) : PageModel
 {
+    private static readonly Action<ILogger, int, Exception?> EventRemoveTimeoutLog =
+        LoggerMessage.Define<int>(LogLevel.Error, new EventId(1, nameof(EventRemoveTimeoutLog)),
+            "The event API request timed out while removing event {EventId}");
+
+    private static readonly Action<ILogger, int, Exception?> EventRemoveUnreachableLog =
+        LoggerMessage.Define<int>(LogLevel.Error, new EventId(2, nameof(EventRemoveUnreachableLog)),
+            "The event API could not be reached while removing event {EventId}");
+
+    private static readonly Action<ILogger, int?, Exception?> EventLoadFailedLog =
+        LoggerMessage.Define<int?>(LogLevel.Error, new EventId(3, nameof(EventLoadFailedLog)),
+            "Couldn't load event {EventId} from CCOS.Api.");
+
+    private static readonly Action<ILogger, int, HttpStatusCode, Exception?> EventRemoveFailedLog =
+        LoggerMessage.Define<int, HttpStatusCode>(LogLevel.Error, new EventId(4, nameof(EventRemoveFailedLog)),
+            "Failed to remove event {EventId}. Status code: {StatusCode}");
+
     /// <summary>
     /// The event to show, or null when no active event matches the id.
     /// </summary>
@@ -50,7 +66,7 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
         catch (Exception ex) when (ex is HttpRequestException or JsonException
             || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            logger.LogError(ex, "Couldn't load event {EventId} from CCOS.Api.", id);
+            EventLoadFailedLog(logger, id, ex);
             LoadFailed = true;
             return;
         }
@@ -104,20 +120,20 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
 
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Failed to remove event {EventId}. Status code: {StatusCode}", eventId, response.StatusCode);
+                EventRemoveFailedLog(logger, eventId, response.StatusCode, null);
                 TempData["EventError"] = "The event could not be removed. Please try again.";
                 return RedirectToPage("/Events/Details", new { id = eventId });
             }
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "The event API could not be reached while removing event {EventId}", eventId);
+            EventRemoveUnreachableLog(logger, eventId, ex);
             TempData["EventError"] = "The event API could not be reached. Please try again later.";
             return RedirectToPage("/Events/Details", new { id = eventId });
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(ex, "The event API request timed out while removing event {EventId}", eventId);
+            EventRemoveTimeoutLog(logger, eventId, ex);
             TempData["EventError"] = "The event API request timed out. Please try again later.";
             return RedirectToPage("/Events/Details", new { id = eventId });
         }
