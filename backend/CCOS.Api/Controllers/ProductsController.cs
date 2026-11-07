@@ -58,6 +58,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ProductDto>> Create(
         [FromBody] CreateProductRequest input,
         CancellationToken cancellationToken)
@@ -82,6 +83,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ProductDto>> Update(
         int id,
         [FromBody] UpdateProductRequest input,
@@ -111,6 +113,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPatch("{id:int}/reactivate")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reactivate(int id, CancellationToken cancellationToken)
     {
         var success = await products.ReactivateAsync(id, cancellationToken);
@@ -123,6 +126,7 @@ public class ProductsController(ProductRepository products) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpDelete("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var success = await products.SoftDeleteAsync(id, cancellationToken);

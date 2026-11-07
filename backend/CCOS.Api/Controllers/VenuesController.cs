@@ -61,6 +61,7 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<VenueDto>> Create(
         [FromBody] CreateVenueRequest input,
         CancellationToken cancellationToken)
@@ -91,6 +92,7 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<VenueDetailDto>> Update(
         int id,
         [FromBody] UpdateVenueRequest input,
@@ -129,6 +131,7 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpDelete("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var success = await venues.SoftDeleteAsync(id, cancellationToken);
