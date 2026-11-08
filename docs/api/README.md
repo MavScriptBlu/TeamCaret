@@ -35,7 +35,7 @@ else gets `null`. Browsing (GET) stays open to everyone and only returns active 
 ### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/account/register` | Create an account: `firstName`, `lastName`, `email`, `password`. Creates the Customer and the login together. 400 with the message on `Email` or `Password` when the email is taken or the password is too weak. |
+| POST | `/account/register` | Create an account: `firstName`, `lastName`, `email`, `password`. Creates the Customer and the login together. 400 with the message on `Email` ("An account with that email already exists.") or `Password` (too weak). |
 | POST | `/auth/login` | Sign in with `email` and `password`. Returns `accessToken`, `refreshToken` and `expiresIn` (seconds). 401 on a wrong email or password. |
 | POST | `/auth/refresh` | Trade a `refreshToken` for a new access token. |
 | POST | `/auth/forgotPassword`, `/auth/resetPassword` | Identity's password reset (no email is sent yet). |

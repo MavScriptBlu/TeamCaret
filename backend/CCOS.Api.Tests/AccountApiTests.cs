@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
+using CCOS.Api.Controllers;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Repositories;
@@ -119,7 +120,11 @@ public sealed class AccountApiTests : IClassFixture<WebApplicationFactory<Progra
 
         Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
         var problem = await second.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.True(problem.GetProperty("errors").TryGetProperty("Email", out _));
+        Assert.True(problem.GetProperty("errors").TryGetProperty("Email", out var emailErrors));
+
+        // One plain message, not Identity's "Username '...' is already taken" (review feedback).
+        var message = Assert.Single(emailErrors.EnumerateArray()).GetString();
+        Assert.Equal(AccountController.EmailTakenMessage, message);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -215,6 +220,28 @@ public sealed class AccountApiTests : IClassFixture<WebApplicationFactory<Progra
         // Role removed: no longer passes Officer, with no new sign-in needed.
         await SetAdvisorRoleAsync(advisor, isAdvisor: false);
         Assert.False(await PassesAsync(advisor, ClubPolicies.Officer));
+    }
+
+    /// <summary>/api/me for a current member (no title) shows their profile, Active status and member flag only.</summary>
+    [Fact]
+    public async Task Me_shows_a_current_member()
+    {
+        var client = _factory.CreateClient();
+        var today = ClubClock.ToClubDate(DateTime.UtcNow);
+        var account = await CreateAccountAsync(client, "member.one@ccos.test", expiration: today.AddMonths(6));
+
+        await SignInAsync(client, "member.one@ccos.test");
+        var me = await client.GetFromJsonAsync<CurrentAccountDto>("/api/me");
+
+        Assert.NotNull(me);
+        Assert.Equal(account.CustomerId, me.CustomerId);
+        Assert.Equal("Test", me.FirstName);
+        Assert.Equal("member.one@ccos.test", me.Email);
+        Assert.Equal(MemberStatus.Active, me.MemberStatus);
+        Assert.True(me.IsCurrentMember);
+        Assert.False(me.IsCurrentOfficer);
+        Assert.Null(me.OfficerTitle);
+        Assert.False(me.IsAdvisor);
     }
 
     /// <summary>/api/me for a current officer shows them as a current member and officer, with their title.</summary>

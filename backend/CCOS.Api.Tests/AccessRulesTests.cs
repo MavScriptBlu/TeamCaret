@@ -5,6 +5,7 @@ using System.Text.Json;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Shared;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
@@ -14,8 +15,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CCOS.Api.Tests;
 
 /// <summary>
-/// Who can do what (CAR-69): a visitor who isn't signed in, a guest (signed in, not a member),
-/// a member and an officer, against an officer endpoint and member pricing.
+/// Who can do what (CAR-69), through real web requests: a visitor who isn't signed in, a guest
+/// (signed in, not a member), a member, an expired member, an officer, an officer whose dues
+/// expired, and the advisor, against officer endpoints (the Officer policy) and member pricing
+/// (the Member policy).
 /// </summary>
 public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
@@ -70,6 +73,8 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
         Member,
         ExpiredMember,
         Officer,
+        ExpiredOfficer,
+        Advisor,
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -80,7 +85,10 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     [InlineData(Caller.NotSignedIn, HttpStatusCode.Unauthorized)]
     [InlineData(Caller.Guest, HttpStatusCode.Forbidden)]
     [InlineData(Caller.Member, HttpStatusCode.Forbidden)]
+    [InlineData(Caller.ExpiredMember, HttpStatusCode.Forbidden)]
+    [InlineData(Caller.ExpiredOfficer, HttpStatusCode.Forbidden)]
     [InlineData(Caller.Officer, HttpStatusCode.Created)]
+    [InlineData(Caller.Advisor, HttpStatusCode.Created)]
     public async Task Creating_a_product_needs_an_officer(Caller caller, HttpStatusCode expected)
     {
         var client = await ClientForAsync(caller);
@@ -95,7 +103,9 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     [Theory]
     [InlineData(Caller.NotSignedIn, HttpStatusCode.Unauthorized)]
     [InlineData(Caller.Member, HttpStatusCode.Forbidden)]
+    [InlineData(Caller.ExpiredOfficer, HttpStatusCode.Forbidden)]
     [InlineData(Caller.Officer, HttpStatusCode.NoContent)]
+    [InlineData(Caller.Advisor, HttpStatusCode.NoContent)]
     public async Task Removing_a_product_needs_an_officer(Caller caller, HttpStatusCode expected)
     {
         var client = await ClientForAsync(caller);
@@ -108,7 +118,9 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     [Theory]
     [InlineData(Caller.NotSignedIn, HttpStatusCode.Unauthorized)]
     [InlineData(Caller.Member, HttpStatusCode.Forbidden)]
+    [InlineData(Caller.ExpiredOfficer, HttpStatusCode.Forbidden)]
     [InlineData(Caller.Officer, HttpStatusCode.OK)]
+    [InlineData(Caller.Advisor, HttpStatusCode.OK)]
     public async Task The_officer_product_list_needs_an_officer(Caller caller, HttpStatusCode expected)
     {
         var client = await ClientForAsync(caller);
@@ -127,7 +139,9 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     [Theory]
     [InlineData(Caller.NotSignedIn, HttpStatusCode.Unauthorized)]
     [InlineData(Caller.Guest, HttpStatusCode.Forbidden)]
+    [InlineData(Caller.Member, HttpStatusCode.Forbidden)]
     [InlineData(Caller.Officer, HttpStatusCode.Created)]
+    [InlineData(Caller.Advisor, HttpStatusCode.Created)]
     public async Task Adding_a_venue_needs_an_officer(Caller caller, HttpStatusCode expected)
     {
         var client = await ClientForAsync(caller);
@@ -147,6 +161,8 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     [InlineData(Caller.NotSignedIn, false)]
     [InlineData(Caller.Guest, false)]
     [InlineData(Caller.ExpiredMember, false)]
+    [InlineData(Caller.ExpiredOfficer, false)]
+    [InlineData(Caller.Advisor, false)] // the advisor has no membership
     [InlineData(Caller.Member, true)]
     [InlineData(Caller.Officer, true)]
     public async Task Only_current_members_see_member_prices(Caller caller, bool seesMemberPrice)
@@ -168,6 +184,7 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     /// <summary>
     /// A client signed in as the given kind of caller. Members and officers get their rows straight
     /// in the database, the way an admin screen will later; the dues date is relative to today.
+    /// The advisor gets the Advisor role and no membership.
     /// </summary>
     private async Task<HttpClient> ClientForAsync(Caller caller)
     {
@@ -183,13 +200,27 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
             new RegisterAccountRequest("Test", caller.ToString(), email, TestSecret));
         register.EnsureSuccessStatusCode();
 
-        if (caller != Caller.Guest)
+        if (caller == Caller.Advisor)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            if (!await roles.RoleExistsAsync(ClubRoles.Advisor))
+            {
+                (await roles.CreateAsync(new IdentityRole(ClubRoles.Advisor))).EnsureSucceeded();
+            }
+
+            var user = await users.FindByEmailAsync(email);
+            (await users.AddToRoleAsync(user!, ClubRoles.Advisor)).EnsureSucceeded();
+        }
+        else if (caller != Caller.Guest)
         {
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var user = await db.Users.AsNoTracking().SingleAsync(account => account.Email == email);
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var expiration = caller == Caller.ExpiredMember ? today.AddDays(-30) : today.AddDays(30);
+            var expired = caller is Caller.ExpiredMember or Caller.ExpiredOfficer;
+            var expiration = expired ? today.AddDays(-30) : today.AddDays(30);
 
             db.Members.Add(new Member
             {
@@ -198,7 +229,7 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
                 MemberExpiration = expiration,
             });
 
-            if (caller == Caller.Officer)
+            if (caller is Caller.Officer or Caller.ExpiredOfficer)
             {
                 db.Officers.Add(new Officer { OfficerId = user.CustomerId, Title = "President", GrantedDate = expiration.AddYears(-1) });
             }
@@ -214,4 +245,11 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
 
         return client;
     }
+}
+
+/// <summary>Small helper so a failed Identity call stops the test with its errors.</summary>
+internal static class IdentityResultExtensions
+{
+    public static void EnsureSucceeded(this IdentityResult result) =>
+        Assert.True(result.Succeeded, string.Join("; ", result.Errors.Select(error => error.Description)));
 }
