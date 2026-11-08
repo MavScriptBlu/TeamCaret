@@ -1,7 +1,6 @@
 using CCOS.Api;
 using CCOS.Data;
 using CCOS.Repositories;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,29 +13,7 @@ var isTestMode = builder.Configuration.GetValue<bool>("Testing");
 builder.Services.AddOpenApi();
 
 // Finds the controller classes (like ProductsController) and turns them into endpoints.
-// Automatically validates anti-forgery tokens for state-changing HTTP requests (POST, PUT, PATCH, DELETE).
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-});
-
-// Configures Anti-Forgery Token validation for CSRF protection.
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-XSRF-TOKEN";
-    options.Cookie.Name = "__RequestVerificationToken";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-});
-
-// Enforces secure SameSite and HttpOnly cookie policies across the application.
-builder.Services.Configure<CookiePolicyOptions>(options =>
-{
-    options.MinimumSameSitePolicy = SameSiteMode.Strict;
-    options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.SameAsRequest;
-});
+builder.Services.AddControllers();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Database Configuration
@@ -108,7 +85,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseCookiePolicy();
 app.UseHttpsRedirection();
 
 app.MapControllers();
