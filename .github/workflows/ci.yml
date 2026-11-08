@@ -20,20 +20,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install Task
-        uses: go-task/setup-task@v2
-
-      - name: Verify Task
-        run: task --version
-
       - name: Build
-        run: task build
+        run: dotnet build CCOS.slnx
 
       - name: Check formatting
-        run: task lint
+        run: dotnet format CCOS.slnx --verify-no-changes --severity error
 
       - name: Test
-        run: task test
+        run: dotnet test CCOS.slnx --logger "console;verbosity=normal"
 
   database:
     name: App starts
@@ -41,15 +35,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Task
-        uses: go-task/setup-task@v2
-
       # CI has no real .env, so use the example file (fake password, never a real one)
       - name: Make .env from the example
         run: cp .env.example .env
 
       - name: Build and start the app
-        run: task up
+        run: |
+          docker compose up -d --build
+          docker ps
 
       # pg_isready ships inside the Postgres image
       - name: Wait until Postgres is ready
@@ -92,4 +85,4 @@ jobs:
 
       - name: Stop the app
         if: always()
-        run: task down
+        run: docker compose down
