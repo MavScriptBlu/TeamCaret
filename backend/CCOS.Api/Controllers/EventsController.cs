@@ -75,7 +75,6 @@ public class EventsController(EventRepository events) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<ActionResult<EventDto>> Create(
         [FromBody] CreateEventRequest input,
         CancellationToken cancellationToken)
@@ -110,7 +109,6 @@ public class EventsController(EventRepository events) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
-    [ValidateAntiForgeryToken]
     public async Task<ActionResult<EventDto>> Update(
         int id,
         [FromBody] UpdateEventRequest input,
@@ -187,7 +185,6 @@ public class EventsController(EventRepository events) : ControllerBase
     /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpDelete("{id:int}")]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var success = await events.SoftDeleteAsync(id, cancellationToken);
