@@ -96,7 +96,7 @@ else
                                         else
                                         {
                                             @TicketPrices.Format(ticketType.Price)
-                                            @:, members @TicketPrices.Format(ticketType.MemberPrice)
+                                            @:, members @TicketPrices.Format(ticketType.MemberPrice.GetValueOrDefault())
                                         }
                                     </dd>
                                 </div>

@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Venues;
 /// Officer venue list (/Officer/Venues). Shows every venue from CCOS.Api, removed ones too
 /// (CAR-57), with Remove and Restore buttons (CAR-58). Venues are never deleted: Remove sets
 /// IsActive to false and Restore sets it back to true, and the Remove button asks first.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class IndexModel(VenuesApiClient venuesApi, ILogger<IndexModel> logger) : PageModel
 {

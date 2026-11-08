@@ -9,7 +9,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Create Event page (/Officer/Events/Create). Checks what the officer typed, sends the new event
 /// to CCOS.Api (CAR-55), then goes to /Events with an "Event added" message. Cancel goes back to /Events.
 /// The fields and their checks are in EventFormPageModel, shared with the Edit page.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class CreateModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILogger<CreateModel> logger)
     : EventFormPageModel

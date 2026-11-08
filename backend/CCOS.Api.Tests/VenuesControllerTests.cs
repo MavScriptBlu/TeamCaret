@@ -90,6 +90,9 @@ public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program
         _mainVenueId = mainVenue.VenueId;
         _removedVenueId = removedVenue.VenueId;
         _noAddressVenueId = noAddressVenue.VenueId;
+
+        // The venue officer endpoints are officer-only (CAR-69).
+        await TestAccounts.SignInAsOfficerAsync(customizedFactory, _client);
     }
 
     public async Task DisposeAsync()

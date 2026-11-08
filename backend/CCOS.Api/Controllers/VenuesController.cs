@@ -1,6 +1,7 @@
 using CCOS.Data.Entities;
 using CCOS.Repositories;
 using CCOS.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CCOS.Api.Controllers;
@@ -28,9 +29,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// <summary>
     /// GET /api/venues/officer: the officer venue list (CAR-57). Every venue, removed ones too,
     /// with its address, by name.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpGet("officer")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<IReadOnlyList<VenueDetailDto>> ListForOfficers(CancellationToken cancellationToken)
     {
         var items = await venues.ListAllAsync(cancellationToken);
@@ -39,9 +40,11 @@ public class VenuesController(VenueRepository venues) : ControllerBase
 
     /// <summary>
     /// GET /api/venues/{id}: one venue with its address, or 404. Removed venues come back too
-    /// (IsActive false) so the edit page can restore them.
+    /// (IsActive false) so the edit page can restore them. Officers only (CAR-69), since only the
+    /// officer pages use it and it includes removed venues.
     /// </summary>
     [HttpGet("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<ActionResult<VenueDetailDto>> Get(int id, CancellationToken cancellationToken)
     {
         var venue = await venues.FindAsync(id, cancellationToken);
@@ -57,10 +60,11 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// <summary>
     /// POST /api/venues: CREATE a venue and its address (CAR-51). Missing or too-long fields
     /// and a capacity under 1 come back as 400 automatically ([ApiController]); a name that's
-    /// already used comes back as 400 with the message on Name.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// already used comes back as 400 with the message on Name. Officers only (CAR-69):
+    /// 401 when not signed in, 403 when signed in but not an officer.
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<ActionResult<VenueDto>> Create(
         [FromBody] CreateVenueRequest input,
         CancellationToken cancellationToken)
@@ -88,9 +92,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// PUT /api/venues/{id}: UPDATE a venue and its address (CAR-57). The same checks as POST,
     /// and the name can match the venue's own current name. IsActive true restores a removed venue.
     /// 404 when there's no venue with that id.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<ActionResult<VenueDetailDto>> Update(
         int id,
         [FromBody] UpdateVenueRequest input,
@@ -126,9 +130,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// DELETE /api/venues/{id}: REMOVE a venue (CAR-58). It's a soft delete, so IsActive becomes
     /// false and the row stays in the database. PUT with IsActive true brings it back.
     /// 204 on success, 404 when there's no venue with that id.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var success = await venues.SoftDeleteAsync(id, cancellationToken);

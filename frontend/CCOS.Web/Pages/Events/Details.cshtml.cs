@@ -47,6 +47,12 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
     public string? MemberPriceText { get; private set; }
 
     /// <summary>
+    /// True when there is a member price the visitor can't see (not a current member, CAR-69).
+    /// The page shows "Log in as a member to see the member price" instead.
+    /// </summary>
+    public bool MemberPriceHidden { get; private set; }
+
+    /// <summary>
     /// True when the API couldn't be reached, so the page shows an error message instead.
     /// </summary>
     public bool LoadFailed { get; private set; }
@@ -80,6 +86,7 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
 
         var regular = TicketPrices.RegularPriceText(Event);
         var member = TicketPrices.MemberPriceText(Event);
+        MemberPriceHidden = TicketPrices.MemberPriceHidden(Event);
 
         // Members-only events show just the member price. Other events show the regular price,
         // plus the member price only when it is actually different.

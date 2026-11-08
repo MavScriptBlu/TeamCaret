@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Venues;
 /// Venue form page (/Officer/Venues/Create). Checks what the officer typed, sends the new venue
 /// to CCOS.Api (CAR-51), then goes to /Events with a "Venue added" message.
 /// The fields and their checks are in VenueFormPageModel, shared with the Edit page.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class CreateModel(VenuesApiClient venuesApi, ILogger<CreateModel> logger) : VenueFormPageModel
 {

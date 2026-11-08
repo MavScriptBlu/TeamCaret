@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Officer event list (/Officer/Events). Shows every event from CCOS.Api, removed and past ones
 /// too (CAR-56), with Remove and Restore buttons. Events are never deleted: Remove sets IsActive
 /// to false and Restore sets it back to true, and the Remove button asks first.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class IndexModel(EventsApiClient eventsApi, ILogger<IndexModel> logger) : PageModel
 {
@@ -160,7 +160,8 @@ public class IndexModel(EventsApiClient eventsApi, ILogger<IndexModel> logger) :
                 existing.TicketCapacity,
                 existing.MembersOnly,
                 ticketType.Price,
-                ticketType.MemberPrice,
+                // The officer endpoint always sends the member price.
+                ticketType.MemberPrice.GetValueOrDefault(),
                 IsActive: true);
 
             using var response = await eventsApi.UpdateAsync(id, request, cancellationToken);
