@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-08 · Review fixes for CAR-67, CAR-68 and CAR-69 (login)
+
+From the team's review of the login stories:
+
+- Creating an account with an email that's already used now says "An account with that email already exists." on the Email field, once. Before, it showed Identity's "Username '...' is already taken" (`AccountController.EmailTakenMessage`).
+- Tests: `/api/me` for a current member (profile, Active status, member yes, officer no, no title, not the advisor).
+- Tests: `AccessRulesTests` now also covers an officer whose dues expired and the advisor, through real web requests. An expired officer is refused on officer endpoints and gets no member prices. The advisor can use officer endpoints but gets no member prices, since the advisor has no membership. Expired members are refused on officer endpoints too.
+- Still to do, after PR #175 (events and venues) merges, since it changes the same files: `GET /api/events/{id}` should only return upcoming events, and event ticket member prices should only go to current members, like products.
+
 ## 2026-11-05 · CAR-60 Tell people when the API can't be reached
 
 - Most pages already showed their own message when the API was down (merch, search, events, the officer product pages, venue and account forms). This closes the gaps that were left.
