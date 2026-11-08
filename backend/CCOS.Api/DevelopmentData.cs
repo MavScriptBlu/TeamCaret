@@ -1,6 +1,7 @@
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Repositories;
+using CCOS.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,9 +45,13 @@ public static class DevelopmentData
             await SeedVenuesAndEventsAsync(db);
         }
 
-        // Test accounts for signing in (CAR-66): one officer, one member, one guest.
-        // Their shared password comes from settings (user secrets or .env), never from the code.
-        if (!await db.Customers.AnyAsync())
+        // Test accounts for signing in: an officer, a member and a guest (CAR-66), and the
+        // advisor (CAR-67). Their shared password comes from settings (user secrets or .env), never from the code.
+        // The advisor is checked on its own, so a database seeded before CAR-67 still gets one.
+        var hasCustomers = await db.Customers.AnyAsync();
+        var hasAdvisor = await db.Users.AnyAsync(user => user.NormalizedEmail == SampleAdvisorEmail.ToUpperInvariant());
+
+        if (!hasCustomers || !hasAdvisor)
         {
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
             var sampleAccountSecret = configuration[SampleAccountsSettingKey];
@@ -62,7 +67,15 @@ public static class DevelopmentData
             }
             else
             {
-                await SeedAccountsAsync(db, sampleAccountSecret);
+                if (!hasCustomers)
+                {
+                    await SeedAccountsAsync(db, sampleAccountSecret);
+                }
+
+                if (!hasAdvisor)
+                {
+                    await SeedAdvisorAsync(db, sampleAccountSecret);
+                }
             }
         }
 
@@ -236,6 +249,9 @@ public static class DevelopmentData
     /// </summary>
     public const string SampleAccountsSettingKey = "SampleAccounts:Password";
 
+    /// <summary>The sample advisor's email (backend/README.md, "Sample accounts").</summary>
+    private const string SampleAdvisorEmail = "advisor@ccos.test";
+
     /// <summary>
     /// Seeds three sample people, each with a login (backend/README.md, "Sample accounts"):
     /// officer@ccos.test is a current member who holds the President title,
@@ -290,6 +306,31 @@ public static class DevelopmentData
             GrantedDate = today,
         });
 
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seeds the sample advisor: a person with a login and the Advisor role, but no membership
+    /// or officer title, who still passes the Officer policy (CAR-67). Creates the Advisor role
+    /// first if the database doesn't have it yet.
+    /// </summary>
+    private static async Task SeedAdvisorAsync(AppDbContext db, string sampleAccountSecret)
+    {
+        var advisorRole = await db.Roles.SingleOrDefaultAsync(role => role.NormalizedName == ClubRoles.Advisor.ToUpperInvariant());
+        if (advisorRole is null)
+        {
+            advisorRole = new IdentityRole(ClubRoles.Advisor) { NormalizedName = ClubRoles.Advisor.ToUpperInvariant() };
+            db.Roles.Add(advisorRole);
+        }
+
+        // Every login needs a customer, so save the advisor's first to get its CustomerId.
+        var advisorCustomer = new Customer { FirstName = "Sample", LastName = "Advisor" };
+        db.Customers.Add(advisorCustomer);
+        await db.SaveChangesAsync();
+
+        var advisor = CreateSampleLogin(SampleAdvisorEmail, advisorCustomer, sampleAccountSecret);
+        db.Users.Add(advisor);
+        db.UserRoles.Add(new IdentityUserRole<string> { UserId = advisor.Id, RoleId = advisorRole.Id });
         await db.SaveChangesAsync();
     }
 
