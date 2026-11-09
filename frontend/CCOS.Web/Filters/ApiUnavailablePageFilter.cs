@@ -10,7 +10,7 @@ namespace CCOS.Web.Filters;
 /// and the status page (Pages/Status.cshtml) tells the person the club's system isn't reachable.
 /// A visitor closing the page (cancellation) is not treated as an API problem.
 /// </summary>
-public sealed class ApiUnavailablePageFilter(ILogger<ApiUnavailablePageFilter> logger) : IAsyncPageFilter
+public sealed partial class ApiUnavailablePageFilter(ILogger<ApiUnavailablePageFilter> logger) : IAsyncPageFilter
 {
     public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context) => Task.CompletedTask;
 
@@ -18,20 +18,29 @@ public sealed class ApiUnavailablePageFilter(ILogger<ApiUnavailablePageFilter> l
     {
         var executed = await next();
 
-        if (executed.Exception is { } ex
-            && !executed.ExceptionHandled
-            && IsApiUnavailable(ex, context.HttpContext.RequestAborted))
+        if (executed.Exception is not { } ex
+            || executed.ExceptionHandled
+            || !IsApiUnavailable(ex, context.HttpContext.RequestAborted))
         {
-            logger.LogError(ex, "CCOS.Api couldn't be reached while loading {Page}.", context.ActionDescriptor.DisplayName);
-            executed.Result = new StatusCodeResult(StatusCodes.Status503ServiceUnavailable);
-            executed.ExceptionHandled = true;
+            return;
         }
+
+        LogApiUnavailable(logger, ex, context.ActionDescriptor.DisplayName ?? "an unknown page");
+        executed.Result = new StatusCodeResult(StatusCodes.Status503ServiceUnavailable);
+        executed.ExceptionHandled = true;
     }
 
     /// <summary>
     /// True when the exception means the API is down, too slow, or sent something unreadable.
+    /// A cancellation only counts when the visitor didn't close the page themselves (a timeout).
     /// </summary>
-    public static bool IsApiUnavailable(Exception ex, CancellationToken requestAborted) =>
-        ex is HttpRequestException or JsonException
-        || (ex is TaskCanceledException && !requestAborted.IsCancellationRequested);
+    public static bool IsApiUnavailable(Exception ex, CancellationToken requestAborted) => ex switch
+    {
+        HttpRequestException or JsonException => true,
+        TaskCanceledException => !requestAborted.IsCancellationRequested,
+        _ => false,
+    };
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "CCOS.Api couldn't be reached while loading {Page}.")]
+    private static partial void LogApiUnavailable(ILogger logger, Exception exception, string page);
 }
