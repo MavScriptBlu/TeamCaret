@@ -5,6 +5,13 @@ Database and design decisions, newest first.
 ## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
 
 - Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+## 2026-11-08 · CAR-60 Codacy fixes
+
+Code-quality notes Codacy left on CAR-60. No change to what people see.
+
+- `StatusModel`: the heading and message are worked out from the status code instead of being set to empty and overwritten. Status codes other than 404 and 503 are logged, and the page is never cached (`[ResponseCache(NoStore = true)]`), so a "not reachable" page doesn't stick around once the API is back.
+- `ApiUnavailablePageFilter`: logs through a `[LoggerMessage]` method, with a fallback when the page has no display name. `IsApiUnavailable` is a plain `switch`, so it reads more easily.
+- `ApiUnavailableTests`: the test data is a property, the site with the API switched off is started once and shared (`IClassFixture<ApiDownSite>`), and the three page checks are one test with three cases instead of three copies.
 
 ## 2026-11-08 · Review fixes for CAR-67, CAR-68 and CAR-69 (login)
 
