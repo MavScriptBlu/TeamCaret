@@ -2,6 +2,13 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-09 · Mock sample venues and events
+
+- The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
+- The sample events have realistic names and descriptions, and cover the cases QA needs: four upcoming events, one members-only event with 12 tickets already sold (for the capacity check on Edit), one past event (hidden from /Events, still on the officer list), and one removed event (for Restore event).
+- The sample logins' first names are their role, so the header says who you're signed in as: "Hi, Officer", "Hi, Member", "Hi, Guest", "Hi, Advisor" (was "Hi, Sample" for all four).
+- Sample data is only added to an empty database, so run `docker compose down -v` and then `docker compose up --build -d` to get it. That erases your local database, including anything you added while testing. The sample logins come back too, as long as `SAMPLE_ACCOUNT_PASSWORD` is set in `.env`.
+
 ## 2026-11-09 · CAR-69 follow-up: officer locks on events and venues, event member prices, past events
 
 Found in the Sprint 4 QA run and the team's CAR-69 review, now that events and venues (#175) are in Dev.
