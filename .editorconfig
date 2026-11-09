@@ -1,0 +1,51 @@
+# CCOS code style. Visual Studio, VS Code and Rider all read this file automatically.
+# `task format` fixes spacing and indents to match it. `task lint` checks it (CI runs that too).
+# Style rules are "suggestion" so they show up as hints in your editor but never break the build.
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# YAML, JSON and project files use 2 spaces
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.{csproj,props,targets,slnx,xml}]
+indent_size = 2
+
+# Markdown uses two trailing spaces as a line break, so leave them alone
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Usings: System first, all in one block at the top of the file
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Matches how our code already looks
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_prefer_braces = true:suggestion
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_new_line_before_open_brace = all
+
+# Naming: private fields are _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# EF Core writes the migrations for us, so don't lint them
+[**/Migrations/*.cs]
+generated_code = true
+
+# Test names read like sentences (Reservation_blocks_overselling), so underscores are fine
+[**/*.Tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none

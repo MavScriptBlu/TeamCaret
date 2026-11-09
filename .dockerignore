@@ -1,0 +1,16 @@
+# Stuff Docker should NOT copy into the image build.
+# Most important: .env (your password) never goes into an image.
+.env
+.git
+.vs
+.vscode
+.claude
+.remember
+**/bin
+**/obj
+**/*.db
+**/*.user
+docs
+assets
+skills
+workflows

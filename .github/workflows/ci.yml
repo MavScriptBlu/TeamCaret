@@ -1,0 +1,93 @@
+# Runs on every push and pull request.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore CCOS.slnx
+
+      - name: Build
+        run: dotnet build CCOS.slnx --no-restore
+
+      - name: Check formatting
+        run: dotnet format CCOS.slnx --verify-no-changes --severity error
+
+      - name: Test
+        run: dotnet test CCOS.slnx --no-build --logger "console;verbosity=normal"
+
+  database:
+    name: App starts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # CI has no real .env, so use the example file (fake password, never a real one)
+      # Force Docker (not Podman) since GitHub runners have Docker
+      - name: Make .env from the example
+        run: |
+          cp .env.example .env
+          sed -i '/^CONTAINER=/d' .env
+          echo 'CONTAINER=docker' >> .env
+
+      - name: Build and start the app
+        run: docker compose up -d --build
+
+      # pg_isready ships inside the Postgres image
+      - name: Wait until Postgres is ready
+        run: |
+          set -a; . ./.env; set +a
+          for attempt in $(seq 1 30); do
+            docker compose exec -T ccos-db pg_isready -U "$POSTGRES_USER" && exit 0
+            sleep 2
+          done
+          echo "Postgres never got ready"; docker compose logs ccos-db; exit 1
+
+      - name: Restore NuGet packages
+        run: dotnet restore CCOS.slnx
+
+      # Same as `task migrate`, but CI has no user secrets, so it passes the connection string directly
+      - name: Apply the database migrations
+        run: |
+          set -a; . ./.env; set +a
+          dotnet tool restore
+          CCOS_CONNECTION_STRING="Host=localhost;Port=${POSTGRES_PORT:-5432};Database=$POSTGRES_DB;Username=$POSTGRES_USER;Password=$POSTGRES_PASSWORD" \
+            dotnet ef database update --project backend/CCOS.Data
+
+      # The website's Products page calls the API, so this checks the containers work together
+      - name: Check the API and website answer
+        run: |
+          for attempt in $(seq 1 30); do
+          if curl -fsS http://localhost:8081/api/products > /dev/null &&
+             page=$(curl -fsS http://localhost:8080/Products) &&
+             [[ "$page" != *'role="alert"'* ]]; then
+            exit 0
+          fi
+            sleep 2
+          done
+          echo "API or website never answered"; docker compose logs ccos-api ccos-web; exit 1
+
+      - name: Stop the app
+        if: always()
+        run: docker compose down

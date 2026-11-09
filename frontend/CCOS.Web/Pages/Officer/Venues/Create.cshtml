@@ -1,0 +1,11 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Venue Form";
+}
+
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+
+@* The form itself is in _VenueForm.cshtml, shared with the Edit Venue page. Saves through CCOS.Api (CAR-51). *@
+
+<partial name="_VenueForm" model="Model" />

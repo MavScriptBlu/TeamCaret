@@ -1,0 +1,31 @@
+@model CCOS.Web.Services.PriceTag
+@*
+    Shared price display (CAR-78). With a member price, the member price is the big one, with a
+    gold "Member price" tag, and the regular price sits under it, smaller and crossed out.
+    The words "Member price" and "Regular" are always written out, because screen readers
+    don't read crossed-out text any differently.
+*@
+@if (!Model.IsEmpty)
+{
+    <span class="price-tag @(Model.Large ? "price-tag--large" : null)">
+        @if (Model.Member is not null)
+        {
+            <span class="price-tag-member">
+                <span class="price-tag-label">Member price</span>
+                <span class="price-tag-amount price-tag-amount--member">@Model.Member</span>
+            </span>
+            @if (Model.Regular is not null)
+            {
+                <span class="price-tag-regular">Regular <s>@Model.Regular</s></span>
+            }
+        }
+        else
+        {
+            @if (Model.RegularLabel is not null)
+            {
+                <span class="price-tag-caption">@Model.RegularLabel</span>
+            }
+            <span class="price-tag-amount">@Model.Regular</span>
+        }
+    </span>
+}

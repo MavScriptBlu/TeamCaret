@@ -1,0 +1,15 @@
+@page
+@model AccessDeniedModel
+@{
+    ViewData["Title"] = "Officers only";
+}
+
+<link rel="stylesheet" href="~/css/account.css" asp-append-version="true" />
+
+@* "Officers only" screen (CAR-69): a signed-in person who isn't an officer opened an officer page. *@
+<section class="account-card" aria-labelledby="deniedTitle">
+    <h1 id="deniedTitle" class="account-title">Officers only</h1>
+    <p>This page is for club officers. Your account doesn't have an officer title right now.</p>
+    <p class="account-hint">Just got a title or renewed your dues? Log out and back in to update your account.</p>
+    <a class="account-submit account-link-button" href="/Products">Back to merch</a>
+</section>

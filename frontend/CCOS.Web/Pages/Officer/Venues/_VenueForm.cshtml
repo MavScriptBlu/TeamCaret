@@ -1,0 +1,71 @@
+@model CCOS.Web.Pages.Officer.Venues.VenueFormPageModel
+@*
+    Shared form for the venue Create and Edit pages. Matches Wireframe-Venue-Form. The address is
+    split into the VenueAddress columns from the schema doc. The server checks every field and
+    shows its message under the field. Image and description are display-only for now.
+*@
+
+<h1 class="event-form-title">@Model.Heading</h1>
+
+<form method="post" class="event-form" novalidate>
+    <div asp-validation-summary="ModelOnly" class="venue-validation-summary" role="alert"></div>
+    <div class="event-detail-top">
+        @* Image isn't in the database yet; the file is not uploaded or saved. *@
+        <partial name="_ImageDrop" model="Model.ImagePrompt" />
+
+        <div class="event-form-fields">
+            <label class="visually-hidden" for="Name">Venue name</label>
+            <input asp-for="Name" class="event-form-name" placeholder="Venue Name" maxlength="100" autocomplete="off" />
+            <span asp-validation-for="Name" class="field-validation-error"></span>
+
+            <div class="event-form-row">
+                <span class="event-form-label" id="addressLabel">Address</span>
+                <div class="event-form-stack" role="group" aria-labelledby="addressLabel">
+                    <input asp-for="AddressLine1" placeholder="Street address" maxlength="100" aria-label="Street address" />
+                    <span asp-validation-for="AddressLine1" class="field-validation-error"></span>
+                    <input asp-for="AddressLine2" placeholder="Building, room (optional)" maxlength="100" aria-label="Building or room" />
+                    <div class="venue-form-city">
+                        <input asp-for="City" placeholder="City" maxlength="50" aria-label="City" />
+                        <input asp-for="State" class="venue-form-state" placeholder="State" maxlength="2" aria-label="State" />
+                        <input asp-for="ZipCode" class="venue-form-zip" placeholder="ZIP" maxlength="10" inputmode="numeric" aria-label="ZIP code" />
+                    </div>
+                    <span asp-validation-for="City" class="field-validation-error"></span>
+                    <span asp-validation-for="State" class="field-validation-error"></span>
+                    <span asp-validation-for="ZipCode" class="field-validation-error"></span>
+                </div>
+            </div>
+
+            <div class="event-form-row">
+                <label class="event-form-label" asp-for="Capacity">Capacity</label>
+                <div class="event-form-stack">
+                    <input asp-for="Capacity" type="number" min="1" step="1" class="event-form-short" />
+                    <span asp-validation-for="Capacity" class="field-validation-error"></span>
+                </div>
+            </div>
+
+            @if (Model.ShowActiveBox)
+            {
+                <div class="event-form-row">
+                    <span class="event-form-label"></span>
+                    <div class="event-form-stack">
+                        <label class="event-form-check">
+                            <input asp-for="IsActive" />
+                            Show in the venue list
+                        </label>
+                        <span class="event-form-hint">Untick to remove this venue. Tick to restore it. Nothing is deleted.</span>
+                    </div>
+                </div>
+            }
+
+            <div class="event-form-actions">
+                <button type="submit" class="event-rsvp">@Model.SaveText</button>
+                <a class="event-form-cancel" asp-page="@Model.CancelPage">Cancel</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="event-detail-description">
+        <label class="visually-hidden" for="Description">Description</label>
+        <textarea asp-for="Description" class="event-form-description" rows="5" placeholder="Description and further details"></textarea>
+    </div>
+</form>

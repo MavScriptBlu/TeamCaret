@@ -1,0 +1,463 @@
+:root {
+    --maroon: #82142c;
+    --gold: #fdb71a;
+    --masthead: #272324;
+    --on-dark: #fff;
+    --surface: #f4f2f0;
+    --raised: #fff;
+    --text: #231f20;
+    --muted: #5e5759;
+    --brand-text: #82142c;
+    --divider: #e2dcda;
+    --focus: #82142c;
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s8: 48px;
+    --r-sm: 3px;
+    --font: 'Montserrat', 'Gotham', system-ui, sans-serif;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    color: var(--text);
+    font: 400 15px/24px var(--font);
+}
+
+main {
+    flex: 1;
+    padding-block: var(--s5) var(--s8);
+}
+
+h1, h2, h3 {
+    font-family: var(--font);
+    margin: 0;
+    color: var(--text);
+}
+
+button, input {
+    font: inherit;
+    color: inherit;
+}
+
+a {
+    color: var(--brand-text);
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+img {
+    max-width: 100%;
+}
+
+.wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: var(--s4);
+    width: 100%;
+}
+
+/* ---------- Header ---------- */
+.bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--masthead);
+    color: var(--on-dark);
+    border-bottom: 3px solid var(--maroon);
+}
+
+    .bar .wrap {
+        display: flex;
+        align-items: center;
+        gap: var(--s3);
+        padding-block: var(--s2);
+    }
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--on-dark);
+    white-space: nowrap;
+}
+
+.brand-dark {
+    color: var(--text);
+}
+
+.brand-logo {
+    width: 75px;
+    height: auto;
+    object-fit: contain;
+    flex: none;
+}
+
+.search {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+
+    .search input {
+        width: 100%;
+        max-width: 380px;
+        min-width: 0;
+        border: 1px solid #8c8385;
+        background: #1d1a1b;
+        color: #fff;
+        border-radius: var(--r-sm);
+        padding: var(--s2) var(--s3);
+        font-size: 14px;
+    }
+
+        .search input::placeholder {
+            color: #b8b1b2;
+        }
+
+.icon-btn {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
+    color: var(--on-dark);
+    font-size: 26px;
+    line-height: 1;
+}
+
+    .icon-btn:hover {
+        background: rgba(255,255,255,.1);
+    }
+
+    .icon-btn svg, .avatar svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
+.avatar {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    background: var(--maroon);
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+}
+
+/* hide the club name next to the logo on narrow screens (400px) */
+@media (max-width: 560px) {
+    .bar .brand span {
+        display: none;
+    }
+}
+
+/* ---------- Slide-out menu ---------- */
+.scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,16,17,.65);
+    z-index: 50;
+}
+
+.drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    width: min(300px, 100%);
+    background: var(--raised);
+    border-right: 3px solid var(--maroon);
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--s3) var(--s4);
+    border-bottom: 1px solid var(--divider);
+}
+
+    .drawer-head .icon-btn {
+        color: var(--text);
+    }
+
+        .drawer-head .icon-btn:hover {
+            background: var(--divider);
+        }
+
+.navlinks {
+    padding: var(--s4);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+    .navlinks a {
+        display: block;
+        padding: var(--s3) var(--s2);
+        text-decoration: none;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 16px;
+        border-bottom: 1px solid var(--divider);
+    }
+
+        .navlinks a:hover {
+            color: var(--brand-text);
+        }
+
+/* ---------- Footer ---------- */
+footer.site {
+    border-top: 1px solid var(--divider);
+    background: var(--raised);
+    padding-block: var(--s6);
+}
+
+    footer.site .wrap {
+        display: flex;
+        gap: var(--s6);
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    footer.site .cols {
+        display: flex;
+        gap: var(--s8);
+        flex-wrap: wrap;
+    }
+
+    footer.site h4 {
+        margin: 0 0 var(--s2);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--brand-text);
+    }
+
+    footer.site .cols a {
+        display: block;
+        padding: 2px 0;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+        footer.site .cols a:hover {
+            color: var(--brand-text);
+            text-decoration: underline;
+        }
+
+    footer.site .note {
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--muted);
+        margin: var(--s2) 0 0;
+    }
+
+@media (max-width: 480px) {
+    footer.site .cols {
+        gap: var(--s5);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
+
+/* ---------- Account links in the header (CAR-68) ---------- */
+.account-nav {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+}
+
+.account-greeting {
+    color: var(--on-dark);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.account-logout {
+    margin: 0;
+}
+
+.account-nav-link {
+    flex: none;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--s3);
+    background: var(--maroon);
+    color: var(--on-dark);
+    border: 1px solid var(--on-dark);
+    border-radius: var(--r-sm);
+    font: 600 14px/1 var(--font);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+    .account-nav-link:hover {
+        background: #6a1024;
+    }
+
+    .account-nav-link:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 2px;
+    }
+
+/* On narrow screens keep just the Log out button. */
+@media (max-width: 560px) {
+    .account-greeting {
+        display: none;
+    }
+}
+
+/* ---------- Status and error pages (CAR-60) ---------- */
+.status-card {
+    max-width: 560px;
+    margin: var(--s6) auto;
+    padding: var(--s5);
+    background: var(--raised);
+    border: 1px solid var(--divider);
+    border-left: 4px solid var(--maroon);
+    border-radius: var(--r-sm);
+}
+
+    .status-card h1 {
+        margin: 0 0 var(--s3);
+        font-size: 24px;
+        line-height: 1.25;
+    }
+
+    .status-card p {
+        margin: 0 0 var(--s4);
+    }
+
+.status-hint {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.status-link {
+    color: var(--brand-text);
+    font-weight: 600;
+}
+
+/* ---------- Prices (CAR-78) ----------
+   Shared by product cards, the product page and the event page (Pages/Shared/_PriceTag.cshtml).
+   With a member price, the member price is the big maroon one with a gold tag, and the
+   regular price sits under it, smaller and crossed out. */
+.price-tag {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.price-tag-member {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.price-tag-label {
+    padding: 1px var(--s2);
+    border-radius: 999px;
+    background: var(--gold);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.price-tag-amount {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.price-tag-amount--member {
+    color: var(--brand-text);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.price-tag-regular,
+.price-tag-caption {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.price-tag--large .price-tag-amount {
+    font-size: 1.5rem;
+}
+
+.price-tag--large .price-tag-amount--member {
+    font-size: 2rem;
+}
+
+.price-tag--large .price-tag-label {
+    font-size: 13px;
+}
+
+.price-tag--large .price-tag-regular,
+.price-tag--large .price-tag-caption {
+    font-size: 15px;
+}
+
+.price-tag-hint {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+    .price-tag-hint a {
+        color: var(--brand-text);
+        font-weight: 600;
+    }
