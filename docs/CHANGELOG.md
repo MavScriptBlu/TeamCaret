@@ -2,6 +2,10 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
+
+- Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+
 ## 2026-11-08 · Review fixes for CAR-67, CAR-68 and CAR-69 (login)
 
 From the team's review of the login stories:

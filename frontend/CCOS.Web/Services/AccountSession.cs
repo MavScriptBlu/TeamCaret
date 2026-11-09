@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
 using CCOS.Shared;
@@ -191,6 +192,8 @@ public static class AccountSession
     /// The page to go to after signing in: the one the person came from when it's a page on this
     /// site, otherwise the merch page. Stops links that would send someone to another website.
     /// </summary>
+    [SuppressMessage("Major Code Smell", "S3994:URI parameters should not be strings", Justification = "ReturnUrl is a relative path from the query string; LocalRedirect and Url.IsLocalUrl take strings. Open redirects are blocked by AccountSession.SafeReturnUrl.")]
+    [SuppressMessage("Major Code Smell", "S3995:URI return values should not be strings", Justification = "ReturnUrl is a relative path from the query string; LocalRedirect and Url.IsLocalUrl take strings. Open redirects are blocked by AccountSession.SafeReturnUrl.")]
     public static string SafeReturnUrl(string? returnUrl)
     {
         if (!string.IsNullOrEmpty(returnUrl)

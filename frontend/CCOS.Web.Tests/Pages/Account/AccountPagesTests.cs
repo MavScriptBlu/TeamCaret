@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
@@ -56,6 +57,7 @@ public class AccountPagesTests
         new CurrentAccountDto(7, "Morgan", "Lee", Email, MemberStatus.Active, true, false, null, false),
         new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
+    [SuppressMessage("Major Code Smell", "S3994:URI parameters should not be strings", Justification = "Mirrors the page models, whose ReturnUrl is a string (see AccountSession.SafeReturnUrl).")]
     private LoginModel CreateLogin(string? returnUrl = null) =>
         new(CreateClient(), NullLogger<LoginModel>.Instance)
         {
@@ -180,6 +182,7 @@ public class AccountPagesTests
     [InlineData("//evil.example/", "/Products")]
     [InlineData("/\\evil.example/", "/Products")]
     [InlineData(null, "/Products")]
+    [SuppressMessage("Major Code Smell", "S3994:URI parameters should not be strings", Justification = "Mirrors the page models, whose ReturnUrl is a string (see AccountSession.SafeReturnUrl).")]
     public void SafeReturnUrl_OnlyAllowsPagesOnThisSite(string? returnUrl, string expected)
     {
         Assert.Equal(expected, AccountSession.SafeReturnUrl(returnUrl));

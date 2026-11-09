@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using CCOS.Shared;
 using CCOS.Web.Extensions;
@@ -44,6 +45,7 @@ public class RegisterModel(AccountApiClient accounts, ILogger<RegisterModel> log
 
     /// <summary>The page to go back to after creating the account.</summary>
     [BindProperty(SupportsGet = true)]
+    [SuppressMessage("Major Code Smell", "S3996:URI properties should not be strings", Justification = "ReturnUrl is a relative path from the query string; LocalRedirect and Url.IsLocalUrl take strings. Open redirects are blocked by AccountSession.SafeReturnUrl.")]
     public string? ReturnUrl { get; set; }
 
     /// <summary>Shows the blank form, or skips it when the person is already signed in.</summary>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -27,6 +28,7 @@ public class LoginModel(AccountApiClient accounts, ILogger<LoginModel> logger) :
 
     /// <summary>The page to go back to after signing in (set when a locked page sent the person here).</summary>
     [BindProperty(SupportsGet = true)]
+    [SuppressMessage("Major Code Smell", "S3996:URI properties should not be strings", Justification = "ReturnUrl is a relative path from the query string; LocalRedirect and Url.IsLocalUrl take strings. Open redirects are blocked by AccountSession.SafeReturnUrl.")]
     public string? ReturnUrl { get; set; }
 
     /// <summary>
