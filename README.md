@@ -1,5 +1,7 @@
 # Cyber Cougars Club Order & Event System (CCOS)
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2475183df0864c119ed10ff384c69e47)](https://app.codacy.com/gh/MavScriptBlu/TeamCaret/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
 Team Caret - Agile Team Semester Project (Software Architecture)
 
 CCOS lets Cyber Cougars members (and non-member guests, for public events)

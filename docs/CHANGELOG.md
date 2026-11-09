@@ -2,9 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-08 · CAR-63: Full venue ZIP code validation enforcement
+
+- Enforced the ZIP code format rule (`^\d{5}(-\d{4})?$`, 5 digits or ZIP+4) across all venue creation and update paths (`CreateVenueRequest` DTO and `CreateModel` page model).
+- Updated venue creation and editing forms (`Create.cshtml` and `_VenueForm.cshtml`) to include `inputmode="numeric"` on ZIP code inputs.
+- Added comprehensive unit tests in `VenueValidationTests` covering valid 5-digit ZIPs, ZIP+4, and rejected formats (letters, invalid lengths, symbols).
+- No database migrations required as `VenueAddresses.ZipCode` column definition remains unchanged.
+
 ## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
 
 - Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+
 ## 2026-11-08 · CAR-60 Codacy fixes
 
 Code-quality notes Codacy left on CAR-60. No change to what people see.
