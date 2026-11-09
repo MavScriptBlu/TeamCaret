@@ -12,7 +12,7 @@ namespace CCOS.Web.Pages.Officer.Venues;
 /// officer typed, sends the changes to PUT /api/venues/{id} (CAR-57), then goes back to the venue
 /// list with a "Venue saved" message. The "Show in the venue list" box removes (unticked) or
 /// restores (ticked) the venue (CAR-58).
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class EditModel(VenuesApiClient venuesApi, ILogger<EditModel> logger) : VenueFormPageModel
 {

@@ -65,13 +65,13 @@ Identity's own `/auth/register` is turned off (404), because it would create a l
 ### Events
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/events` | Upcoming events: active, StartsAtUtc >= now, soonest first. Includes venue name and ticket types. |
-| GET | `/events/{id}` | One active event with venue name and active ticket types (price & member price). 404 for unknown/inactive. |
-| GET | `/events/officer` | Officer list (CAR-56): every event, removed and past ones too, newest start first. |
-| GET | `/events/officer/{id}` | One event in any state, so a removed event can be opened and restored. 404 for an unknown id. |
-| POST | `/events` | Create an event and its "General" ticket type in one save (CAR-55). 201 with the event. 400 for bad fields or a venue that is missing or removed. |
-| PUT | `/events/{id}` | Update an event and the prices on its ticket type. `IsActive: true` restores a removed event. 400 for bad fields or a capacity below the tickets already sold, 404 for an unknown id, 409 when someone else saved first. |
-| DELETE | `/events/{id}` | Remove an event (soft delete, `IsActive = false`; nothing is erased). 204, or 404 for an unknown id. Removing twice is fine. |
+| GET | `/events` | Upcoming events: active, StartsAtUtc >= now, soonest first. Includes venue name and ticket types; ticket `memberPrice` only for current members (null otherwise). |
+| GET | `/events/{id}` | One upcoming event (active, starting from now on) with venue name and active ticket types. 404 for unknown, removed or past events. Ticket `memberPrice` only for current members. |
+| GET | `/events/officer` | Officer list (CAR-56): every event, removed and past ones too, newest start first. Officer only. |
+| GET | `/events/officer/{id}` | One event in any state, so a removed event can be opened and restored. 404 for an unknown id. Officer only. |
+| POST | `/events` | Create an event and its "General" ticket type in one save (CAR-55). 201 with the event. 400 for bad fields or a venue that is missing or removed. Officer only. |
+| PUT | `/events/{id}` | Update an event and the prices on its ticket type. `IsActive: true` restores a removed event. 400 for bad fields or a capacity below the tickets already sold, 404 for an unknown id, 409 when someone else saved first. Officer only. |
+| DELETE | `/events/{id}` | Remove an event (soft delete, `IsActive = false`; nothing is erased). 204, or 404 for an unknown id. Removing twice is fine. Officer only. |
 
 Event request bodies (`CreateEventRequest`, `UpdateEventRequest`) take `name` (required, up to 100),
 `description` (up to 500), `startsAtUtc`, `endsAtUtc` (must be after the start), `venueId`,
@@ -83,16 +83,16 @@ the website converts from club time (America/Chicago).
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/venues` | Active venues by name, for the event form dropdown. |
-| GET | `/venues/officer` | Officer list (CAR-57): every venue, removed ones too, with its address, by name. |
-| GET | `/venues/{id}` | One venue with its address, removed ones too. Address parts are null for the sample venues. 404 for an unknown id. |
+| GET | `/venues/officer` | Officer list (CAR-57): every venue, removed ones too, with its address, by name. Officer only. |
+| GET | `/venues/{id}` | One venue with its address, removed ones too. Address parts are null for the sample venues. 404 for an unknown id. Officer only. |
 | POST | `/venues` | Create a venue and its address (CAR-51). 400 for bad fields or a name that is already used. Officer only (CAR-69). |
-| PUT | `/venues/{id}` | Update a venue and its address (CAR-57). The name can match the venue's own name. `IsActive: true` restores a removed venue. 404 for an unknown id. |
-| DELETE | `/venues/{id}` | Remove a venue (CAR-58, soft delete). 204, or 404 for an unknown id. Events that already use the venue keep showing its name. |
+| PUT | `/venues/{id}` | Update a venue and its address (CAR-57). The name can match the venue's own name. `IsActive: true` restores a removed venue. 404 for an unknown id. Officer only. |
+| DELETE | `/venues/{id}` | Remove a venue (CAR-58, soft delete). 204, or 404 for an unknown id. Events that already use the venue keep showing its name. Officer only. |
 
 ZIP codes (CAR-63) are 5 digits (`54481`) or ZIP+4 (`54481-1234`) on create and update. The rule lives
 in `CCOS.Shared.ZipCodeRules`, so the API and the Razor forms say the same thing.
 
-The other officer endpoints still have `TODO` comments to lock them to officers (CAR-69 follow-up).
+"Officer only" endpoints need the `Officer` policy (CAR-69): 401 when not signed in, 403 when signed in but not an officer.
 
 ### Orders
 | Method | Endpoint | Description |

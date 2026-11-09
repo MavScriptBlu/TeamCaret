@@ -19,10 +19,12 @@ public record EventDto(
 
 /// <summary>
 /// A ticket type for an event, for example "General" at $5 with a $0 member price.
+/// MemberPrice is null on the public event endpoints unless the caller is a current member (CAR-69);
+/// the officer endpoints always include it.
 /// </summary>
 public record TicketTypeDto(
     int TicketTypeId,
     string Name,
     decimal Price,
-    decimal MemberPrice,
+    decimal? MemberPrice,
     bool IsActive);

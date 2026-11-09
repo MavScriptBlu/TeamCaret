@@ -31,8 +31,9 @@ public record EventInfo(
 /// <summary>
 /// One ticket type for an event, for example "General" at $5 with a $0 member price.
 /// Matches the Product columns a TicketType uses: Name, Price, MemberPrice and IsActive.
+/// MemberPrice is null when the visitor isn't a current member, so the API didn't send it (CAR-69).
 /// </summary>
-public record TicketTypeInfo(string Name, decimal Price, decimal MemberPrice, bool IsActive = true);
+public record TicketTypeInfo(string Name, decimal Price, decimal? MemberPrice, bool IsActive = true);
 
 /// <summary>
 /// One venue an event can be held at. Matches Venue.VenueId and Venue.Name.
@@ -98,13 +99,21 @@ public static class TicketPrices
 
     /// <summary>
     /// Lowest member price across the event's active ticket types, with "from" when the
-    /// ticket types have different member prices. Null when no ticket types are on sale.
+    /// ticket types have different member prices. Null when no ticket types are on sale, or when
+    /// the visitor can't see member prices.
     /// </summary>
     public static string? MemberPriceText(EventInfo eventInfo) =>
         PriceText(eventInfo.TicketTypes
-            .Where(ticketType => ticketType.IsActive)
-            .Select(ticketType => ticketType.MemberPrice)
+            .Where(ticketType => ticketType.IsActive && ticketType.MemberPrice is not null)
+            .Select(ticketType => ticketType.MemberPrice!.Value)
             .ToList());
+
+    /// <summary>
+    /// True when tickets are on sale but the API left out the member price, because the visitor
+    /// isn't a current member (CAR-69). The event page then invites them to log in.
+    /// </summary>
+    public static bool MemberPriceHidden(EventInfo eventInfo) =>
+        eventInfo.TicketTypes.Any(ticketType => ticketType.IsActive && ticketType.MemberPrice is null);
 
     /// <summary>
     /// Shared price wording: nothing when there are no prices, the price when they all match,

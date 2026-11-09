@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-09 · CAR-69 follow-up: officer locks on events and venues, event member prices, past events
+
+Found in the Sprint 4 QA run and the team's CAR-69 review, now that events and venues (#175) are in Dev.
+
+- Officer lock on the event and venue officer endpoints: `GET /api/events/officer`, `GET /api/events/officer/{id}`, `POST`, `PUT` and `DELETE /api/events`, and `GET /api/venues/officer`, `GET /api/venues/{id}`, `PUT` and `DELETE /api/venues/{id}`. Not signed in answers 401, signed in but not an officer answers 403. Before this, a visitor who wasn't signed in could remove an event from the public event page. `GET /api/venues/{id}` is locked too, since only the officer pages use it and it includes removed venues.
+- The officer menus on `/Events` and on an event's page (Create, Manage, Edit, Remove) only show for officers, like the nav and footer.
+- Review fix: `GET /api/events/{id}` only returns upcoming events, the same rule as the list (`EventRepository.FindUpcomingAsync`, was `FindActiveAsync`). A past event can't be opened by its link; officers still reach it through `/api/events/officer/{id}`.
+- Review fix: event ticket member prices follow the product rule. `TicketTypeDto.MemberPrice` is now `decimal?` and is null on `GET /api/events` and `/api/events/{id}` unless the caller is a current member; the officer endpoints always include it. The event page shows "Member price: log in as a member to see it" instead.
+- Tests: the event API tests sign in as an officer (`TestAccounts.SignInAsOfficerAsync`). New tests: the event officer endpoints refuse a visitor who isn't signed in, visitors get no ticket member prices while officers do, and a past event's page is 404 while officers can still open it.
+
 ## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
 
 - Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.

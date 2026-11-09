@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Venues;
 /// Relational Schema" in docs). The rules match CreateVenueRequest and UpdateVenueRequest in
 /// CCOS.Shared, so the form and the API say the same thing. The image and description are
 /// display-only for now.
-/// Officer-only: lock these pages down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public abstract class VenueFormPageModel : PageModel
 {

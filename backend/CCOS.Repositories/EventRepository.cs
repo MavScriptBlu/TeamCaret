@@ -27,15 +27,16 @@ public sealed class EventRepository(AppDbContext db)
     }
 
     /// <summary>
-    /// One active event with its venue and active ticket types, or null if not found.
+    /// One upcoming event (active, starting from now on) with its venue and active ticket types,
+    /// or null. Same rule as ListUpcomingAsync, so a past event can't be opened by its link (CAR-69).
     /// </summary>
-    public async Task<Event?> FindActiveAsync(int eventId, CancellationToken cancellationToken = default)
+    public async Task<Event?> FindUpcomingAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await db.Events
             .AsNoTracking()
             .Include(@event => @event.Venue)
             .Include(@event => @event.TicketTypes.Where(t => t.IsActive))
-            .Where(@event => @event.IsActive)
+            .Where(@event => @event.IsActive && @event.StartsAtUtc >= DateTime.UtcNow)
             .FirstOrDefaultAsync(@event => @event.EventId == eventId, cancellationToken);
     }
 
