@@ -276,9 +276,9 @@ public static class DevelopmentData
     {
         var today = new ClubClock().Today;
 
-        var officerCustomer = new Customer { FirstName = "Sample", LastName = "Officer" };
-        var memberCustomer = new Customer { FirstName = "Sample", LastName = "Member" };
-        var guestCustomer = new Customer { FirstName = "Sample", LastName = "Guest" };
+        var officerCustomer = new Customer { FirstName = "Officer", LastName = "Sample" };
+        var memberCustomer = new Customer { FirstName = "Member", LastName = "Sample" };
+        var guestCustomer = new Customer { FirstName = "Guest", LastName = "Sample" };
 
         db.Customers.AddRange(officerCustomer, memberCustomer, guestCustomer);
 
@@ -338,7 +338,7 @@ public static class DevelopmentData
         }
 
         // Every login needs a customer, so save the advisor's first to get its CustomerId.
-        var advisorCustomer = new Customer { FirstName = "Sample", LastName = "Advisor" };
+        var advisorCustomer = new Customer { FirstName = "Advisor", LastName = "Sample" };
         db.Customers.Add(advisorCustomer);
         await db.SaveChangesAsync();
 
