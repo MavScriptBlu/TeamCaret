@@ -152,105 +152,106 @@ public static class DevelopmentData
     /// <param name="cancellationToken">Lets the app stop the setup early.</param>
     private static async Task SeedVenuesAndEventsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        // The 3 sample venues the pages show.
-        var venue1 = new Venue { Name = "Sample Venue, Room 101", Capacity = 100 };
-        var venue2 = new Venue { Name = "Sample Venue, Room 102", Capacity = 80 };
-        var venue3 = new Venue { Name = "Sample Venue, Room 103", Capacity = 60 };
+        // Mock venues with full addresses, so Edit and Restore work on them. The last one starts
+        // out removed, so "Restore venue" can be tried right away.
+        var commons = new Venue
+        {
+            Name = "Cougar Commons",
+            Capacity = 120,
+            Address = new VenueAddress { AddressLine1 = "1001 Centerpoint Dr", AddressLine2 = "Room 101", City = "Stevens Point", State = "WI", ZipCode = "54481" },
+        };
+        var lab = new Venue
+        {
+            Name = "Cyber Lab",
+            Capacity = 40,
+            Address = new VenueAddress { AddressLine1 = "1001 Centerpoint Dr", AddressLine2 = "Room 214", City = "Stevens Point", State = "WI", ZipCode = "54481" },
+        };
+        var library = new Venue
+        {
+            Name = "Riverside Library Meeting Room",
+            Capacity = 60,
+            Address = new VenueAddress { AddressLine1 = "500 River Rd", City = "Wausau", State = "WI", ZipCode = "54403-1234" },
+        };
+        var oldGym = new Venue
+        {
+            Name = "Old Gym",
+            Capacity = 200,
+            IsActive = false,
+            Address = new VenueAddress { AddressLine1 = "250 W Grand Ave", City = "Wisconsin Rapids", State = "WI", ZipCode = "54495" },
+        };
 
-        db.Venues.AddRange(venue1, venue2, venue3);
+        db.Venues.AddRange(commons, lab, library, oldGym);
         await db.SaveChangesAsync(cancellationToken);
 
-        // Events start a week from now and last 2 hours, same as the frontend samples.
+        // Upcoming events start a week from now at 5 PM club time (23:00 UTC) and last 2 hours.
         var firstStartUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(7).AddHours(23), DateTimeKind.Utc);
 
-        var event1 = new Event
-        {
-            Venue = venue1,
-            Name = "Sample Event 1",
-            Description = "Description and further details about the event.",
-            StartsAtUtc = firstStartUtc,
-            EndsAtUtc = firstStartUtc.AddHours(2),
-            TicketCapacity = 50,
-            MembersOnly = false
-        };
+        var ctfNight = NewEvent(commons, "Capture the Flag Night",
+            "Team up and solve security puzzles for prizes. Beginners welcome, bring a laptop.",
+            firstStartUtc, capacity: 50);
 
-        var event2 = new Event
-        {
-            Venue = venue2,
-            Name = "Sample Event 2",
-            Description = "Description and further details about the event.",
-            StartsAtUtc = firstStartUtc.AddDays(7),
-            EndsAtUtc = firstStartUtc.AddDays(7).AddHours(2),
-            TicketCapacity = 40,
-            MembersOnly = false
-        };
+        var linuxWorkshop = NewEvent(lab, "Intro to Linux Workshop",
+            "Hands-on basics: the terminal, files, users and permissions.",
+            firstStartUtc.AddDays(7), capacity: 30);
 
-        var event3 = new Event
-        {
-            Venue = venue3,
-            Name = "Sample Event 3",
-            Description = "Description and further details about the event.",
-            StartsAtUtc = firstStartUtc.AddDays(14),
-            EndsAtUtc = firstStartUtc.AddDays(14).AddHours(2),
-            TicketCapacity = 30,
-            MembersOnly = true
-        };
+        // Members only, with tickets already sold (so a lower capacity can be tried on Edit).
+        var hackathon = NewEvent(lab, "Members-only Hackathon",
+            "An evening of building and breaking things together. Members only.",
+            firstStartUtc.AddDays(14), capacity: 30, membersOnly: true);
+        hackathon.TicketsSold = 12;
 
-        var event4 = new Event
-        {
-            Venue = venue1,
-            Name = "Sample Event 4",
-            Description = "Description and further details about the event.",
-            StartsAtUtc = firstStartUtc.AddDays(21),
-            EndsAtUtc = firstStartUtc.AddDays(21).AddHours(2),
-            TicketCapacity = 50,
-            MembersOnly = false
-        };
+        var resumeNight = NewEvent(library, "Resume and LinkedIn Night",
+            "Get your resume reviewed and your LinkedIn profile ready for job season.",
+            firstStartUtc.AddDays(21), capacity: 40);
 
-        db.Events.AddRange(event1, event2, event3, event4);
+        // Already over: hidden from /Events and its page, but officers still see it.
+        var pastMeetup = NewEvent(commons, "Fall Kickoff Meetup",
+            "The first meetup of the semester.",
+            firstStartUtc.AddDays(-30), capacity: 80);
+
+        // Removed: only on the officer list, so "Restore event" can be tried right away.
+        var cancelledTalk = NewEvent(library, "Guest Speaker: Careers in Security",
+            "Rescheduled, details coming soon.",
+            firstStartUtc.AddDays(28), capacity: 60);
+        cancelledTalk.IsActive = false;
+
+        db.Events.AddRange(ctfNight, linuxWorkshop, hackathon, resumeNight, pastMeetup, cancelledTalk);
         await db.SaveChangesAsync(cancellationToken);
 
-        // One ticket type per event, matching the frontend samples.
+        // One "General" ticket type per event, like Create Event makes.
         db.TicketTypes.AddRange(
-            new TicketType
-            {
-                Event = event1,
-                Category = "Tickets",
-                Name = "General",
-                Price = 10.00m,
-                MemberPrice = 5.00m,
-                StockQuantity = 0
-            },
-            new TicketType
-            {
-                Event = event2,
-                Category = "Tickets",
-                Name = "General",
-                Price = 5.00m,
-                MemberPrice = 0.00m,
-                StockQuantity = 0
-            },
-            new TicketType
-            {
-                Event = event3,
-                Category = "Tickets",
-                Name = "General",
-                Price = 0.00m,
-                MemberPrice = 0.00m,
-                StockQuantity = 0
-            },
-            new TicketType
-            {
-                Event = event4,
-                Category = "Tickets",
-                Name = "General",
-                Price = 8.00m,
-                MemberPrice = 4.00m,
-                StockQuantity = 0
-            });
+            NewTicket(ctfNight, price: 10.00m, memberPrice: 5.00m),
+            NewTicket(linuxWorkshop, price: 5.00m, memberPrice: 0.00m),
+            NewTicket(hackathon, price: 0.00m, memberPrice: 0.00m),
+            NewTicket(resumeNight, price: 8.00m, memberPrice: 4.00m),
+            NewTicket(pastMeetup, price: 3.00m, memberPrice: 1.00m),
+            NewTicket(cancelledTalk, price: 6.00m, memberPrice: 3.00m));
 
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>A sample event that lasts 2 hours.</summary>
+    private static Event NewEvent(Venue venue, string name, string description, DateTime startsAtUtc, int capacity, bool membersOnly = false) => new()
+    {
+        Venue = venue,
+        Name = name,
+        Description = description,
+        StartsAtUtc = startsAtUtc,
+        EndsAtUtc = startsAtUtc.AddHours(2),
+        TicketCapacity = capacity,
+        MembersOnly = membersOnly,
+    };
+
+    /// <summary>A sample event's "General" ticket type.</summary>
+    private static TicketType NewTicket(Event @event, decimal price, decimal memberPrice) => new()
+    {
+        Event = @event,
+        Category = "Tickets",
+        Name = "General",
+        Price = price,
+        MemberPrice = memberPrice,
+        StockQuantity = 0,
+    };
 
     /// <summary>
     /// The setting that holds the shared password for the sample accounts. Set it in user
