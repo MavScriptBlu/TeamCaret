@@ -35,7 +35,9 @@
     <div class="events-section-head">
         <h2 id="upcoming-heading">Upcoming Events:</h2>
 
-        @* Officer actions. Lock these down once login exists. *@
+        @* Officer actions: only shown to officers (CAR-69). The Officer pages and the API check on their own too. *@
+        @if (User.IsOfficer())
+        {
         <details class="events-options" id="eventOptions">
             <summary aria-label="Event options">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
@@ -47,6 +49,7 @@
                 <a asp-page="/Officer/Venues/Index">Manage venues</a>
             </div>
         </details>
+        }
     </div>
 
     @if (Model.LoadFailed)

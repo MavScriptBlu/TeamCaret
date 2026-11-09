@@ -15,13 +15,16 @@ namespace CCOS.Api.Tests;
 
 /// <summary>
 /// Tests for the event create, edit, remove and officer list endpoints (CAR-55, CAR-56).
-/// Uses an in-memory SQLite database.
+/// Uses an in-memory SQLite database. The main client is signed in as an officer, since these
+/// endpoints are officer-only (CAR-69); the anonymous client checks what everyone else gets.
 /// </summary>
 public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _factory;
     private SqliteConnection _connection = null!;
     private HttpClient _client = null!;
+    private HttpClient _anonymous = null!;
+    private int _pastEventId;
 
     private int _venueId;
     private int _removedVenueId;
@@ -49,6 +52,7 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         });
 
         _client = customizedFactory.CreateClient();
+        _anonymous = customizedFactory.CreateClient();
 
         using var scope = customizedFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -80,18 +84,33 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         };
         removedEvent.TicketTypes.Add(new TicketType { Category = "Tickets", Name = "General", Price = 0m, MemberPrice = 0m });
 
-        db.AddRange(venue, removedVenue, soldEvent, removedEvent);
+        // Active, but already over: hidden from the public list and its page (CAR-69).
+        var pastEvent = new Event
+        {
+            Venue = venue,
+            Name = "Last Month's Meetup",
+            StartsAtUtc = DateTime.UtcNow.AddDays(-20),
+            EndsAtUtc = DateTime.UtcNow.AddDays(-20).AddHours(2),
+            TicketCapacity = 30,
+        };
+        pastEvent.TicketTypes.Add(new TicketType { Category = "Tickets", Name = "General", Price = 3m, MemberPrice = 1m });
+
+        db.AddRange(venue, removedVenue, soldEvent, removedEvent, pastEvent);
         await db.SaveChangesAsync();
+        _pastEventId = pastEvent.EventId;
 
         _venueId = venue.VenueId;
         _removedVenueId = removedVenue.VenueId;
         _soldEventId = soldEvent.EventId;
         _removedEventId = removedEvent.EventId;
+
+        await TestAccounts.SignInAsOfficerAsync(customizedFactory, _client);
     }
 
     public async Task DisposeAsync()
     {
         _client.Dispose();
+        _anonymous.Dispose();
         await _connection.CloseAsync();
         await _connection.DisposeAsync();
     }
@@ -296,6 +315,40 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var publicEvent = await _client.GetAsync($"/api/events/{_removedEventId}");
         Assert.Equal(HttpStatusCode.OK, publicEvent.StatusCode);
+    }
+
+    // ---- Who can do what (CAR-69) ----
+
+    [Fact]
+    public async Task Officer_endpoints_need_a_signed_in_officer()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.PostAsJsonAsync("/api/events", ValidCreate())).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.PutAsJsonAsync($"/api/events/{_soldEventId}", ValidUpdate(name: "Nope"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.DeleteAsync($"/api/events/{_soldEventId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.GetAsync("/api/events/officer")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _anonymous.GetAsync($"/api/events/officer/{_soldEventId}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Visitors_get_no_ticket_member_prices_but_officers_do()
+    {
+        var publicEvent = await _anonymous.GetFromJsonAsync<EventDto>($"/api/events/{_soldEventId}");
+        var publicList = await _anonymous.GetFromJsonAsync<List<EventDto>>("/api/events");
+        var officerEvent = await _client.GetFromJsonAsync<EventDto>($"/api/events/{_soldEventId}");
+
+        Assert.Null(Assert.Single(publicEvent!.TicketTypes).MemberPrice);
+        Assert.All(publicList!.SelectMany(e => e.TicketTypes), t => Assert.Null(t.MemberPrice));
+        Assert.Equal(5m, Assert.Single(officerEvent!.TicketTypes).MemberPrice);
+    }
+
+    [Fact]
+    public async Task A_past_event_cannot_be_opened_by_its_link()
+    {
+        Assert.Equal(HttpStatusCode.NotFound, (await _anonymous.GetAsync($"/api/events/{_pastEventId}")).StatusCode);
+
+        // Officers still reach it through the officer endpoint.
+        var officerCopy = await _client.GetFromJsonAsync<EventDto>($"/api/events/officer/{_pastEventId}");
+        Assert.Equal("Last Month's Meetup", officerCopy!.Name);
     }
 
     // ---- DELETE /api/events/{id} ----

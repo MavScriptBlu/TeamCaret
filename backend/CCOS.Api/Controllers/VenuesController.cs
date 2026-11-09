@@ -29,9 +29,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// <summary>
     /// GET /api/venues/officer: the officer venue list (CAR-57). Every venue, removed ones too,
     /// with its address, by name.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpGet("officer")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<IReadOnlyList<VenueDetailDto>> ListForOfficers(CancellationToken cancellationToken)
     {
         var items = await venues.ListAllAsync(cancellationToken);
@@ -43,6 +43,7 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// (IsActive false) so the edit page can restore them.
     /// </summary>
     [HttpGet("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)] // only the officer pages use it, and it includes removed venues (CAR-69)
     public async Task<ActionResult<VenueDetailDto>> Get(int id, CancellationToken cancellationToken)
     {
         var venue = await venues.FindAsync(id, cancellationToken);
@@ -90,9 +91,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// PUT /api/venues/{id}: UPDATE a venue and its address (CAR-57). The same checks as POST,
     /// and the name can match the venue's own current name. IsActive true restores a removed venue.
     /// 404 when there's no venue with that id.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<ActionResult<VenueDetailDto>> Update(
         int id,
         [FromBody] UpdateVenueRequest input,
@@ -128,9 +129,9 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// DELETE /api/venues/{id}: REMOVE a venue (CAR-58). It's a soft delete, so IsActive becomes
     /// false and the row stays in the database. PUT with IsActive true brings it back.
     /// 204 on success, 404 when there's no venue with that id.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
     /// </summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var success = await venues.SoftDeleteAsync(id, cancellationToken);
