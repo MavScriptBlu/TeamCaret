@@ -20,36 +20,44 @@ public static class DevelopmentData
     /// The samples cover regular and member pricing, out of stock and an inactive product
     /// (see docs/Product_Migration_Scope.md).
     /// </summary>
-    public static async Task EnsureCreatedAndSeededAsync(IServiceProvider services, bool useLocalDatabase)
+    /// <param name="services">Where the database and settings come from.</param>
+    /// <param name="useLocalDatabase">True for the SQLite file, false for PostgreSQL.</param>
+    /// <param name="cancellationToken">
+    /// Lets the app stop the setup early (for example when it is shut down while still starting up).
+    /// </param>
+    public static async Task EnsureCreatedAndSeededAsync(
+        IServiceProvider services,
+        bool useLocalDatabase,
+        CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         if (useLocalDatabase)
         {
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.EnsureCreatedAsync(cancellationToken);
         }
         else
         {
             // Creates or updates the tables, same as `task migrate`. Skips migrations already applied.
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsync(cancellationToken);
         }
 
         // IgnoreQueryFilters so an inactive-only table still counts as already seeded.
-        var hasProducts = await db.Products.IgnoreQueryFilters().AnyAsync();
-        var hasVenues = await db.Venues.AnyAsync();
+        var hasProducts = await db.Products.IgnoreQueryFilters().AnyAsync(cancellationToken);
+        var hasVenues = await db.Venues.AnyAsync(cancellationToken);
 
         // Seed venues first (events need them).
         if (!hasVenues)
         {
-            await SeedVenuesAndEventsAsync(db);
+            await SeedVenuesAndEventsAsync(db, cancellationToken);
         }
 
         // Test accounts for signing in: an officer, a member and a guest (CAR-66), and the
         // advisor (CAR-67). Their shared password comes from settings (user secrets or .env), never from the code.
         // The advisor is checked on its own, so a database seeded before CAR-67 still gets one.
-        var hasCustomers = await db.Customers.AnyAsync();
-        var hasAdvisor = await db.Users.AnyAsync(user => user.NormalizedEmail == SampleAdvisorEmail.ToUpperInvariant());
+        var hasCustomers = await db.Customers.AnyAsync(cancellationToken);
+        var hasAdvisor = await db.Users.AnyAsync(user => user.NormalizedEmail == SampleAdvisorEmail.ToUpperInvariant(), cancellationToken);
 
         if (!hasCustomers || !hasAdvisor)
         {
@@ -69,7 +77,7 @@ public static class DevelopmentData
             {
                 if (!hasCustomers)
                 {
-                    await SeedAccountsAsync(db, sampleAccountSecret);
+                    await SeedAccountsAsync(db, sampleAccountSecret, cancellationToken);
                 }
 
                 if (!hasAdvisor)
@@ -133,14 +141,16 @@ public static class DevelopmentData
                 IsActive = false,
             });
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
     /// Seeds the 3 sample venues and 4 sample events that match the frontend's sample data.
     /// Events start 7 days from now so they always stay upcoming.
     /// </summary>
-    private static async Task SeedVenuesAndEventsAsync(AppDbContext db)
+    /// <param name="db">The database to add the samples to.</param>
+    /// <param name="cancellationToken">Lets the app stop the setup early.</param>
+    private static async Task SeedVenuesAndEventsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         // The 3 sample venues the pages show.
         var venue1 = new Venue { Name = "Sample Venue, Room 101", Capacity = 100 };
@@ -148,7 +158,7 @@ public static class DevelopmentData
         var venue3 = new Venue { Name = "Sample Venue, Room 103", Capacity = 60 };
 
         db.Venues.AddRange(venue1, venue2, venue3);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         // Events start a week from now and last 2 hours, same as the frontend samples.
         var firstStartUtc = DateTime.SpecifyKind(DateTime.UtcNow.Date.AddDays(7).AddHours(23), DateTimeKind.Utc);
@@ -198,7 +208,7 @@ public static class DevelopmentData
         };
 
         db.Events.AddRange(event1, event2, event3, event4);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         // One ticket type per event, matching the frontend samples.
         db.TicketTypes.AddRange(
@@ -239,7 +249,7 @@ public static class DevelopmentData
                 StockQuantity = 0
             });
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -258,7 +268,10 @@ public static class DevelopmentData
     /// member@ccos.test is a current member, and guest@ccos.test has a login but no membership.
     /// Memberships run one year from today (the club's date).
     /// </summary>
-    private static async Task SeedAccountsAsync(AppDbContext db, string sampleAccountSecret)
+    private static async Task SeedAccountsAsync(
+        AppDbContext db,
+        string sampleAccountSecret,
+        CancellationToken cancellationToken)
     {
         var today = new ClubClock().Today;
 
@@ -269,7 +282,7 @@ public static class DevelopmentData
         db.Customers.AddRange(officerCustomer, memberCustomer, guestCustomer);
 
         // Save first so each customer gets its CustomerId, which the logins and memberships reuse.
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
         db.Users.AddRange(
             CreateSampleLogin("officer@ccos.test", officerCustomer, sampleAccountSecret),
@@ -306,7 +319,7 @@ public static class DevelopmentData
             GrantedDate = today,
         });
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

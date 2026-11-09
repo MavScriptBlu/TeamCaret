@@ -136,6 +136,23 @@ public static class ClubTime
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), ClubTimeZone);
 
     /// <summary>
+    /// Converts a club-time date and time (what an officer types in the form) to UTC for saving.
+    /// Returns null when that time doesn't exist, which happens once a year when the clocks
+    /// spring forward (for example 2:30 AM).
+    /// </summary>
+    public static DateTime? ToUtc(DateOnly date, TimeOnly time)
+    {
+        var clubTime = date.ToDateTime(time, DateTimeKind.Unspecified);
+
+        if (ClubTimeZone.IsInvalidTime(clubTime))
+        {
+            return null;
+        }
+
+        return TimeZoneInfo.ConvertTimeToUtc(clubTime, ClubTimeZone);
+    }
+
+    /// <summary>
     /// Short start time for event cards, for example "Thu, Oct 15 · 6:00 PM".
     /// </summary>
     public static string FormatCard(DateTime startsAtUtc) =>

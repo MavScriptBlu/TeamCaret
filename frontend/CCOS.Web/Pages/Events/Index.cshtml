@@ -10,6 +10,18 @@
 {
     <p class="events-message" role="status">@venueAdded</p>
 }
+@if (TempData["EventAdded"] is string eventAdded)
+{
+    <p class="events-message" role="status">@eventAdded</p>
+}
+@if (TempData["EventRemoved"] is string eventRemoved)
+{
+    <p class="events-message" role="status">@eventRemoved</p>
+}
+@if (TempData["EventError"] is string eventError)
+{
+    <p class="events-message" role="alert">@eventError</p>
+}
 
 <section class="events-hero">
     <img class="events-hero-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="Cyber Cougars logo" />
@@ -30,7 +42,9 @@
             </summary>
             <div class="events-options-menu">
                 <a asp-page="/Officer/Events/Create">Create an event</a>
+                <a asp-page="/Officer/Events/Index">Manage events</a>
                 <a asp-page="/Officer/Venues/Create">Add a venue</a>
+                <a asp-page="/Officer/Venues/Index">Manage venues</a>
             </div>
         </details>
     </div>
