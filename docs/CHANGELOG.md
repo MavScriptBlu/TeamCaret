@@ -2,6 +2,54 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
+
+- Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+## 2026-11-08 · CAR-60 Codacy fixes
+
+Code-quality notes Codacy left on CAR-60. No change to what people see.
+
+- `StatusModel`: the heading and message are worked out from the status code instead of being set to empty and overwritten. Status codes other than 404 and 503 are logged, and the page is never cached (`[ResponseCache(NoStore = true)]`), so a "not reachable" page doesn't stick around once the API is back.
+- `ApiUnavailablePageFilter`: logs through a `[LoggerMessage]` method, with a fallback when the page has no display name. `IsApiUnavailable` is a plain `switch`, so it reads more easily.
+- `ApiUnavailableTests`: the test data is a property, the site with the API switched off is started once and shared (`IClassFixture<ApiDownSite>`), and the three page checks are one test with three cases instead of three copies.
+
+## 2026-11-08 · Review fixes for CAR-67, CAR-68 and CAR-69 (login)
+
+From the team's review of the login stories:
+
+- Creating an account with an email that's already used now says "An account with that email already exists." on the Email field, once. Before, it showed Identity's "Username '...' is already taken" (`AccountController.EmailTakenMessage`).
+- Tests: `/api/me` for a current member (profile, Active status, member yes, officer no, no title, not the advisor).
+- Tests: `AccessRulesTests` now also covers an officer whose dues expired and the advisor, through real web requests. An expired officer is refused on officer endpoints and gets no member prices. The advisor can use officer endpoints but gets no member prices, since the advisor has no membership. Expired members are refused on officer endpoints too.
+- Still to do, after PR #175 (events and venues) merges, since it changes the same files: `GET /api/events/{id}` should only return upcoming events, and event ticket member prices should only go to current members, like products.
+
+## 2026-11-05 · CAR-60 Tell people when the API can't be reached
+
+- Most pages already showed their own message when the API was down (merch, search, events, the officer product pages, venue and account forms). This closes the gaps that were left.
+- A product's page (`/Products/Details/{id}`) used to answer a blank browser error when the API was down or the product didn't exist. `UseStatusCodePagesWithReExecute("/Status/{0}")` now shows `Pages/Status.cshtml`: "The club's system isn't reachable right now" for 503, "We couldn't find that page" for 404, and a general message for anything else. The real status code is kept.
+- Safety net: `ApiUnavailablePageFilter` (a global page filter) catches an API failure that a page didn't handle (can't connect, timed out, unreadable reply) and answers 503 with the same status page instead of crashing. A visitor closing the page isn't counted. Pages that show their own message keep doing so.
+- The error page (`/Error`, outside Development) no longer shows the Microsoft template text; it says something went wrong and to try again, with a reference number.
+- Messages stay on the page rather than in pop-up toasts, the same as the rest of the site.
+- Not changed: the Create and Edit Event pages leave the venue dropdown empty when venues can't be loaded. Those pages are being rewritten in PR #175, so that's a note for that PR.
+
+## 2026-11-04 · CAR-69 Lock officer pages and member pricing
+
+- API: the officer product list (`?includeInactive=true`) and product create, update, reactivate and remove need the `Officer` policy, and so does adding a venue. Not signed in answers 401; signed in but not an officer answers 403. The event create and update endpoints don't exist yet (CAR-54, CAR-57); `EventsController` has a note to give them the same `[Authorize(Policy = ClubPolicies.Officer)]`.
+- API: member prices on `GET /api/products` and `/api/products/{id}` only go to callers who pass the `Member` policy, which checks the dues date (`MemberExpiration`) on the club's date on every request. Guests, expired members and visitors who aren't signed in get `memberPrice: null`. Officers are current members, so they see them; the advisor (no membership) doesn't.
+- Website: `AuthorizeFolder("/Officer", "Officer")` locks every officer page. A visitor who isn't signed in goes to Log in with a "Log in first to see that page." note; a signed-in person who isn't an officer sees the new "Officers only" screen (`/Account/AccessDenied`).
+- Website: the sign-in cookie now notes whether the person is a current member and an officer (an advisor counts as an officer), read from `/api/me` at sign-in and again each time the token is renewed (about hourly). It only decides which pages open and which links show; the API's database check is the real guard.
+- The officer links in the menu and footer (Product dashboard, Create event, Add venue) only show for officers.
+- Public lists were already limited to active products and active, upcoming events, so no change there. Ticket prices on events are unchanged: members-only events show the member price as their price, and checking membership when tickets are bought belongs with ordering.
+- The "lock this down with [Authorize]" and "restrict to officers" TODO comments are gone.
+
+## 2026-11-04 · CAR-68 Log in, create account and log out pages
+
+- New pages in `CCOS.Web`: `/Account/Login`, `/Account/Register` and `/Account/Logout`. A wrong email or password shows one message ("Email or password is incorrect.") so the page never says which emails have accounts. Create account shows the API's messages (email already used, weak password) next to the right field, then signs the person in right away.
+- The website signs people in with a cookie (`AddAuthentication().AddCookie`). The API's sign-in tokens from `/api/auth/login` are kept inside that encrypted cookie, never in the browser's JavaScript. `AccountSession.ValidateAsync` renews the token through `/api/auth/refresh` a minute before it runs out, and signs the person out if it can't.
+- `ApiBearerTokenHandler` adds the signed-in person's token to every call from the Products, Events and Venues clients, so CAR-69 can lock API endpoints without changing the pages. `AccountApiClient` has no handler, since it runs while signing in.
+- The header's placeholder account button is now "Log in", or "Hi, {first name}" and a "Log out" button. Log out is a POST with the anti-forgery token, so a link on another site can't sign people out.
+- After signing in, people go back to the page they came from. Only addresses on this site are allowed (`AccountSession.SafeReturnUrl`), so a link can't send them to another site.
+- Nothing is locked yet: the "Log in first" and "Officers only" screens and locking officer pages are CAR-69.
+
 ## 2026-11-04 · Codacy: explicit status handling in the event update
 
 - `EventsController.Update`: the switch on the update result now handles `Saved` on purpose, and the `default` throws `InvalidOperationException` so a new status can't be silently treated as saved. No behavior change today.
@@ -40,6 +88,17 @@ Database and design decisions, newest first.
 - `PUT` with `isActive: true` restores a removed venue. The unique-name check skips the venue being edited, so saving a venue under its own name works.
 - CAR-63: ZIP codes must be 5 digits or ZIP+4 (`^\d{5}(-\d{4})?$`) on the API (`CreateVenueRequest`, `UpdateVenueRequest`) and on the Razor forms. One rule in `CCOS.Shared.ZipCodeRules` feeds both, so the messages match.
 - Tests: ZIP rule (5-digit, ZIP+4, invalid), venue GET, list, PUT and DELETE.
+
+## 2026-10-30 · CAR-67 Login API and access policies
+
+- `CCOS.Api` signs people in with ASP.NET Core Identity: `AddIdentityApiEndpoints<AppUser>` plus `MapIdentityApi` under `/api/auth` (login, refresh, forgot and reset password). One account per email (`RequireUniqueEmail`). Not signed in answers 401 and not allowed answers 403, never a redirect.
+- `POST /api/account/register` creates the Customer and the login in one transaction (`AccountRepository.RegisterAsync`), so a failed login (email taken, weak password) rolls the customer back too. Identity's built-in `/api/auth/register` is turned off with a 404, because it can't create the Customer every login needs. This is the one change from the CAR-52 plan, which listed register under `MapIdentityApi`.
+- `GET /api/me` returns who's signed in (`CurrentAccountDto`): customer id, names, email, member status, current member, current officer and officer title, worked out fresh on the club's date.
+- Two policies, `Member` and `Officer` (`ClubPolicies` in `CCOS.Shared`). `MembershipAuthorizationHandler` finds the CustomerId behind the signed-in login and asks `MemberRepository` on every request, so renewals, expirations and leaving the club count right away. An officer whose dues expired fails both until they renew.
+- Advisor (from the Remaining Work checklist added to CAR-67): Identity roles are on (`AddRoles<IdentityRole>`), and the club's advisor (`ClubRoles.Advisor`, Troy) passes the `Officer` policy without a membership or title. The role is read from the database on every request, like membership. `/api/me` has `isAdvisor`. The roles tables already came with CAR-66, so no migration. `DevelopmentData` seeds `advisor@ccos.test`, checked on its own so an already-seeded database gets it too. This is a simple stand-in for the admin; the Admins table is still CAR-74.
+- Nothing is locked yet: applying the policies to the officer endpoints and member prices is CAR-69.
+- Tests: `AccountApiTests` covers register and login, `/api/me` for a guest and an officer, 401 without signing in, a duplicate email (400, no leftover customer), the turned-off built-in register, a wrong password, the Member and Officer rules for guest, member, expired member, officer and expired officer, the advisor passing Officer (and losing it when the role is removed), and a membership change showing up on the next request. The test password is random each run, so no credential is in the code.
+- `docs/api/README.md`: the Auth section now describes the real endpoints and policies.
 
 ## 2026-10-30 · CAR-65 "Remove" instead of "Delete" / "Deactivate"
 

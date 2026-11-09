@@ -1,6 +1,7 @@
 using CCOS.Data.Entities;
 using CCOS.Repositories;
 using CCOS.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CCOS.Api.Controllers;
@@ -57,10 +58,11 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     /// <summary>
     /// POST /api/venues: CREATE a venue and its address (CAR-51). Missing or too-long fields
     /// and a capacity under 1 come back as 400 automatically ([ApiController]); a name that's
-    /// already used comes back as 400 with the message on Name.
-    /// TODO: restrict to officers once login exists (CAR-1: Officer only).
+    /// already used comes back as 400 with the message on Name. Officers only (CAR-69):
+    /// 401 when not signed in, 403 when signed in but not an officer.
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<ActionResult<VenueDto>> Create(
         [FromBody] CreateVenueRequest input,
         CancellationToken cancellationToken)

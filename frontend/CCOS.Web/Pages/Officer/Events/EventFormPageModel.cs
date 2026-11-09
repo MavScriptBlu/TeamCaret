@@ -16,7 +16,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// Fields follow the Event entity and its ticket type (see "Event, Ticket &amp; Venue
 /// Relational Schema" in docs). The rules match CreateEventRequest and UpdateEventRequest in
 /// CCOS.Shared, so the form and the API say the same thing (CAR-55).
-/// Officer-only: lock these pages down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public abstract class EventFormPageModel : PageModel
 {

@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Products;
 /// Officer Dashboard product list (/Officer/Products). Shows every product from CCOS.Api,
 /// including deactivated ones, matching Wireframe-Officer-Edit and Wireframe-SoftDelete-IsActive.
 /// Delete and Quick Edit are placeholders; nothing is saved yet.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logger) : PageModel
 {

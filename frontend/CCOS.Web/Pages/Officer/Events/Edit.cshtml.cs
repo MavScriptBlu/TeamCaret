@@ -13,7 +13,7 @@ namespace CCOS.Web.Pages.Officer.Events;
 /// (CAR-55). Save goes back to the event page with an "Event saved" message. The "Show in the
 /// event list" box removes (unticked) or restores (ticked) the event (CAR-56). Removed events
 /// open here too, so they can be restored.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILogger<EditModel> logger)
     : EventFormPageModel

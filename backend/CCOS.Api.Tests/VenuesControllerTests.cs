@@ -90,6 +90,9 @@ public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program
         _mainVenueId = mainVenue.VenueId;
         _removedVenueId = removedVenue.VenueId;
         _noAddressVenueId = noAddressVenue.VenueId;
+
+        // Adding a venue is officer-only since CAR-69, so the ZIP tests sign in as an officer.
+        await TestAccounts.SignInAsOfficerAsync(customizedFactory, _client);
     }
 
     public async Task DisposeAsync()

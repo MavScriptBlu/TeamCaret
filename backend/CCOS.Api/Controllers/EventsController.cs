@@ -11,6 +11,8 @@ namespace CCOS.Api.Controllers;
 /// (active and starting from now on, soonest first). The officer endpoints create, edit, list
 /// and remove events (CAR-55, CAR-56). Events are never deleted: DELETE removes one
 /// (IsActive = false) and PUT with IsActive = true restores it.
+/// The officer endpoints still need [Authorize(Policy = ClubPolicies.Officer)] like
+/// ProductsController (CAR-69 follow-up).
 /// </summary>
 [ApiController]
 [Route("api/events")]
