@@ -2,6 +2,10 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-09 · CAR-59 long names wrap in product cards
+
+- Long names and descriptions with no spaces now wrap inside the officer product cards, the public product cards and the product page, instead of running off the edge (`overflow-wrap: anywhere` in `products.css` and `productDetails.css`).
+
 ## 2026-11-09 · Mock sample venues and events
 
 - The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
