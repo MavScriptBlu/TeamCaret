@@ -169,6 +169,7 @@ a.product-card:hover {
     font-size: 16px;
     font-weight: 700;
     line-height: 22px;
+    overflow-wrap: anywhere;
 }
 
 /* Descriptions can be up to 500 characters; cards show the first two lines. */
@@ -182,15 +183,9 @@ a.product-card:hover {
     color: var(--muted);
 }
 
+/* The prices themselves are styled in site.css (.price-tag, CAR-78). */
 .product-card-price {
     margin-top: var(--s2);
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.product-card-member {
-    font-size: 14px;
-    color: var(--muted);
 }
 
 .product-card-stock {
@@ -217,7 +212,7 @@ a.product-card:hover {
     }
 
     .product-card.is-out .product-card-name,
-    .product-card.is-out .product-card-price {
+    .product-card.is-out .price-tag-amount {
         color: var(--muted);
     }
 
@@ -369,8 +364,11 @@ a.product-card:hover {
         transform: rotate(180deg);
     }
 
+/* overflow-wrap lets long names with no spaces break inside the card (CAR-59). */
 .officer-product-name {
+    min-width: 0;
     font-weight: 600;
+    overflow-wrap: anywhere;
 }
 
 .officer-badge {
@@ -432,6 +430,7 @@ a.product-card:hover {
     }
 
     .officer-facts dt {
+        flex-shrink: 0;
         font-weight: 700;
     }
 
@@ -440,11 +439,15 @@ a.product-card:hover {
         }
 
     .officer-facts dd {
+        min-width: 0;
         margin: 0;
+        overflow-wrap: anywhere;
     }
 
 .officer-description {
+    min-width: 0;
     font-size: 14px;
+    overflow-wrap: anywhere;
 }
 
     .officer-description h2 {
