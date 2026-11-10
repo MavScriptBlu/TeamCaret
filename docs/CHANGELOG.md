@@ -2,6 +2,11 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
+
+- On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).
+- A removed venue with no address now says "Add an address in Edit, then restore it." instead of "Restore it any time", since Restore sends you to Edit first when the address is missing.
+
 ## 2026-11-09 · Mock sample venues and events
 
 - The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
