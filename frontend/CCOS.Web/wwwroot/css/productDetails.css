@@ -20,10 +20,8 @@
 }
 
 .product-gallery,
-/* overflow-wrap lets long names and descriptions with no spaces wrap (CAR-59). */
 .product-info {
     min-width: 0;
-    overflow-wrap: anywhere;
 }
 
 .product-photo {
