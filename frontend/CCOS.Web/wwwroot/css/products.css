@@ -524,6 +524,16 @@ a.product-card:hover {
         font-size: 14px;
     }
 
+    /* Upcoming events booked at a venue being removed (CAR-79). A warning, not a block. */
+    .officer-delete-dialog p.officer-remove-warning {
+        padding: var(--s3);
+        border-left: 4px solid var(--gold);
+        background: #fff6e0;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+    }
+
     .officer-delete-dialog::backdrop {
         background: rgb(39 35 36 / 28%);
     }

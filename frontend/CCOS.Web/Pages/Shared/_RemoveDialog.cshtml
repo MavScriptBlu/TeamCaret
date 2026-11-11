@@ -3,16 +3,20 @@
     The shared "Remove?" confirmation (CAR-56 events, CAR-58 venues). Wording follows CAR-65:
     "Remove" and "Restore", never "Delete". The disclaimer says the record is soft-deleted, not
     erased. Opened by wwwroot/js/officer-remove-dialog.js, which looks for the ids below.
+    removeWarning stays hidden unless the Remove button has a data-remove-warning (CAR-79: a venue
+    with upcoming events booked there).
     The page that uses this partial also needs ~/css/products.css (the dialog styles live there).
 *@
 
-<dialog id="removeDialog" class="officer-delete-dialog" aria-modal="true" aria-labelledby="removeTitle" aria-describedby="removeMessage">
+<dialog id="removeDialog" class="officer-delete-dialog" aria-modal="true" aria-labelledby="removeTitle" aria-describedby="removeMessage removeWarning">
     <h2 id="removeTitle">Remove @Model.Noun?</h2>
 
     <p id="removeMessage">
         Are you sure you want to remove <strong id="removeName">this @Model.Noun</strong>?
         It will no longer appear in @Model.HiddenFrom.
     </p>
+
+    <p id="removeWarning" class="officer-remove-warning" hidden></p>
 
     <p class="officer-delete-disclaimer">
         Removing does not permanently erase anything. The @Model.Noun is only hidden (soft-deleted),

@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-10 · CAR-79 warn before removing a venue that has events
+
+- Decision: warn, don't block. Removing a venue only takes it off the venue list and the event form's dropdown; events already booked there keep their venue and still happen. This replaces the "blocked" rule from CAR-57.
+- The "Remove venue?" dialog now says how many upcoming events are booked at the venue and names up to three of them with their dates ("2 upcoming events are booked here: ... They keep this venue and still happen."). No warning when there are none. The officer can still remove it.
+- The officer venue list also shows an "Upcoming events" count for each venue.
+- API: `GET /api/venues/officer` and `GET /api/venues/{id}` now include `upcomingEvents` (active events that haven't started yet, soonest first). `DELETE /api/venues/{id}` is unchanged. New `VenueEventSummaryDto` in CCOS.Shared; `VenueDetailDto` gets an optional `UpcomingEvents`.
+- The shared remove dialog (`_RemoveDialog.cshtml`, `officer-remove-dialog.js`) shows a warning when the Remove button has `data-remove-warning`. The event pages don't use it, so they look the same.
+- Tests: the API tests cover a venue with upcoming events (soonest first, past and removed events left out), one with only past events, one with none, and removing a venue with upcoming events (allowed; the event keeps its venue). `VenueRemoveWarningTests` covers the dialog wording for 0, 1, 3 and 5 events.
+
 ## 2026-11-09 · Mock sample venues and events
 
 - The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
