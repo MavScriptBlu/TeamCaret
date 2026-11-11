@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-10 · CAR-84 ready to deploy (any host)
+
+- New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
+- Health checks: `GET /health` on the API answers "Healthy" when the database can be reached, and on the website when the API's `/health` is healthy. Both answer "Unhealthy" with 503 otherwise, and need no sign-in.
+- New optional API setting `Database:MigrateOnStartup` (`Database__MigrateOnStartup`): when true outside Development, the API applies database migrations each time it starts. Off by default; Development still creates and seeds the database as before.
+- New optional website setting `DataProtection:KeysPath` (`DataProtection__KeysPath`): a folder for the sign-in cookie keys, so a restart on a host doesn't sign everyone out.
+- The website's five API clients now share one place that reads `Api:BaseUrl`, and the error says to set `Api__BaseUrl` on a host.
+- Tests: the API's `/health` when the database is reachable and when it isn't, and the website's `/health` when the API is healthy, unhealthy or not running.
+
 ## 2026-11-09 · Mock sample venues and events
 
 - The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
