@@ -38,9 +38,9 @@ public class HealthCheckTests(WebApplicationFactory<Program> factory) : IClassFi
     [Fact]
     public async Task Health_database_unreachable_is_503()
     {
-        // Nothing listens on port 9, so the connection is refused right away.
+        // Nothing listens on port 9, so the connection is refused before any sign-in is tried.
         using var client = CreateClient(options =>
-            options.UseNpgsql("Host=127.0.0.1;Port=9;Database=none;Username=none;Password=none;Timeout=2"));
+            options.UseNpgsql("Host=127.0.0.1;Port=9;Database=none;Timeout=2"));
 
         var response = await client.GetAsync("/health");
 

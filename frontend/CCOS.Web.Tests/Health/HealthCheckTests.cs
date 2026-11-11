@@ -17,7 +17,7 @@ public class HealthCheckTests(WebApplicationFactory<Program> factory) : IClassFi
     private HttpClient CreateClient(MockHttpMessageHandler fakeApi) =>
         factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("Api:BaseUrl", "http://api.test/");
+            builder.UseSetting("Api:BaseUrl", "https://api.test/");
             builder.ConfigureTestServices(services =>
                 services.AddHttpClient(ApiHealthCheck.ClientName)
                     .ConfigurePrimaryHttpMessageHandler(() => fakeApi));
@@ -27,7 +27,7 @@ public class HealthCheckTests(WebApplicationFactory<Program> factory) : IClassFi
     public async Task Health_ApiHealthy_IsHealthy()
     {
         using var fakeApi = new MockHttpMessageHandler();
-        fakeApi.When("http://api.test/health").Respond("text/plain", "Healthy");
+        fakeApi.When("https://api.test/health").Respond("text/plain", "Healthy");
         using var client = CreateClient(fakeApi);
 
         var response = await client.GetAsync("/health");
@@ -41,7 +41,7 @@ public class HealthCheckTests(WebApplicationFactory<Program> factory) : IClassFi
     {
         // The API is up but can't reach its database.
         using var fakeApi = new MockHttpMessageHandler();
-        fakeApi.When("http://api.test/health").Respond(HttpStatusCode.ServiceUnavailable, "text/plain", "Unhealthy");
+        fakeApi.When("https://api.test/health").Respond(HttpStatusCode.ServiceUnavailable, "text/plain", "Unhealthy");
         using var client = CreateClient(fakeApi);
 
         var response = await client.GetAsync("/health");
@@ -55,7 +55,7 @@ public class HealthCheckTests(WebApplicationFactory<Program> factory) : IClassFi
     {
         // Nothing answers on port 9, like when CCOS.Api isn't running.
         using var client = factory.WithWebHostBuilder(builder =>
-            builder.UseSetting("Api:BaseUrl", "http://127.0.0.1:9/")).CreateClient();
+            builder.UseSetting("Api:BaseUrl", "https://127.0.0.1:9/")).CreateClient();
 
         var response = await client.GetAsync("/health");
 
