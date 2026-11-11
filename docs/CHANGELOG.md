@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
+
 ## 2026-11-09 · Mock sample venues and events
 
 - The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
