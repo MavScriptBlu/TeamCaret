@@ -2,6 +2,9 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-09 · CAR-59 long names wrap in product cards
+
+- Long names and descriptions with no spaces now wrap inside the officer product cards, the public product cards and the product page, instead of running off the edge (`overflow-wrap: anywhere` in `products.css` and `productDetails.css`).
 ## 2026-11-09 · CAR-78 member prices stand out
 
 - Member prices are now the big price. When a member price is shown, it's large and maroon with a gold "Member price" tag, and the regular price sits under it, smaller and crossed out ("Regular ~~$35.00~~"). Same look on the product cards (`/Products` and search), the product page and the event page. The words "Member price" and "Regular" are always written out, since screen readers don't announce crossed-out text.
