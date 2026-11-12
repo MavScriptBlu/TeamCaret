@@ -283,6 +283,20 @@ a.events-card:hover {
         margin: 0;
     }
 
+    /* Center the shared price display (CAR-78) under the event details. */
+    .event-detail-prices .price-tag {
+        align-items: center;
+        text-align: center;
+    }
+
+    .event-detail-prices .price-tag-member {
+        justify-content: center;
+    }
+
+    .event-detail-prices .price-tag-hint {
+        text-align: center;
+    }
+
 .event-detail-note {
     margin: 0;
     padding: 2px 10px;
