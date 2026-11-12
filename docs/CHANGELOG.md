@@ -5,6 +5,13 @@ Database and design decisions, newest first.
 ## 2026-11-09 · CAR-59 long names wrap in product cards
 
 - Long names and descriptions with no spaces now wrap inside the officer product cards, the public product cards and the product page, instead of running off the edge (`overflow-wrap: anywhere` in `products.css` and `productDetails.css`).
+## 2026-11-09 · CAR-78 member prices stand out
+
+- Member prices are now the big price. When a member price is shown, it's large and maroon with a gold "Member price" tag, and the regular price sits under it, smaller and crossed out ("Regular ~~$35.00~~"). Same look on the product cards (`/Products` and search), the product page and the event page. The words "Member price" and "Regular" are always written out, since screen readers don't announce crossed-out text.
+- One shared piece draws the prices everywhere: `Pages/Shared/_PriceTag.cshtml` with `Services/PriceTag.cs`, styled in `site.css` (`.price-tag`). A product's member price only shows when it's lower than the regular price, so there's never a crossed-out price that's the same as the member price.
+- Visitors who aren't current members still see just the regular price, and on events the "log in as a member to see it" line, now styled to match. Nothing changed in the API.
+- `/Products` now uses the same `_ProductCard` partial as search, so the two lists can't drift apart.
+- Tests: `PriceTagTests` covers a lower member price, no member price, a member price equal to the regular price, and "Free" for members.
 
 ## 2026-11-09 · Mock sample venues and events
 
