@@ -105,18 +105,11 @@ else
                         {
                             <p>Tickets aren't on sale yet.</p>
                         }
-                        @if (Model.PriceText is not null)
-                        {
-                            <p>Ticket price: <strong>@Model.PriceText</strong></p>
-                        }
-                        @if (Model.MemberPriceText is not null)
-                        {
-                            <p>Member price: <strong>@Model.MemberPriceText</strong></p>
-                        }
+                        <partial name="_PriceTag" model='new PriceTag(Model.PriceText, Model.MemberPriceText, Large: true, RegularLabel: "Ticket price")' />
                         @if (Model.MemberPriceHidden)
                         {
                             @* Not a current member, so the API didn't send the member price (CAR-69). *@
-                            <p>Member price: <a asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">log in as a member</a> to see it.</p>
+                            <p class="price-tag-hint">Member price: <a asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">log in as a member</a> to see it.</p>
                         }
                     </div>
                     @* Placeholder: RSVP does nothing yet. *@

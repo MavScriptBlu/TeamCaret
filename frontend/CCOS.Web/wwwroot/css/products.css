@@ -182,15 +182,9 @@ a.product-card:hover {
     color: var(--muted);
 }
 
+/* The prices themselves are styled in site.css (.price-tag, CAR-78). */
 .product-card-price {
     margin-top: var(--s2);
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.product-card-member {
-    font-size: 14px;
-    color: var(--muted);
 }
 
 .product-card-stock {
@@ -217,7 +211,7 @@ a.product-card:hover {
     }
 
     .product-card.is-out .product-card-name,
-    .product-card.is-out .product-card-price {
+    .product-card.is-out .price-tag-amount {
         color: var(--muted);
     }
 

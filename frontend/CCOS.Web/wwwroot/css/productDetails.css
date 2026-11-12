@@ -76,15 +76,9 @@
     line-height: 1.15;
 }
 
+/* The prices themselves are styled in site.css (.price-tag, CAR-78). */
 .product-price {
     margin: var(--s4) 0 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-.product-member-price {
-    margin: var(--s1) 0 0;
-    color: var(--muted);
 }
 
 .product-description {
