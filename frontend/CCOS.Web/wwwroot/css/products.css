@@ -1,67 +1,90 @@
 /* Product browse page (/Products). Uses the variables from site.css. */
 
-/* ---------- Header block: logo, title, tagline ---------- */
+/* ---------- Header block: logo, title, tagline ----------
+   Kept compact (CAR-75) so the products show without scrolling. The big empty banner from the
+   first wireframe is gone until the club has a real photo for it. */
 .products-hero {
     display: flex;
     align-items: center;
-    gap: var(--s6);
-    margin-bottom: var(--s5);
+    gap: var(--s4);
+    margin-bottom: var(--s4);
 }
 
 .products-hero-logo {
-    width: 140px;
-    height: 140px;
+    width: 72px;
+    height: 72px;
     flex: none;
 }
 
 .products-hero h1 {
-    font-size: 34px;
+    font-size: 28px;
     line-height: 1.15;
     font-weight: 800;
 }
 
 .products-hero p {
-    margin: var(--s2) 0 0;
+    margin: var(--s1) 0 0;
     color: var(--muted);
 }
 
-/* Banner image placeholder from the wireframe */
-.products-banner {
-    aspect-ratio: 3 / 1;
-    display: grid;
-    place-items: center;
-    margin-bottom: var(--s5);
-    background: #e7e2e0;
-    border-radius: var(--r-sm);
-}
-
-    .products-banner svg {
-        width: 48px;
-        height: 48px;
-        fill: none;
-        stroke: var(--muted);
-        stroke-width: 1.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-    }
-
-/* ---------- Filters ---------- */
+/* ---------- Filters and sort (CAR-75) ----------
+   Category chips on the left, In stock only and Sort on the right, all in one row on desktop. */
 .products-filters {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     gap: var(--s3);
-    padding-top: var(--s4);
-    margin-bottom: var(--s5);
-    border-top: 1px solid var(--divider);
+    padding-block: var(--s3);
+    margin-bottom: var(--s3);
+    border-block: 1px solid var(--divider);
+}
+
+.products-chips,
+.products-filters-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.products-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 var(--s4);
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    background: var(--raised);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+    .products-chip:hover {
+        border-color: var(--maroon);
+        color: var(--brand-text);
+    }
+
+    .products-chip[aria-current="true"] {
+        border-color: var(--maroon);
+        background: var(--maroon);
+        color: #fff;
+    }
+
+/* "Showing 3 of 4 items · Clear filters" */
+.products-count {
+    margin: 0 0 var(--s4);
+    color: var(--muted);
+    font-size: 14px;
 }
 
 .products-filter {
     display: inline-flex;
     align-items: center;
     gap: var(--s2);
-    min-height: 40px;
+    min-height: 36px;
     padding: 0 var(--s4);
     border-radius: 999px;
     background: var(--divider);
@@ -79,7 +102,7 @@
     }
 
 .products-filter-apply {
-    min-height: 40px;
+    min-height: 36px;
     padding: 0 var(--s4);
     border: 0;
     border-radius: 999px;
@@ -90,13 +113,14 @@
     cursor: pointer;
 }
 
-/* ---------- Product grid ---------- */
+/* ---------- Product grid ----------
+   As many columns as fit (CAR-75): 4 on a wide screen, fewer as it narrows, 2 on a phone. */
 .products-grid {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
     gap: var(--s4);
 }
 
@@ -122,7 +146,7 @@ a.product-card:hover {
 
 .product-card-image {
     position: relative;
-    aspect-ratio: 1;
+    aspect-ratio: 4 / 3;
     display: grid;
     place-items: center;
     background: #e7e2e0;
@@ -151,6 +175,7 @@ a.product-card:hover {
 }
 
 .product-card-body {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -183,22 +208,33 @@ a.product-card:hover {
     color: var(--muted);
 }
 
-/* The prices themselves are styled in site.css (.price-tag, CAR-78). */
-.product-card-price {
-    margin-top: var(--s2);
+/* Price and stock sit together at the bottom of every card, so they line up across a row (CAR-75).
+   The prices themselves are styled in site.css (.price-tag, CAR-78). */
+.product-card-foot {
+    margin-top: auto;
+    padding-top: var(--s3);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--s2);
 }
 
 .product-card-stock {
-    margin-top: var(--s2);
-    font-size: 13px;
+    padding: 2px var(--s2);
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 700;
+    white-space: nowrap;
 }
 
     .product-card-stock.is-in {
-        color: #28613b;
+        background: #e3f1e7;
+        color: #1f5130;
     }
 
     .product-card-stock.is-out {
+        background: #f6d7dc;
         color: var(--brand-text);
     }
 
@@ -231,32 +267,24 @@ a.product-card:hover {
     }
 
 /* ---------- Narrow screens ---------- */
-@media (max-width: 760px) {
-    .products-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .products-banner {
-        aspect-ratio: 2 / 1;
-    }
-}
-
 @media (max-width: 480px) {
-    .products-hero {
-        gap: var(--s4);
-    }
-
     .products-hero-logo {
-        width: 88px;
-        height: 88px;
+        width: 56px;
+        height: 56px;
     }
 
     .products-hero h1 {
-        font-size: 26px;
+        font-size: 24px;
     }
 
+    /* Two smaller cards per row on a phone. */
     .products-grid {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s3);
+    }
+
+    .product-card-body {
+        padding: var(--s2) var(--s3) var(--s3);
     }
 
     .products-filters {

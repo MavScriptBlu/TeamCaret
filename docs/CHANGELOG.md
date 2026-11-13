@@ -2,6 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-13 · CAR-75 Merch list revamp
+
+- From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.
+- Compact header: smaller logo and title, and the big empty banner placeholder from the first wireframe is gone until the club has a real photo. On a laptop the products now show without scrolling.
+- Category is now a row of chips (All, then each category) instead of a dropdown. They're plain links, so they work without JavaScript and keep the other choices.
+- New Sort: name A–Z (default), price low to high, price high to low. Price sorting uses the price the visitor pays, so members sort by member price (`IndexModel.PriceYouPay`). `?sort=` in the URL; an unknown value falls back to name.
+- An item count ("4 items", or "Showing 3 of 4 items · Clear filters" while filtering).
+- The grid fits as many cards as there's room for (4 on a wide screen, 2 on a phone), with a shorter photo area. Price and stock sit together at the bottom of each card so they line up, and the stock is a colored tag. Search results use the same card, so they change too.
+- The officer Product dashboard isn't part of this story.
+- Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
+
 ## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
 
 - On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).

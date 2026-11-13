@@ -20,10 +20,13 @@
             {
                 <span class="product-card-description">@Model.Description</span>
             }
-            <span class="product-card-price">
-                <partial name="_PriceTag" model="PriceTag.ForProduct(Model.Price, Model.MemberPrice)" />
+            @* Price and stock together at the bottom, so they line up across a row (CAR-75). *@
+            <span class="product-card-foot">
+                <span class="product-card-price">
+                    <partial name="_PriceTag" model="PriceTag.ForProduct(Model.Price, Model.MemberPrice)" />
+                </span>
+                <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
             </span>
-            <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
         </div>
     </a>
 </li>
