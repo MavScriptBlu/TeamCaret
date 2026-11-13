@@ -2,6 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-13 · CAR-76 Events list revamp
+
+- From Jason's Sprint 4 review notes, in the same style as the Merch list (CAR-75). The goal: see what's coming up and when, at a glance.
+- Compact header, and the heading shows the count ("Upcoming events · 4 upcoming").
+- Each upcoming event card has a date block (month, day and weekday) instead of the empty image, then the name, the time ("5:00 PM – 7:00 PM"), the venue, a "Members only" tag where it applies, and one line of the description.
+- The price sits at the bottom of each card, using the shared price display: members see their price big with the regular price crossed out. A members-only event shows "Log in as a member to see the price" to visitors who aren't members, and an event with nothing on sale says so.
+- One rule for event prices: `TicketPrices.ForEvent` (members-only events show just the member price; other events show the regular price, plus the member price when it's different). The event page now uses it too, so the card and the page always agree.
+- The grid fits as many cards as there's room for (4 on a wide screen, 1 on a phone). The News section and the officers' menu are unchanged.
+- Officers: the Description box on Create/Edit event now says "The first line shows on the event card, so start with a one-sentence summary." No new field; the whole description still shows on the event page.
+- Tests: `EventCardTests` covers the card prices (member, not a member, same price, members-only, nothing on sale) and the time line (same day, ending the next day).
+
 ## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
 
 - On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).

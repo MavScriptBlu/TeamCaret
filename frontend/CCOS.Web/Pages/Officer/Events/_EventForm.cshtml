@@ -103,7 +103,9 @@
 
     <div class="event-detail-description">
         <label class="visually-hidden" for="Description">Description</label>
-        <textarea asp-for="Description" class="event-form-description" rows="5" maxlength="500" placeholder="Description and further details"></textarea>
+        <textarea asp-for="Description" class="event-form-description" rows="5" maxlength="500" placeholder="Description and further details" aria-describedby="DescriptionHint"></textarea>
+        @* The Events list shows one line of the description on each card (CAR-76). *@
+        <p class="event-form-hint" id="DescriptionHint">The first line shows on the event card, so start with a one-sentence summary.</p>
         <span asp-validation-for="Description" class="field-validation-error"></span>
     </div>
 </form>

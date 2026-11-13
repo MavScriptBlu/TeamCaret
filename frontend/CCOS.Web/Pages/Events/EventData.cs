@@ -1,5 +1,6 @@
 using System.Globalization;
 using CCOS.Shared;
+using CCOS.Web.Services;
 
 namespace CCOS.Web.Pages.Events;
 
@@ -109,6 +110,24 @@ public static class TicketPrices
             .ToList());
 
     /// <summary>
+    /// The prices an event shows, on its card (CAR-76) and on its page. Members-only events show
+    /// just the member price, since only members can buy tickets. Other events show the regular
+    /// price, plus the member price only when it's different.
+    /// </summary>
+    /// <param name="eventInfo">The event.</param>
+    /// <param name="large">True on the event page, false on a card.</param>
+    /// <param name="regularLabel">Optional label before a regular price shown on its own.</param>
+    public static PriceTag ForEvent(EventInfo eventInfo, bool large = false, string? regularLabel = null)
+    {
+        var regular = RegularPriceText(eventInfo);
+        var member = MemberPriceText(eventInfo);
+
+        return eventInfo.MembersOnly
+            ? new PriceTag(null, member, large, regularLabel)
+            : new PriceTag(regular, member != regular ? member : null, large, regularLabel);
+    }
+
+    /// <summary>
     /// True when tickets are on sale but the API left out the member price, because the visitor
     /// isn't a current member (CAR-69). The event page then invites them to log in.
     /// </summary>
@@ -166,6 +185,20 @@ public static class ClubTime
     /// </summary>
     public static string FormatCard(DateTime startsAtUtc) =>
         ToClubTime(startsAtUtc).ToString("ddd, MMM d '·' h:mm tt", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Start and end time for an event card (CAR-76), for example "5:00 PM – 7:00 PM". When the
+    /// event ends on a later day, the end includes its date: "9:00 PM – Nov 21, 1:00 AM".
+    /// </summary>
+    public static string FormatTimeRange(DateTime startsAtUtc, DateTime endsAtUtc)
+    {
+        var start = ToClubTime(startsAtUtc);
+        var end = ToClubTime(endsAtUtc);
+        var culture = CultureInfo.InvariantCulture;
+        return start.Date == end.Date
+            ? $"{start.ToString("h:mm tt", culture)} – {end.ToString("h:mm tt", culture)}"
+            : $"{start.ToString("h:mm tt", culture)} – {end.ToString("MMM d, h:mm tt", culture)}";
+    }
 
     /// <summary>
     /// Date and time range for the event page, for example "10/15/2026, 6:00 PM – 8:00 PM".
