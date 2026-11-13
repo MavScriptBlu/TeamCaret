@@ -7,7 +7,8 @@
 
 <link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
 
-@* Matches Wireframe-HomePage (assets/Wireframes-Product) and the browse layout in CAR-1. *@
+@* Based on Wireframe-HomePage (assets/Wireframes-Product) and the browse layout in CAR-1, revamped in
+   CAR-75 from Jason's Sprint 4 review notes: compact header, category chips, sort, item count. *@
 
 <section class="products-hero">
     <img class="products-hero-logo" src="~/Images/CyberCougarsCircleLogo.png" asp-append-version="true" alt="Cyber Cougars logo" />
@@ -16,10 +17,6 @@
         <p>Find your merch here!</p>
     </div>
 </section>
-
-<div class="products-banner" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
-</div>
 
 @if (Model.LoadFailed)
 {
@@ -31,22 +28,60 @@ else if (Model.TotalCount == 0)
 }
 else
 {
-    <form method="get" class="products-filters" aria-label="Filter products">
-        <label class="products-filter">
-            <input type="checkbox" name="inStockOnly" value="true" checked="@Model.InStockOnly" />
-            In stock only
-        </label>
-        <label class="products-filter">
-            <select name="category" aria-label="Category">
-                <option value="">All categories</option>
-                @foreach (var category in Model.Categories)
-                {
-                    <option value="@category" selected="@(category == Model.Category)">@category</option>
-                }
-            </select>
-        </label>
-        <button type="submit" class="products-filter-apply">Apply</button>
+    var inStockRoute = Model.InStockOnly ? "true" : null;
+    var hasCategory = !string.IsNullOrEmpty(Model.Category);
+
+    <form method="get" class="products-filters" aria-label="Filter and sort products">
+        @* Category chips are plain links, so they work without JavaScript and keep the other choices. *@
+        <div class="products-chips" role="group" aria-label="Category">
+            <a class="products-chip" asp-page="/Products/Index"
+               asp-route-inStockOnly="@inStockRoute" asp-route-sort="@Model.Sort"
+               aria-current="@(hasCategory ? null : "true")">All</a>
+            @foreach (var category in Model.Categories)
+            {
+                <a class="products-chip" asp-page="/Products/Index"
+                   asp-route-category="@category" asp-route-inStockOnly="@inStockRoute" asp-route-sort="@Model.Sort"
+                   aria-current="@(category == Model.Category ? "true" : null)">@category</a>
+            }
+        </div>
+
+        <div class="products-filters-right">
+            @if (hasCategory)
+            {
+                <input type="hidden" name="category" value="@Model.Category" />
+            }
+            <label class="products-filter">
+                <input type="checkbox" name="inStockOnly" value="true" checked="@Model.InStockOnly" />
+                In stock only
+            </label>
+            <label class="products-filter">
+                Sort
+                <select name="sort">
+                    @foreach (var option in IndexModel.SortOptions)
+                    {
+                        <option value="@option.Value" selected="@(option.Value == Model.SortOrDefault)">@option.Label</option>
+                    }
+                </select>
+            </label>
+            @* The page applies changes right away; the button is for when JavaScript is off. *@
+            <noscript><button type="submit" class="products-filter-apply">Apply</button></noscript>
+        </div>
     </form>
+
+    @if (Model.Products.Count > 0)
+    {
+        <p class="products-count" role="status">
+            @if (Model.IsFiltered)
+            {
+                @:Showing @Model.Products.Count of @Model.TotalCount @(Model.TotalCount == 1 ? "item" : "items") ·
+                <a asp-page="/Products/Index" asp-route-sort="@Model.Sort">Clear filters</a>
+            }
+            else
+            {
+                @:@Model.TotalCount @(Model.TotalCount == 1 ? "item" : "items")
+            }
+        </p>
+    }
 
     @if (Model.Products.Count == 0)
     {
@@ -68,7 +103,7 @@ else
 
 @section Scripts {
     <script>
-        // Apply filters as soon as they change; the Apply button stays for keyboard and no-JS use.
+        // Apply In stock only and Sort as soon as they change (the Apply button only shows without JavaScript).
         (function () {
             var form = document.querySelector('.products-filters');
             if (!form) return;
