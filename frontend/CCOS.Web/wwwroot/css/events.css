@@ -1,29 +1,30 @@
 /* Events home page (/Events). Uses the variables from site.css. */
 
-/* ---------- Header block: logo, title, tagline ---------- */
+/* ---------- Header block: logo, title, tagline ----------
+   Compact, matching the Merch page (CAR-76), so the events show without scrolling. */
 .events-hero {
     display: flex;
     align-items: center;
-    gap: var(--s6);
-    padding-bottom: var(--s5);
-    margin-bottom: var(--s5);
+    gap: var(--s4);
+    padding-bottom: var(--s4);
+    margin-bottom: var(--s4);
     border-bottom: 1px solid var(--divider);
 }
 
 .events-hero-logo {
-    width: 140px;
-    height: 140px;
+    width: 72px;
+    height: 72px;
     flex: none;
 }
 
 .events-hero h1 {
-    font-size: 34px;
+    font-size: 28px;
     line-height: 1.15;
     font-weight: 800;
 }
 
 .events-hero p {
-    margin: var(--s2) 0 0;
+    margin: var(--s1) 0 0;
     color: var(--muted);
 }
 
@@ -44,6 +45,14 @@
         font-size: 22px;
         font-weight: 600;
     }
+
+/* "4 upcoming events" next to the heading (CAR-76). */
+.events-count {
+    margin-left: var(--s2);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 400;
+}
 
 /* ---------- Three-dot options menu ---------- */
 .events-options {
@@ -121,13 +130,14 @@
         color: var(--brand-text);
     }
 
-/* ---------- Card grid ---------- */
+/* ---------- Card grid ----------
+   As many columns as fit, like the Merch page (CAR-76): 4 on a wide screen, 1 on a phone. */
 .events-grid {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
     gap: var(--s4);
 }
 
@@ -168,25 +178,110 @@ a.events-card:hover {
     }
 
 .events-card-body {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding: var(--s3) var(--s4) var(--s4);
 }
 
-.events-card-date {
+/* Date block at the top of each upcoming event card (CAR-76): month and day big enough to
+   scan, weekday beside them. Replaces the empty image placeholder. */
+.events-card-when {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: var(--s3) var(--s4);
+    background: var(--maroon);
+    color: var(--on-dark);
+}
+
+.events-card-calendar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+    line-height: 1;
+}
+
+.events-card-month {
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: .04em;
+    letter-spacing: .1em;
     text-transform: uppercase;
+}
+
+.events-card-day {
+    font-size: 30px;
+    font-weight: 800;
+}
+
+.events-card-weekday {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Time and venue lines, each with a small icon. */
+.events-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--text);
+}
+
+    .events-card-meta svg {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: var(--muted);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.events-card-tag {
+    align-self: flex-start;
+    margin-bottom: var(--s1);
+    padding: 2px var(--s2);
+    border-radius: 999px;
+    background: #f6d7dc;
     color: var(--brand-text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* One line of the description (CAR-76). Officers are asked to start the description with a
+   one-sentence summary; the whole description is on the event page. */
+.events-card-summary {
+    margin-top: var(--s1);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--muted);
+}
+
+/* Price at the bottom of every card, so prices line up across a row. */
+.events-card-foot {
+    margin-top: auto;
+    padding-top: var(--s3);
+}
+
+.events-card-price-note {
+    color: var(--muted);
+    font-size: 13px;
 }
 
 .events-card-title {
-    margin: 0;
+    margin: 0 0 var(--s1);
     font-size: 16px;
     font-weight: 700;
     line-height: 22px;
+    overflow-wrap: anywhere;
 }
 
 .events-card-text {
@@ -526,6 +621,13 @@ a.events-card:hover {
     flex: 0 0 120px;
 }
 
+/* Help text under a form field, like the Description hint (CAR-76). */
+.event-form-hint {
+    margin: var(--s1) 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
 .event-form-check {
     display: flex;
     align-items: center;
@@ -617,10 +719,6 @@ a.events-card:hover {
 
 /* ---------- Narrow screens ---------- */
 @media (max-width: 760px) {
-    .events-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .event-detail-top {
         grid-template-columns: minmax(0, 1fr);
         gap: var(--s5);
@@ -632,21 +730,13 @@ a.events-card:hover {
 }
 
 @media (max-width: 480px) {
-    .events-hero {
-        gap: var(--s4);
-    }
-
     .events-hero-logo {
-        width: 88px;
-        height: 88px;
+        width: 56px;
+        height: 56px;
     }
 
     .events-hero h1 {
-        font-size: 26px;
-    }
-
-    .events-grid {
-        grid-template-columns: minmax(0, 1fr);
+        font-size: 24px;
     }
 
     .event-form-row {

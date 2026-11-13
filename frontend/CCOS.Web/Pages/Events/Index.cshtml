@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Events";
 }
@@ -33,7 +34,13 @@
 
 <section class="events-section" aria-labelledby="upcoming-heading">
     <div class="events-section-head">
-        <h2 id="upcoming-heading">Upcoming Events:</h2>
+        <h2 id="upcoming-heading">
+            Upcoming events
+            @if (Model.UpcomingEvents.Count > 0)
+            {
+                <span class="events-count">@Model.UpcomingEvents.Count upcoming</span>
+            }
+        </h2>
 
         @* Officer actions: only shown to officers (CAR-69). The Officer pages and the API check on their own too. *@
         @if (User.IsOfficer())
@@ -65,18 +72,52 @@
         <ul class="events-grid">
             @foreach (var ev in Model.UpcomingEvents)
             {
+                var starts = ClubTime.ToClubTime(ev.StartsAtUtc);
+                var prices = TicketPrices.ForEvent(ev);
+                @* Revamped in CAR-76 from Jason's Sprint 4 review notes: date block, time, venue,
+                   members-only tag, one line of the description, and the price at the bottom. *@
                 <li>
                     <a class="events-card" asp-page="/Events/Details" asp-route-id="@ev.EventId">
-                        <div class="events-card-image" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                        <div class="events-card-when">
+                            <span class="events-card-calendar">
+                                <span class="events-card-month">@starts.ToString("MMM", CultureInfo.InvariantCulture)</span>
+                                <span class="events-card-day">@starts.Day</span>
+                            </span>
+                            <span class="events-card-weekday">@starts.ToString("dddd", CultureInfo.InvariantCulture)</span>
                         </div>
                         <div class="events-card-body">
-                            <span class="events-card-date">@ClubTime.FormatCard(ev.StartsAtUtc)</span>
+                            @if (ev.MembersOnly)
+                            {
+                                <span class="events-card-tag">Members only</span>
+                            }
                             <span class="events-card-title">@ev.Name</span>
+                            <span class="events-card-meta">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                                @ClubTime.FormatTimeRange(ev.StartsAtUtc, ev.EndsAtUtc)
+                            </span>
+                            <span class="events-card-meta">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                                @ev.VenueName
+                            </span>
                             @if (!string.IsNullOrWhiteSpace(ev.Description))
                             {
-                                <span class="events-card-text events-card-clamp">@ev.Description</span>
+                                <span class="events-card-summary">@ev.Description</span>
                             }
+                            <span class="events-card-foot">
+                                @if (!prices.IsEmpty)
+                                {
+                                    <partial name="_PriceTag" model="prices" />
+                                }
+                                else if (TicketPrices.MemberPriceHidden(ev))
+                                {
+                                    @* Members-only, and the visitor isn't a current member (CAR-69). *@
+                                    <span class="events-card-price-note">Log in as a member to see the price</span>
+                                }
+                                else
+                                {
+                                    <span class="events-card-price-note">Tickets aren't on sale yet</span>
+                                }
+                            </span>
                         </div>
                     </a>
                 </li>
