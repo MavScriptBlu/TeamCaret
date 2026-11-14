@@ -27,7 +27,7 @@
                     <div class="venue-form-city">
                         <input asp-for="City" placeholder="City" maxlength="50" aria-label="City" />
                         <input asp-for="State" class="venue-form-state" placeholder="State" maxlength="2" aria-label="State" />
-                        <input asp-for="ZipCode" class="venue-form-zip" placeholder="ZIP" maxlength="10" aria-label="ZIP code" />
+                        <input asp-for="ZipCode" class="venue-form-zip" placeholder="ZIP" maxlength="10" inputmode="numeric" aria-label="ZIP code" />
                     </div>
                     <span asp-validation-for="City" class="field-validation-error"></span>
                     <span asp-validation-for="State" class="field-validation-error"></span>
