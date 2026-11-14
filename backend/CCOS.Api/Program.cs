@@ -4,6 +4,7 @@ using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Repositories;
 using CCOS.Shared;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -90,6 +91,20 @@ builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
     // Roles, for the Advisor (ClubRoles). Members and officers come from their own tables, not roles.
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
+
+// CAR-83: the API only accepts bearer tokens, never a sign-in cookie. AddIdentityApiEndpoints
+// would otherwise also accept Identity's cookie, and a browser sends cookies along on requests
+// that another site starts (cross-site request forgery). A bearer token has to be added on
+// purpose, so another site can't borrow it. The website already calls the API server-to-server
+// with the token (ApiBearerTokenHandler), and its own forms keep their anti-forgery tokens.
+// A login with ?useCookies=true still answers, but the cookie it hands out opens nothing here.
+builder.Services.Configure<AuthenticationOptions>(options =>
+{
+    options.DefaultScheme = IdentityConstants.BearerScheme;
+    options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
+    options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
+    options.DefaultForbidScheme = IdentityConstants.BearerScheme;
+});
 
 // This is an API: answer 401 (not signed in) and 403 (not allowed) instead of redirecting to a login page.
 builder.Services.ConfigureApplicationCookie(options =>
