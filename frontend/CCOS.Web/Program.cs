@@ -1,9 +1,17 @@
 using CCOS.Shared;
 using CCOS.Web.Filters;
+using CCOS.Web.Health;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The API's address, from Api:BaseUrl: appsettings.json locally, or the Api__BaseUrl environment
+// variable on Docker or a host (CAR-84). Every API client below uses it.
+Uri ApiBaseAddress() => new(builder.Configuration["Api:BaseUrl"]
+    ?? throw new InvalidOperationException(
+        "Api:BaseUrl is missing. Set it in appsettings.json or the Api__BaseUrl environment variable."));
 
 // ---- Services (things the app can use) ----
 // Turns the .cshtml files under Pages into web pages.
@@ -58,9 +66,7 @@ builder.Services.AddTransient<ApiBearerTokenHandler>();
 // Create account, log in, refresh and "who am I?" (no bearer handler: see AccountApiClient).
 builder.Services.AddHttpClient<AccountApiClient>(client =>
 {
-    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
-        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
-    client.BaseAddress = new Uri(apiBaseUrl);
+    client.BaseAddress = ApiBaseAddress();
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
@@ -68,29 +74,44 @@ builder.Services.AddHttpClient<AccountApiClient>(client =>
 // Pages ask for a ProductsApiClient and get one that already knows the API address.
 builder.Services.AddHttpClient<ProductsApiClient>(client =>
 {
-    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
-        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
-    client.BaseAddress = new Uri(apiBaseUrl);
+    client.BaseAddress = ApiBaseAddress();
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 // Event data comes from CCOS.Api too (Events list, event page and Edit Event).
 builder.Services.AddHttpClient<EventsApiClient>(client =>
 {
-    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
-        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
-    client.BaseAddress = new Uri(apiBaseUrl);
+    client.BaseAddress = ApiBaseAddress();
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 // Venue data comes from CCOS.Api too (venue form and the event form's venue dropdown).
 builder.Services.AddHttpClient<VenuesApiClient>(client =>
 {
-    var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
-        ?? throw new InvalidOperationException("Api:BaseUrl is missing from appsettings.json.");
-    client.BaseAddress = new Uri(apiBaseUrl);
+    client.BaseAddress = ApiBaseAddress();
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
+// GET /health (CAR-84): "Healthy" when the API answers its own /health (so the API and its
+// database work too), "Unhealthy" (503) when it doesn't. Hosts use it to check the site is up.
+builder.Services.AddHttpClient(ApiHealthCheck.ClientName, client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddHealthChecks()
+    .AddCheck<ApiHealthCheck>("api");
+
+// Sign-in cookies are encrypted with keys the site makes on its own. In a container those keys
+// are lost on every restart, which signs everyone out. On a host, set DataProtection:KeysPath
+// (environment variable DataProtection__KeysPath) to a folder that survives restarts (CAR-84).
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("CCOS.Web")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 
 var app = builder.Build();
 
@@ -115,6 +136,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/health");
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
