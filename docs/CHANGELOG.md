@@ -2,6 +2,14 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
 ## 2026-11-10 · CAR-84 ready to deploy (any host)
 
 - New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
