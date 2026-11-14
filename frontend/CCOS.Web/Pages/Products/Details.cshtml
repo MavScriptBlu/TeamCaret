@@ -61,14 +61,9 @@
         <p class="product-category">@product.Category</p>
         <h1 id="product-name">@product.Name</h1>
 
-        <p class="product-price">@Money.Format(product.Price)</p>
-
-        @if (product.MemberPrice is not null)
-        {
-            <p class="product-member-price">
-                Member price: @Money.Format(product.MemberPrice.Value)
-            </p>
-        }
+        <p class="product-price">
+            <partial name="_PriceTag" model="PriceTag.ForProduct(product.Price, product.MemberPrice, large: true)" />
+        </p>
 
         <section class="product-description" aria-labelledby="description-heading">
             <h2 id="description-heading">Description</h2>
