@@ -20,11 +20,9 @@
             {
                 <span class="product-card-description">@Model.Description</span>
             }
-            <span class="product-card-price">@Money.Format(Model.Price)</span>
-            @if (Model.MemberPrice is decimal memberPrice)
-            {
-                <span class="product-card-member">Member price: @Money.Format(memberPrice)</span>
-            }
+            <span class="product-card-price">
+                <partial name="_PriceTag" model="PriceTag.ForProduct(Model.Price, Model.MemberPrice)" />
+            </span>
             <span class="product-card-stock @(inStock ? "is-in" : "is-out")">@(inStock ? "In stock" : "Out of stock")</span>
         </div>
     </a>

@@ -46,6 +46,32 @@ public sealed class VenueRepository(AppDbContext db)
     }
 
     /// <summary>
+    /// Upcoming events (active and not started yet), soonest first, looked up by venue id, so the
+    /// officer venue page can warn before a venue that's still booked is removed (CAR-79).
+    /// </summary>
+    /// <param name="venueId">Only this venue's events, or null for every venue.</param>
+    /// <param name="cancellationToken">Lets the caller stop the work early.</param>
+    public async Task<ILookup<int, Event>> ListUpcomingEventsByVenueAsync(
+        int? venueId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var query = db.Events.AsNoTracking()
+            .Where(@event => @event.IsActive && @event.StartsAtUtc >= now);
+
+        if (venueId is int id)
+        {
+            query = query.Where(@event => @event.VenueId == id);
+        }
+
+        var events = await query
+            .OrderBy(@event => @event.StartsAtUtc)
+            .ToListAsync(cancellationToken);
+
+        return events.ToLookup(@event => @event.VenueId);
+    }
+
+    /// <summary>
     /// True when a venue (active or removed) already uses this name, ignoring capitalization.
     /// Names are unique in the database (UX_Venues_Name).
     /// </summary>

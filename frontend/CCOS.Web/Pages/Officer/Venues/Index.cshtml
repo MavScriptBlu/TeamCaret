@@ -78,7 +78,11 @@ else
                         <div class="officer-product-details">
                             @if (!venue.IsActive)
                             {
-                                <p class="officer-deactivated">Removed from the venue list. Nothing was deleted. Restore it any time.</p>
+                                @* Restore needs a full address, so venues without one are sent to Edit first (CAR-81). *@
+                                <p class="officer-deactivated">
+                                    Removed from the venue list. Nothing was deleted.
+                                    @(venue.AddressLine1 is null ? "Add an address in Edit, then restore it." : "Restore it any time.")
+                                </p>
                             }
                             <dl class="officer-facts">
                                 <div><dt>Name</dt><dd>@venue.Name</dd></div>
@@ -102,6 +106,7 @@ else
                                     </dd>
                                 </div>
                                 <div><dt>Capacity</dt><dd>@venue.Capacity</dd></div>
+                                <div><dt>Upcoming events</dt><dd>@(venue.UpcomingEvents?.Count ?? 0)</dd></div>
                                 <div><dt>In the venue list</dt><dd>@(venue.IsActive ? "Yes" : "No, removed")</dd></div>
                             </dl>
                         </div>
@@ -120,6 +125,7 @@ else
                                         class="officer-delete"
                                         data-remove-button
                                         data-remove-name="@venue.Name"
+                                        data-remove-warning="@VenueRemoveWarning.For(venue.UpcomingEvents)"
                                         data-remove-row=".officer-product"
                                         aria-haspopup="dialog"
                                         aria-controls="removeDialog">

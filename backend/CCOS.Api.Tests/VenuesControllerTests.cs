@@ -20,6 +20,7 @@ namespace CCOS.Api.Tests;
 public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private WebApplicationFactory<Program> _testFactory = null!;
     private SqliteConnection _connection = null!;
     private HttpClient _client = null!;
 
@@ -47,6 +48,7 @@ public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program
             });
         });
 
+        _testFactory = customizedFactory;
         _client = customizedFactory.CreateClient();
 
         using var scope = customizedFactory.Services.CreateScope();
@@ -105,6 +107,29 @@ public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program
     // A request that passes every rule, so each test only changes the one thing it checks.
     private static CreateVenueRequest ValidCreate(string name = "New Venue", string zipCode = "54481") =>
         new(name, "1 Main St", null, "Stevens Point", "WI", zipCode, 40);
+
+    // Adds an event at a venue, starting this many days from now (negative is in the past).
+    private async Task<int> AddEventAsync(int venueId, string name, int daysFromNow, bool isActive = true)
+    {
+        using var scope = _testFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var startsAtUtc = DateTime.UtcNow.AddDays(daysFromNow);
+        var newEvent = new Event
+        {
+            VenueId = venueId,
+            Name = name,
+            StartsAtUtc = startsAtUtc,
+            EndsAtUtc = startsAtUtc.AddHours(2),
+            TicketCapacity = 30,
+            IsActive = isActive,
+        };
+        newEvent.TicketTypes.Add(new TicketType { Category = "Tickets", Name = "General", Price = 5m, MemberPrice = 0m });
+
+        db.Events.Add(newEvent);
+        await db.SaveChangesAsync();
+        return newEvent.EventId;
+    }
 
     private static UpdateVenueRequest ValidUpdate(string name = "Main Hall", string zipCode = "54481", bool isActive = true) =>
         new(name, "1001 Centerpoint Dr", "Room 101", "Stevens Point", "WI", zipCode, 100, isActive);
@@ -240,6 +265,71 @@ public class VenuesControllerTests : IClassFixture<WebApplicationFactory<Program
         var response = await _client.PutAsJsonAsync("/api/venues/9999", ValidUpdate("Nowhere Hall"));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // ---- Upcoming events for the "Remove venue?" warning (CAR-79) ----
+
+    [Fact]
+    public async Task OfficerList_lists_upcoming_events_soonest_first_and_skips_past_and_removed_ones()
+    {
+        await AddEventAsync(_mainVenueId, "Later Workshop", daysFromNow: 14);
+        await AddEventAsync(_mainVenueId, "Next Week Meetup", daysFromNow: 7);
+        await AddEventAsync(_mainVenueId, "Last Month's Meetup", daysFromNow: -30);
+        await AddEventAsync(_mainVenueId, "Removed Meetup", daysFromNow: 10, isActive: false);
+
+        var list = await _client.GetFromJsonAsync<List<VenueDetailDto>>("/api/venues/officer");
+        var mainHall = Assert.Single(list!, venue => venue.VenueId == _mainVenueId);
+
+        string[] soonestFirst = ["Next Week Meetup", "Later Workshop"];
+        Assert.NotNull(mainHall.UpcomingEvents);
+        Assert.Equal(soonestFirst, mainHall.UpcomingEvents.Select(@event => @event.Name));
+    }
+
+    [Fact]
+    public async Task OfficerList_venue_with_only_past_events_has_no_upcoming_events()
+    {
+        await AddEventAsync(_noAddressVenueId, "Last Month's Meetup", daysFromNow: -30);
+
+        var list = await _client.GetFromJsonAsync<List<VenueDetailDto>>("/api/venues/officer");
+        var venue = Assert.Single(list!, venue => venue.VenueId == _noAddressVenueId);
+
+        Assert.NotNull(venue.UpcomingEvents);
+        Assert.Empty(venue.UpcomingEvents);
+    }
+
+    [Fact]
+    public async Task Get_includes_the_venues_upcoming_events()
+    {
+        await AddEventAsync(_mainVenueId, "Next Week Meetup", daysFromNow: 7);
+
+        var venue = await _client.GetFromJsonAsync<VenueDetailDto>($"/api/venues/{_mainVenueId}");
+
+        Assert.NotNull(venue?.UpcomingEvents);
+        Assert.Equal("Next Week Meetup", Assert.Single(venue.UpcomingEvents).Name);
+    }
+
+    [Fact]
+    public async Task Get_venue_with_no_events_has_no_upcoming_events()
+    {
+        var venue = await _client.GetFromJsonAsync<VenueDetailDto>($"/api/venues/{_mainVenueId}");
+
+        Assert.NotNull(venue?.UpcomingEvents);
+        Assert.Empty(venue.UpcomingEvents);
+    }
+
+    [Fact]
+    public async Task Delete_still_removes_a_venue_with_upcoming_events_and_the_events_keep_it()
+    {
+        // CAR-79 decision: warn, don't block.
+        var eventId = await AddEventAsync(_mainVenueId, "Next Week Meetup", daysFromNow: 7);
+
+        var response = await _client.DeleteAsync($"/api/venues/{_mainVenueId}");
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var upcomingEvent = await _client.GetFromJsonAsync<EventDto>($"/api/events/{eventId}");
+        Assert.NotNull(upcomingEvent);
+        Assert.Equal(_mainVenueId, upcomingEvent.VenueId);
+        Assert.Equal("Main Hall", upcomingEvent.VenueName);
     }
 
     // ---- DELETE /api/venues/{id} ----
