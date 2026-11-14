@@ -1,0 +1,116 @@
+# CCOS shortcuts. Install Task from https://taskfile.dev, then run `task` to see the list.
+# GitHub Actions runs `task build`, `task lint`, `task test`, `task up` and `task down` too (.github/workflows/ci.yml).
+# Uses Docker by default. Podman people: add CONTAINER=podman to your .env.
+version: "3"
+
+dotenv: [".env"] # loads your settings (and CONTAINER, if you set it)
+
+tasks:
+  default:
+    desc: List all tasks
+    silent: true
+    cmds:
+      - task --list
+
+  up:
+    desc: Build and start the whole app (database, API, website)
+    summary: |
+      Builds the API and website images and starts them with PostgreSQL, using
+      docker-compose.yml and your .env. Uses Docker unless your .env has CONTAINER=podman.
+      Website: http://localhost:8080   API: http://localhost:8081/api/products
+      The API container uses the PostgreSQL container. Run `task migrate` once so the tables exist.
+      The first run takes a few minutes (it downloads .NET). After that it's quick.
+    preconditions: &needs_env
+      - sh: test -f .env
+        msg: "No .env yet. Copy .env.example, rename the copy to .env, and set your password."
+      - sh: test -n "$POSTGRES_PASSWORD"
+        msg: "POSTGRES_PASSWORD is empty in your .env. Copy it from .env.example, then try again."
+    cmds:
+      - echo "Building and starting the database, API and website (first run takes a few minutes)..."
+      - ${CONTAINER:-docker} compose up -d --build
+      - ${CONTAINER:-docker} ps
+      - echo "Done. Website http://localhost:8080  API http://localhost:8081/api/products. Run 'task migrate' once if the tables don't exist yet."
+
+  db:
+    desc: Start only the PostgreSQL database (for DBeaver or dotnet run)
+    preconditions: *needs_env
+    cmds:
+      - echo "Starting the PostgreSQL database..."
+      - ${CONTAINER:-docker} compose up -d ccos-db
+      - ${CONTAINER:-docker} ps
+      - echo "Done. The database is running. Run 'task migrate' if you need to create the tables."
+
+  migrate:
+    desc: Create or update the database tables (run after `task db`)
+    summary: |
+      Runs every EF Core migration against the database in your user secrets
+      (ConnectionStrings:CCOS). Safe to run again, it skips ones already applied.
+      See backend/README.md if you haven't set the user secret yet.
+    cmds:
+      - echo "Applying database migrations..."
+      - dotnet tool restore
+      - dotnet restore backend/CCOS.Data/CCOS.Data.csproj
+      - dotnet ef database update --project backend/CCOS.Data
+      - echo "Done. The database tables are up to date."
+
+  down:
+    desc: Stop everything (your database data stays)
+    preconditions:
+      - sh: test -f .env
+        msg: "No .env found, so there's nothing set up to stop."
+    cmds:
+      - echo "Stopping everything..."
+      - ${CONTAINER:-docker} compose down
+      - echo "Done. Everything is stopped and your database data is kept."
+
+  logs:
+    desc: Show logs from the database, API and website (Ctrl+C to quit)
+    cmds:
+      - echo "Showing logs. Press Ctrl+C to quit."
+      - ${CONTAINER:-docker} compose logs -f
+
+  build:
+    desc: Build the whole solution
+    cmds:
+      - echo "Building the solution..."
+      - dotnet build CCOS.slnx
+      - echo "Done. The build finished (scroll up for any warnings)."
+
+  test:
+    desc: Run all the tests
+    cmds:
+      - echo "Running the tests..."
+      - dotnet test CCOS.slnx --logger "console;verbosity=normal"
+      - echo "Done. All tests passed."
+
+  format:
+    desc: Fix spacing and indents to match .editorconfig
+    cmds:
+      - echo "Fixing formatting..."
+      - dotnet format CCOS.slnx --severity error
+      - echo "Done. Formatting matches .editorconfig."
+
+  lint:
+    desc: Check formatting without changing files (CI runs this)
+    summary: |
+      Fails if any file doesn't match .editorconfig. Fix it with `task format`.
+      Code warnings (analyzers) show up in `task build` instead and never fail it.
+    cmds:
+      - echo "Checking formatting..."
+      - dotnet format CCOS.slnx --verify-no-changes --severity error
+      - echo "Done. Formatting is clean."
+
+  reset:
+    desc: WIPE the database and start fresh (use after changing the password)
+    summary: |
+      Deletes the database volume (all local data) and starts a brand new one.
+      Use it when you changed POSTGRES_PASSWORD after the first run and get
+      "password authentication failed". Asks before it deletes anything.
+      Run `task migrate` afterward to put the tables back.
+    preconditions: *needs_env
+    prompt: This deletes all local database data. Keep going?
+    cmds:
+      - echo "Wiping the database and starting fresh..."
+      - ${CONTAINER:-docker} compose down -v
+      - ${CONTAINER:-docker} compose up -d --build
+      - echo "Done. You have a new empty database. Run 'task migrate' to put the tables back."

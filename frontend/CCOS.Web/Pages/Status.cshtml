@@ -1,0 +1,12 @@
+@page "{code:int}"
+@model StatusModel
+@{
+    ViewData["Title"] = Model.Heading;
+}
+
+@* Shown for "not found", "the API can't be reached" and other errors with no page of their own (CAR-60). *@
+<section class="status-card" role="alert" aria-labelledby="statusTitle">
+    <h1 id="statusTitle">@Model.Heading</h1>
+    <p>@Model.Message</p>
+    <a class="status-link" href="/Products">Back to merch</a>
+</section>

@@ -1,0 +1,159 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Venues";
+    var savedMessage = TempData["VenueSaved"] as string;
+    var removedMessage = TempData["VenueRemoved"] as string;
+    var restoredMessage = TempData["VenueRestored"] as string;
+    var errorMessage = TempData["VenueError"] as string;
+    var venueMessage = removedMessage ?? restoredMessage ?? savedMessage;
+}
+
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (venueMessage is not null)
+{
+    <p class="product-created-message" role="status">@venueMessage</p>
+}
+@if (errorMessage is not null)
+{
+    <p class="products-empty" role="alert">@errorMessage</p>
+}
+
+@* Same look as the officer product dashboard. Venues are never deleted: Remove hides one, Restore brings it back. *@
+
+<div class="officer-head">
+    <h1>Venues</h1>
+    <div class="officer-actions">
+        <a class="officer-pill" asp-page="/Officer/Venues/Create">Add a venue</a>
+        <form method="get" class="officer-filter">
+            <select name="show" aria-label="Filter venues" onchange="this.form.submit()">
+                <option value="">All venues</option>
+                <option value="active" selected="@(Model.Show == "active")">In the venue list</option>
+                <option value="inactive" selected="@(Model.Show == "inactive")">Removed</option>
+            </select>
+            <noscript><button type="submit">Apply</button></noscript>
+        </form>
+    </div>
+</div>
+
+@if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Venues couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.TotalCount == 0)
+{
+    <p class="products-empty">No venues yet. Use Add a venue to add one.</p>
+}
+else if (Model.Venues.Count == 0)
+{
+    <div class="products-empty">
+        <p>No venues match this filter.</p>
+        <a asp-page="/Officer/Venues/Index">Show all venues</a>
+    </div>
+}
+else
+{
+    <ul class="officer-products">
+        @for (var index = 0; index < Model.Venues.Count; index++)
+        {
+            var venue = Model.Venues[index];
+            <li>
+                <details class="officer-product @(venue.IsActive ? "" : "is-inactive")"
+                          open="@(Model.ExpandedId == venue.VenueId || (Model.ExpandedId is null && index == 0))">
+                    <summary>
+                        <span class="officer-product-name">@venue.Name</span>
+                        @if (!venue.IsActive)
+                        {
+                            <span class="officer-badge">Removed</span>
+                        }
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                    </summary>
+
+                    <div class="officer-product-body">
+                        <div class="officer-product-image" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                        </div>
+
+                        <div class="officer-product-details">
+                            @if (!venue.IsActive)
+                            {
+                                @* Restore needs a full address, so venues without one are sent to Edit first (CAR-81). *@
+                                <p class="officer-deactivated">
+                                    Removed from the venue list. Nothing was deleted.
+                                    @(venue.AddressLine1 is null ? "Add an address in Edit, then restore it." : "Restore it any time.")
+                                </p>
+                            }
+                            <dl class="officer-facts">
+                                <div><dt>Name</dt><dd>@venue.Name</dd></div>
+                                <div>
+                                    <dt>Address</dt>
+                                    <dd>
+                                        @if (venue.AddressLine1 is null)
+                                        {
+                                            @:No address yet
+                                        }
+                                        else
+                                        {
+                                            @venue.AddressLine1
+                                            @if (!string.IsNullOrWhiteSpace(venue.AddressLine2))
+                                            {
+                                                @:, @venue.AddressLine2
+                                            }
+                                            <br />
+                                            @:@venue.City, @venue.State @venue.ZipCode
+                                        }
+                                    </dd>
+                                </div>
+                                <div><dt>Capacity</dt><dd>@venue.Capacity</dd></div>
+                                <div><dt>Upcoming events</dt><dd>@(venue.UpcomingEvents?.Count ?? 0)</dd></div>
+                                <div><dt>In the venue list</dt><dd>@(venue.IsActive ? "Yes" : "No, removed")</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="officer-product-actions">
+                        @if (venue.IsActive)
+                        {
+                            <form method="post"
+                                  asp-page-handler="Remove"
+                                  asp-route-id="@venue.VenueId"
+                                  asp-route-show="@Model.Show"
+                                  class="officer-delete-form"
+                                  data-remove-form>
+                                <button type="button"
+                                        class="officer-delete"
+                                        data-remove-button
+                                        data-remove-name="@venue.Name"
+                                        data-remove-warning="@VenueRemoveWarning.For(venue.UpcomingEvents)"
+                                        data-remove-row=".officer-product"
+                                        aria-haspopup="dialog"
+                                        aria-controls="removeDialog">
+                                    Remove venue
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post"
+                                  asp-page-handler="Restore"
+                                  asp-route-id="@venue.VenueId"
+                                  asp-route-show="@Model.Show">
+                                <button type="submit" class="officer-pill">Restore venue</button>
+                            </form>
+                        }
+                        <span class="officer-product-links">
+                            <a class="officer-pill" asp-page="/Officer/Venues/Edit" asp-route-id="@venue.VenueId">Edit venue</a>
+                        </span>
+                    </div>
+                </details>
+            </li>
+        }
+    </ul>
+}
+
+<partial name="_RemoveDialog" model="@(new RemoveDialogModel("venue", "the venue list and the event form's venue dropdown"))" />
+
+@section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
+}

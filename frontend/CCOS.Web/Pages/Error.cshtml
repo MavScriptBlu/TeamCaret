@@ -1,0 +1,18 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Something went wrong";
+}
+
+@* Shown outside Development when a page crashes (CAR-60). No technical details for visitors. *@
+<section class="status-card" role="alert" aria-labelledby="errorTitle">
+    <h1 id="errorTitle">Something went wrong</h1>
+    <p>Please try again in a few minutes. If it keeps happening, let a club officer know.</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="status-hint">Reference: <code>@Model.RequestId</code></p>
+    }
+
+    <a class="status-link" href="/Products">Back to merch</a>
+</section>

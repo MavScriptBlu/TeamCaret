@@ -1,0 +1,28 @@
+@page "{id:int?}"
+@model EditModel
+@{
+    ViewData["Title"] = Model.Found ? Model.Heading : "Event not found";
+}
+
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+
+@if (Model.LoadFailed)
+{
+    <section class="event-missing" role="alert">
+        <h1>Event unavailable</h1>
+        <p>This event couldn't be loaded right now. Please try again later.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else if (!Model.Found)
+{
+    <section class="event-missing">
+        <h1>Event not found</h1>
+        <p>We couldn't find that event.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else
+{
+    <partial name="_EventForm" model="Model" />
+}

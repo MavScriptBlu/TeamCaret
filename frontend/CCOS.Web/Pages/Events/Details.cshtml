@@ -1,0 +1,156 @@
+@page "{id:int?}"
+@*
+    Details page for a specific event.
+    Displays event information, including date, location, categories, and ticket prices.
+    Provides officer actions for editing or removing the event (CAR-56: "Remove", never "Delete").
+    Author: TeamCaret
+    Created: 2024-06-18
+*@
+@model DetailsModel
+@{
+    ViewData["Title"] = Model.Event?.Name ?? "Event not found";
+}
+
+<link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+@* The Remove dialog's styles live in products.css. *@
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (TempData["EventSaved"] is string eventSaved)
+{
+    <p class="events-message" role="status">@eventSaved</p>
+}
+@if (TempData["EventError"] is string eventError)
+{
+    <p class="events-message" role="alert">@eventError</p>
+}
+
+@if (Model.LoadFailed)
+{
+    <section class="event-missing" role="alert">
+        <h1>Event unavailable</h1>
+        <p>This event couldn't be loaded right now. Please try again later.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else if (Model.Event is null)
+{
+    <section class="event-missing">
+        <h1>Event not found</h1>
+        <p>We couldn't find that event.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else
+{
+    var ev = Model.Event;
+
+    <article class="event-detail">
+        <div class="event-detail-top">
+            <div class="events-card-image event-detail-image" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+            </div>
+
+            <div class="event-detail-info">
+                <div class="event-detail-head">
+                    <h1>@ev.Name</h1>
+
+                    @* Officer actions: only shown to officers (CAR-69). The Officer pages and the API check on their own too. *@
+                    @if (User.IsOfficer())
+                    {
+                    <details class="events-options" id="eventOptions">
+                        <summary aria-label="Event options">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                        </summary>
+                        <div class="events-options-menu">
+                            <a asp-page="/Officer/Events/Edit" asp-route-id="@ev.EventId">Edit event</a>
+                            <form method="post" asp-page-handler="Remove" asp-route-id="@ev.EventId" data-remove-form>
+                                <button type="button"
+                                        class="events-options-danger"
+                                        id="removeEventButton"
+                                        data-remove-button
+                                        data-remove-name="@ev.Name"
+                                        aria-haspopup="dialog"
+                                        aria-controls="removeDialog">Remove event</button>
+                            </form>
+                        </div>
+                    </details>
+                    }
+                </div>
+
+                <dl class="event-detail-facts">
+                    <div>
+                        <dt>Date</dt>
+                        <dd>@(ClubTime.FormatRange(ev.StartsAtUtc, ev.EndsAtUtc))</dd>
+                    </div>
+                    <div>
+                        <dt>Location/Venue</dt>
+                        <dd>@ev.VenueName</dd>
+                    </div>
+                    @if (ev.Categories.Count > 0)
+                    {
+                        <div>
+                            <dt>Categories</dt>
+                            <dd>@(string.Join(" - ", ev.Categories))</dd>
+                        </div>
+                    }
+                </dl>
+
+                <div class="event-detail-buy">
+                    @if (ev.MembersOnly)
+                    {
+                        <p class="event-detail-note">Members only</p>
+                    }
+                    <div class="event-detail-prices">
+                        @if (Model.PriceText is null && Model.MemberPriceText is null && !Model.MemberPriceHidden)
+                        {
+                            <p>Tickets aren't on sale yet.</p>
+                        }
+                        <partial name="_PriceTag" model='new PriceTag(Model.PriceText, Model.MemberPriceText, Large: true, RegularLabel: "Ticket price")' />
+                        @if (Model.MemberPriceHidden)
+                        {
+                            @* Not a current member, so the API didn't send the member price (CAR-69). *@
+                            <p class="price-tag-hint">Member price: <a asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">log in as a member</a> to see it.</p>
+                        }
+                    </div>
+                    @* Placeholder: RSVP does nothing yet. *@
+                    <button type="button" class="event-rsvp">RSVP</button>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ev.Description))
+        {
+            <section class="event-detail-description" aria-label="Description">
+                <p>@ev.Description</p>
+            </section>
+        }
+    </article>
+
+    <partial name="_RemoveDialog" model="@(new RemoveDialogModel("event", "the Events page"))" />
+}
+
+@section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var options = document.getElementById('eventOptions');
+            if (!options) return;
+
+            // Close the options menu on an outside click or Escape.
+            document.addEventListener('click', function (e) {
+                if (options.open && !options.contains(e.target)) options.open = false;
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && options.open) {
+                    options.open = false;
+                    options.querySelector('summary').focus();
+                }
+            });
+
+            // officer-remove-dialog.js opens the Remove confirmation. Close the menu behind it.
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('[data-remove-button]')) options.open = false;
+            });
+        })();
+    </script>
+}
