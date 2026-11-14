@@ -78,7 +78,11 @@ else
                         <div class="officer-product-details">
                             @if (!venue.IsActive)
                             {
-                                <p class="officer-deactivated">Removed from the venue list. Nothing was deleted. Restore it any time.</p>
+                                @* Restore needs a full address, so venues without one are sent to Edit first (CAR-81). *@
+                                <p class="officer-deactivated">
+                                    Removed from the venue list. Nothing was deleted.
+                                    @(venue.AddressLine1 is null ? "Add an address in Edit, then restore it." : "Restore it any time.")
+                                </p>
                             }
                             <dl class="officer-facts">
                                 <div><dt>Name</dt><dd>@venue.Name</dd></div>
