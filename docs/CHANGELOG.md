@@ -11,6 +11,33 @@ Database and design decisions, newest first.
 - `/api/auth/login?useCookies=true` still answers (it's Identity's built-in endpoint), but the cookie it hands out opens nothing on the API.
 - Test: `AccessRulesTests.An_officer_signed_in_with_a_cookie_is_refused` signs an officer in with a cookie and no token, and creating a product answers 401.
 
+## 2026-11-13 · CAR-75 Merch list revamp
+
+- From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.
+- Compact header: smaller logo and title, and the big empty banner placeholder from the first wireframe is gone until the club has a real photo. On a laptop the products now show without scrolling.
+- Category is now a row of chips (All, then each category) instead of a dropdown. They're plain links, so they work without JavaScript and keep the other choices.
+- New Sort: name A–Z (default), price low to high, price high to low. Price sorting uses the price the visitor pays, so members sort by member price (`IndexModel.PriceYouPay`). `?sort=` in the URL; an unknown value falls back to name.
+- An item count ("4 items", or "Showing 3 of 4 items · Clear filters" while filtering).
+- The grid fits as many cards as there's room for (4 on a wide screen, 2 on a phone), with a shorter photo area. Price and stock sit together at the bottom of each card so they line up, and the stock is a colored tag. Search results use the same card, so they change too.
+- The officer Product dashboard isn't part of this story.
+- Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
+
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
+## 2026-11-10 · CAR-84 ready to deploy (any host)
+
+- New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
+- Health checks: `GET /health` on the API answers "Healthy" when the database can be reached, and on the website when the API's `/health` is healthy. Both answer "Unhealthy" with 503 otherwise, and need no sign-in.
+- New optional API setting `Database:MigrateOnStartup` (`Database__MigrateOnStartup`): when true outside Development, the API applies database migrations each time it starts. Off by default; Development still creates and seeds the database as before.
+- New optional website setting `DataProtection:KeysPath` (`DataProtection__KeysPath`): a folder for the sign-in cookie keys, so a restart on a host doesn't sign everyone out.
+- The website's five API clients now share one place that reads `Api:BaseUrl`, and the error says to set `Api__BaseUrl` on a host.
+- Tests: the API's `/health` when the database is reachable and when it isn't, and the website's `/health` when the API is healthy, unhealthy or not running.
 ## 2026-11-10 · CAR-79 warn before removing a venue that has events
 
 - Decision: warn, don't block. Removing a venue only takes it off the venue list and the event form's dropdown; events already booked there keep their venue and still happen. This replaces the "blocked" rule from CAR-57.
@@ -51,9 +78,17 @@ Found in the Sprint 4 QA run and the team's CAR-69 review, now that events and v
 - Review fix: event ticket member prices follow the product rule. `TicketTypeDto.MemberPrice` is now `decimal?` and is null on `GET /api/events` and `/api/events/{id}` unless the caller is a current member; the officer endpoints always include it. The event page shows "Member price: log in as a member to see it" instead.
 - Tests: the event API tests sign in as an officer (`TestAccounts.SignInAsOfficerAsync`). New tests: the event officer endpoints refuse a visitor who isn't signed in, visitors get no ticket member prices while officers do, and a past event's page is 404 while officers can still open it.
 
+## 2026-11-08 · CAR-63: Full venue ZIP code validation enforcement
+
+- Enforced the ZIP code format rule (`^\d{5}(-\d{4})?$`, 5 digits or ZIP+4) across all venue creation and update paths (`CreateVenueRequest` DTO and `CreateModel` page model).
+- Updated venue creation and editing forms (`Create.cshtml` and `_VenueForm.cshtml`) to include `inputmode="numeric"` on ZIP code inputs.
+- Added comprehensive unit tests in `VenueValidationTests` covering valid 5-digit ZIPs, ZIP+4, and rejected formats (letters, invalid lengths, symbols).
+- No database migrations required as `VenueAddresses.ZipCode` column definition remains unchanged.
+
 ## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
 
 - Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+
 ## 2026-11-08 · CAR-60 Codacy fixes
 
 Code-quality notes Codacy left on CAR-60. No change to what people see.
