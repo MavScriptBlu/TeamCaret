@@ -5,9 +5,12 @@
 // Markup it looks for:
 //   <form data-remove-form> ... <button type="button" data-remove-button data-remove-name="Main Hall"
 //                                       data-remove-row=".officer-product">Remove venue</button> </form>
+// An optional data-remove-warning on the button shows a warning in the dialog (CAR-79: upcoming
+// events booked at the venue). The officer can still remove it.
 (function () {
   var dialog = document.getElementById('removeDialog');
   var removeName = document.getElementById('removeName');
+  var removeWarning = document.getElementById('removeWarning');
   var confirmButton = document.getElementById('confirmRemove');
   var cancelButton = document.getElementById('cancelRemove');
 
@@ -59,6 +62,12 @@
     }
 
     removeName.textContent = button.dataset.removeName || 'this item';
+
+    if (removeWarning) {
+      var warning = button.dataset.removeWarning || '';
+      removeWarning.textContent = warning;
+      removeWarning.hidden = !warning;
+    }
 
     dialog.showModal();
     positionDialog(button);

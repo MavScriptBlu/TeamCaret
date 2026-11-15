@@ -83,11 +83,14 @@ the website converts from club time (America/Chicago).
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/venues` | Active venues by name, for the event form dropdown. |
-| GET | `/venues/officer` | Officer list (CAR-57): every venue, removed ones too, with its address, by name. Officer only. |
-| GET | `/venues/{id}` | One venue with its address, removed ones too. Address parts are null for the sample venues. 404 for an unknown id. Officer only. |
+| GET | `/venues/officer` | Officer list (CAR-57): every venue, removed ones too, with its address and `upcomingEvents`, by name. Officer only. |
+| GET | `/venues/{id}` | One venue with its address and `upcomingEvents`, removed ones too. Address parts are null for venues saved before addresses existed. 404 for an unknown id. Officer only. |
 | POST | `/venues` | Create a venue and its address (CAR-51). 400 for bad fields or a name that is already used. Officer only (CAR-69). |
 | PUT | `/venues/{id}` | Update a venue and its address (CAR-57). The name can match the venue's own name. `IsActive: true` restores a removed venue. 404 for an unknown id. Officer only. |
-| DELETE | `/venues/{id}` | Remove a venue (CAR-58, soft delete). 204, or 404 for an unknown id. Events that already use the venue keep showing its name. Officer only. |
+| DELETE | `/venues/{id}` | Remove a venue (CAR-58, soft delete). 204, or 404 for an unknown id. Allowed even when upcoming events are booked there (CAR-79: warn, don't block); those events keep the venue and still show its name. Officer only. |
+
+`upcomingEvents` (CAR-79) lists the venue's active events that haven't started yet, soonest first, as
+`{ eventId, name, startsAtUtc }`. The officer Venues page uses it to warn in the "Remove venue?" dialog.
 
 ZIP codes (CAR-63) are 5 digits (`54481`) or ZIP+4 (`54481-1234`) on create and update. The rule lives
 in `CCOS.Shared.ZipCodeRules`, so the API and the Razor forms say the same thing.

@@ -106,6 +106,7 @@ else
                                     </dd>
                                 </div>
                                 <div><dt>Capacity</dt><dd>@venue.Capacity</dd></div>
+                                <div><dt>Upcoming events</dt><dd>@(venue.UpcomingEvents?.Count ?? 0)</dd></div>
                                 <div><dt>In the venue list</dt><dd>@(venue.IsActive ? "Yes" : "No, removed")</dd></div>
                             </dl>
                         </div>
@@ -124,6 +125,7 @@ else
                                         class="officer-delete"
                                         data-remove-button
                                         data-remove-name="@venue.Name"
+                                        data-remove-warning="@VenueRemoveWarning.For(venue.UpcomingEvents)"
                                         data-remove-row=".officer-product"
                                         aria-haspopup="dialog"
                                         aria-controls="removeDialog">

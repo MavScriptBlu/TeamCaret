@@ -2,17 +2,41 @@
 
 Database and design decisions, newest first.
 
-## 2026-11-13 · CAR-76 Events list revamp
+## 2026-11-13 · CAR-75 Merch list revamp
 
-- From Jason's Sprint 4 review notes, in the same style as the Merch list (CAR-75). The goal: see what's coming up and when, at a glance.
-- Compact header, and the heading shows the count ("Upcoming events · 4 upcoming").
-- Each upcoming event card has a date block (month, day and weekday) instead of the empty image, then the name, the time ("5:00 PM – 7:00 PM"), the venue, a "Members only" tag where it applies, and one line of the description.
-- The price sits at the bottom of each card, using the shared price display: members see their price big with the regular price crossed out. A members-only event shows "Log in as a member to see the price" to visitors who aren't members, and an event with nothing on sale says so.
-- One rule for event prices: `TicketPrices.ForEvent` (members-only events show just the member price; other events show the regular price, plus the member price when it's different). The event page now uses it too, so the card and the page always agree.
-- The grid fits as many cards as there's room for (4 on a wide screen, 1 on a phone). The News section and the officers' menu are unchanged.
-- Officers: the Description box on Create/Edit event now says "The first line shows on the event card, so start with a one-sentence summary." No new field; the whole description still shows on the event page.
-- Tests: `EventCardTests` covers the card prices (member, not a member, same price, members-only, nothing on sale) and the time line (same day, ending the next day).
+- From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.
+- Compact header: smaller logo and title, and the big empty banner placeholder from the first wireframe is gone until the club has a real photo. On a laptop the products now show without scrolling.
+- Category is now a row of chips (All, then each category) instead of a dropdown. They're plain links, so they work without JavaScript and keep the other choices.
+- New Sort: name A–Z (default), price low to high, price high to low. Price sorting uses the price the visitor pays, so members sort by member price (`IndexModel.PriceYouPay`). `?sort=` in the URL; an unknown value falls back to name.
+- An item count ("4 items", or "Showing 3 of 4 items · Clear filters" while filtering).
+- The grid fits as many cards as there's room for (4 on a wide screen, 2 on a phone), with a shorter photo area. Price and stock sit together at the bottom of each card so they line up, and the stock is a colored tag. Search results use the same card, so they change too.
+- The officer Product dashboard isn't part of this story.
+- Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
 
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
+## 2026-11-10 · CAR-84 ready to deploy (any host)
+
+- New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
+- Health checks: `GET /health` on the API answers "Healthy" when the database can be reached, and on the website when the API's `/health` is healthy. Both answer "Unhealthy" with 503 otherwise, and need no sign-in.
+- New optional API setting `Database:MigrateOnStartup` (`Database__MigrateOnStartup`): when true outside Development, the API applies database migrations each time it starts. Off by default; Development still creates and seeds the database as before.
+- New optional website setting `DataProtection:KeysPath` (`DataProtection__KeysPath`): a folder for the sign-in cookie keys, so a restart on a host doesn't sign everyone out.
+- The website's five API clients now share one place that reads `Api:BaseUrl`, and the error says to set `Api__BaseUrl` on a host.
+- Tests: the API's `/health` when the database is reachable and when it isn't, and the website's `/health` when the API is healthy, unhealthy or not running.
+## 2026-11-10 · CAR-79 warn before removing a venue that has events
+
+- Decision: warn, don't block. Removing a venue only takes it off the venue list and the event form's dropdown; events already booked there keep their venue and still happen. This replaces the "blocked" rule from CAR-57.
+- The "Remove venue?" dialog now says how many upcoming events are booked at the venue and names up to three of them with their dates ("2 upcoming events are booked here: ... They keep this venue and still happen."). No warning when there are none. The officer can still remove it.
+- The officer venue list also shows an "Upcoming events" count for each venue.
+- API: `GET /api/venues/officer` and `GET /api/venues/{id}` now include `upcomingEvents` (active events that haven't started yet, soonest first). `DELETE /api/venues/{id}` is unchanged. New `VenueEventSummaryDto` in CCOS.Shared; `VenueDetailDto` gets an optional `UpcomingEvents`.
+- The shared remove dialog (`_RemoveDialog.cshtml`, `officer-remove-dialog.js`) shows a warning when the Remove button has `data-remove-warning`. The event pages don't use it, so they look the same.
+- Tests: the API tests cover a venue with upcoming events (soonest first, past and removed events left out), one with only past events, one with none, and removing a venue with upcoming events (allowed; the event keeps its venue). `VenueRemoveWarningTests` covers the dialog wording for 0, 1, 3 and 5 events.
 ## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
 
 - On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).
