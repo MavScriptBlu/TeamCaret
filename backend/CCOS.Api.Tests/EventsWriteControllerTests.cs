@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Shared;
@@ -131,7 +133,8 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         string name = "Sold Out Soon",
         int? venueId = null,
         int capacity = 20,
-        bool isActive = true) => new(
+        bool isActive = true,
+        uint? rowVersion = 0) => new(
         name,
         null,
         DateTime.UtcNow.AddDays(10),
@@ -141,7 +144,8 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         false,
         12m,
         6m,
-        isActive);
+        isActive,
+        rowVersion);
 
     // ---- POST /api/events ----
 
@@ -156,6 +160,7 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal("Robot Night", created.Name);
         Assert.Equal("Main Hall", created.VenueName);
         Assert.True(created.IsActive);
+        Assert.Equal(0u, created.RowVersion);
         Assert.Equal(new DateTime(2027, 3, 4, 0, 0, 0, DateTimeKind.Utc), created.StartsAtUtc);
 
         var ticketType = Assert.Single(created.TicketTypes);
@@ -259,6 +264,21 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Fact]
+    public async Task Put_rejects_a_missing_row_version()
+    {
+        var body = JsonNode.Parse(JsonSerializer.Serialize(
+            ValidUpdate(), new JsonSerializerOptions(JsonSerializerDefaults.Web)))!.AsObject();
+        Assert.True(body.Remove("rowVersion"));
+
+        var response = await _client.PutAsync(
+            $"/api/events/{_soldEventId}",
+            JsonContent.Create(body));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("RowVersion", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task Put_returns_404_for_an_unknown_event()
     {
         var response = await _client.PutAsJsonAsync("/api/events/99999", ValidUpdate());
@@ -308,7 +328,8 @@ public class EventsWriteControllerTests : IClassFixture<WebApplicationFactory<Pr
             false,
             0m,
             0m,
-            IsActive: true);
+            IsActive: true,
+            RowVersion: 0);
 
         var response = await _client.PutAsJsonAsync($"/api/events/{_removedEventId}", restore);
 

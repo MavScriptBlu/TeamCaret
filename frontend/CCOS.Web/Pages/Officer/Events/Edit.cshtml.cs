@@ -33,6 +33,9 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
     /// </summary>
     public bool LoadFailed { get; private set; }
 
+    /// <summary>True when the API rejected this form because its event version is stale.</summary>
+    public bool HasConflict { get; private set; }
+
     public override string Heading => "Edit Event";
     public override string ImagePrompt => "Change image: drag and drop, or click to choose one";
     public override string SaveText => "Save changes";
@@ -69,6 +72,7 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
             }
 
             Found = true;
+            RowVersion = dto.RowVersion;
             Fill(EventMapping.ToEventInfo(dto));
         }
         // Same handling as the product pages: a timeout counts as a failure, but a visitor
@@ -109,6 +113,13 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
             return Page();
         }
 
+        if (RowVersion is not uint rowVersion)
+        {
+            ModelState.AddModelError(string.Empty, "The event version is missing. Reload the page and try again.");
+            await LoadVenuesForRedisplayAsync(cancellationToken);
+            return Page();
+        }
+
         // The Required rules guarantee these have values, so ! and .Value are safe.
         var request = new UpdateEventRequest(
             Name!,
@@ -120,7 +131,8 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
             MembersOnly,
             TicketPrice!.Value,
             MemberPrice!.Value,
-            IsActive);
+            IsActive,
+            rowVersion);
 
         try
         {
@@ -145,9 +157,12 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
             // Someone else saved this event while it was open here.
             if (response.StatusCode == HttpStatusCode.Conflict)
             {
+                HasConflict = true;
                 ModelState.AddModelError(
                     string.Empty,
-                    "Someone else changed this event while you were editing. Reload the page and try again.");
+                    "This event was changed by someone else. Cancel and try again.");
+                // Keep the submitted values and their old token so the officer can copy their edits
+                // if needed. The Reload link performs a fresh GET and replaces both with current data.
                 await LoadVenuesForRedisplayAsync(cancellationToken);
                 return Page();
             }

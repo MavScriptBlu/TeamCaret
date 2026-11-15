@@ -162,12 +162,19 @@ public class IndexModel(EventsApiClient eventsApi, ILogger<IndexModel> logger) :
                 ticketType.Price,
                 // The officer endpoint always sends the member price.
                 ticketType.MemberPrice.GetValueOrDefault(),
-                IsActive: true);
+                IsActive: true,
+                RowVersion: existing.RowVersion);
 
             using var response = await eventsApi.UpdateAsync(id, request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    TempData["EventError"] = "The event changed while it was being restored. Refresh the list and try again.";
+                    return RedirectToList(show, id);
+                }
+
                 logger.LogWarning("Failed to restore event {EventId}. Status code: {StatusCode}", id, response.StatusCode);
                 TempData["EventError"] = "The event could not be restored. Open Edit to check its details.";
                 return RedirectToList(show, id);
