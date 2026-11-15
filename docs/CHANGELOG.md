@@ -2,6 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-13 · CAR-75 Merch list revamp
+
+- From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.
+- Compact header: smaller logo and title, and the big empty banner placeholder from the first wireframe is gone until the club has a real photo. On a laptop the products now show without scrolling.
+- Category is now a row of chips (All, then each category) instead of a dropdown. They're plain links, so they work without JavaScript and keep the other choices.
+- New Sort: name A–Z (default), price low to high, price high to low. Price sorting uses the price the visitor pays, so members sort by member price (`IndexModel.PriceYouPay`). `?sort=` in the URL; an unknown value falls back to name.
+- An item count ("4 items", or "Showing 3 of 4 items · Clear filters" while filtering).
+- The grid fits as many cards as there's room for (4 on a wide screen, 2 on a phone), with a shorter photo area. Price and stock sit together at the bottom of each card so they line up, and the stock is a colored tag. Search results use the same card, so they change too.
+- The officer Product dashboard isn't part of this story.
+- Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
+
 ## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
 
 - From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.

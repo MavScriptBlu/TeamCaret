@@ -25,8 +25,38 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
     [BindProperty(SupportsGet = true)]
     public bool InStockOnly { get; set; }
 
+    /// <summary>Sort value for name A–Z (the default).</summary>
+    public const string SortByName = "name";
+
+    /// <summary>Sort value for lowest price first.</summary>
+    public const string SortByPriceLow = "price-low";
+
+    /// <summary>Sort value for highest price first.</summary>
+    public const string SortByPriceHigh = "price-high";
+
     /// <summary>
-    /// Products to show after filtering.
+    /// The choices in the Sort dropdown (CAR-75), in the order they show.
+    /// </summary>
+    public static IReadOnlyList<(string Value, string Label)> SortOptions { get; } =
+    [
+        (SortByName, "Name (A–Z)"),
+        (SortByPriceLow, "Price: low to high"),
+        (SortByPriceHigh, "Price: high to low"),
+    ];
+
+    /// <summary>
+    /// Sort order from the URL (/Products?sort=price-low). Empty or unknown means name A–Z.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public string? Sort { get; set; }
+
+    /// <summary>
+    /// The sort that's actually applied: <see cref="Sort"/> when it's one of the choices, otherwise name.
+    /// </summary>
+    public string SortOrDefault => SortOptions.Any(option => option.Value == Sort) ? Sort! : SortByName;
+
+    /// <summary>
+    /// Products to show after filtering and sorting.
     /// </summary>
     public IReadOnlyList<ProductDto> Products { get; private set; } = [];
 
@@ -46,7 +76,7 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
     public bool LoadFailed { get; private set; }
 
     /// <summary>
-    /// True when a filter is applied.
+    /// True when a filter is applied. Sorting isn't a filter: every product still shows.
     /// </summary>
     public bool IsFiltered => !string.IsNullOrEmpty(Category) || InStockOnly;
 
@@ -76,10 +106,23 @@ public class IndexModel(ProductsApiClient productsApi, ILogger<IndexModel> logge
         TotalCount = all.Count;
         Categories = all.Select(product => product.Category).Distinct().Order().ToList();
 
-        // Narrow the list down to what the visitor asked for.
-        Products = all
+        // Narrow the list down to what the visitor asked for, then sort it.
+        var filtered = all
             .Where(product => string.IsNullOrEmpty(Category) || product.Category == Category)
-            .Where(product => !InStockOnly || product.StockQuantity > 0)
-            .ToList();
+            .Where(product => !InStockOnly || product.StockQuantity > 0);
+
+        Products = (SortOrDefault switch
+        {
+            SortByPriceLow => filtered.OrderBy(PriceYouPay).ThenBy(product => product.Name, StringComparer.OrdinalIgnoreCase),
+            SortByPriceHigh => filtered.OrderByDescending(PriceYouPay).ThenBy(product => product.Name, StringComparer.OrdinalIgnoreCase),
+            _ => filtered.OrderBy(product => product.Name, StringComparer.OrdinalIgnoreCase),
+        }).ToList();
     }
+
+    /// <summary>
+    /// The price this visitor pays: the member price when they can see it and it's lower, otherwise
+    /// the regular price. Price sorting uses it, so members sort by what they'd actually pay.
+    /// </summary>
+    public static decimal PriceYouPay(ProductDto product) =>
+        product.MemberPrice is decimal memberPrice && memberPrice < product.Price ? memberPrice : product.Price;
 }

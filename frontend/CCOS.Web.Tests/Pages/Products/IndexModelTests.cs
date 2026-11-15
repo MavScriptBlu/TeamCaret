@@ -134,6 +134,88 @@ public class IndexModelTests
         Assert.True(_model.IsFiltered);
     }
 
+    // ---- Sort (CAR-75) ----
+
+    // A member's view: every product has a member price. The hat's member price ties the mug's
+    // regular price, so price sorting has to use what the member pays.
+    private void RespondWithSortSamples() =>
+        _mockHttp.When(HttpMethod.Get, "http://localhost/api/products")
+                 .Respond("application/json", JsonSerializer.Serialize(new List<ProductDto>
+                 {
+                     new(1, "Apparel", "T-Shirt", "A nice shirt", 20.00m, 15.00m, 10, true),
+                     new(2, "Accessories", "mug", "A cool mug", 10.00m, null, 5, true),
+                     new(3, "Apparel", "Hat", "A stylish hat", 15.00m, 9.00m, 5, true),
+                 }));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-a-sort")]
+    [InlineData(IndexModel.SortByName)]
+    public async Task OnGetAsync_DefaultOrUnknownSort_SortsByNameIgnoringCase(string? sort)
+    {
+        RespondWithSortSamples();
+        _model.Sort = sort;
+
+        await _model.OnGetAsync(CancellationToken.None);
+
+        string[] expected = ["Hat", "mug", "T-Shirt"];
+        Assert.Equal(expected, _model.Products.Select(product => product.Name));
+        Assert.Equal(IndexModel.SortByName, _model.SortOrDefault);
+        Assert.False(_model.IsFiltered);
+    }
+
+    [Fact]
+    public async Task OnGetAsync_SortByPriceLow_UsesThePriceTheVisitorPays()
+    {
+        RespondWithSortSamples();
+        _model.Sort = IndexModel.SortByPriceLow;
+
+        await _model.OnGetAsync(CancellationToken.None);
+
+        // Hat $9 (member), mug $10 (no member price), T-Shirt $15 (member).
+        string[] expected = ["Hat", "mug", "T-Shirt"];
+        Assert.Equal(expected, _model.Products.Select(product => product.Name));
+    }
+
+    [Fact]
+    public async Task OnGetAsync_SortByPriceHigh_PutsTheMostExpensiveFirst()
+    {
+        RespondWithSortSamples();
+        _model.Sort = IndexModel.SortByPriceHigh;
+
+        await _model.OnGetAsync(CancellationToken.None);
+
+        string[] expected = ["T-Shirt", "mug", "Hat"];
+        Assert.Equal(expected, _model.Products.Select(product => product.Name));
+    }
+
+    [Fact]
+    public async Task OnGetAsync_SortWithFilter_SortsOnlyTheFilteredProducts()
+    {
+        RespondWithSortSamples();
+        _model.Category = "Apparel";
+        _model.Sort = IndexModel.SortByPriceHigh;
+
+        await _model.OnGetAsync(CancellationToken.None);
+
+        string[] expected = ["T-Shirt", "Hat"];
+        Assert.Equal(expected, _model.Products.Select(product => product.Name));
+        Assert.Equal(3, _model.TotalCount);
+    }
+
+    [Theory]
+    [InlineData(20.00, 15.00, 15.00)] // member price lower: pays the member price
+    [InlineData(20.00, null, 20.00)]  // not a member: pays the regular price
+    [InlineData(20.00, 20.00, 20.00)] // same price either way
+    public void PriceYouPay_PicksTheLowerPriceTheVisitorCanSee(double price, double? memberPrice, double expected)
+    {
+        // InlineData can't hold decimals, so the prices come in as doubles.
+        var product = new ProductDto(1, "Apparel", "T-Shirt", null, (decimal)price, (decimal?)memberPrice, 1, true);
+
+        Assert.Equal((decimal)expected, IndexModel.PriceYouPay(product));
+    }
+
     [Fact]
     public async Task OnGetAsync_WhenApiFails_SetsLoadFailedAndLogsError()
     {
