@@ -1,5 +1,6 @@
 using CCOS.Api;
 using CCOS.Api.Authorization;
+using CCOS.Api.Health;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Repositories;
@@ -68,6 +69,11 @@ if (!isTestMode)
     });
 }
 
+// GET /health (CAR-84): "Healthy" when the database can be reached, "Unhealthy" (503) when it can't.
+// Hosts use it to check the API is up. No sign-in needed, and it shows nothing private.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
+
 // One repository per web request, so it shares that request's database connection.
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<EventRepository>();
@@ -127,6 +133,17 @@ if (app.Environment.IsDevelopment() && !isTestMode)
     await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase, app.Lifetime.ApplicationStopping);
 }
 
+// Outside Development nothing creates or updates the tables on its own. Run the migrations from a
+// computer that can reach the database, or set Database:MigrateOnStartup to true (environment
+// variable Database__MigrateOnStartup) so the API applies them each time it starts.
+// No sample data or sample logins are added outside Development. See docs/DEPLOYMENT.md (CAR-84).
+if (!app.Environment.IsDevelopment() && !isTestMode && app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync(app.Lifetime.ApplicationStopping);
+}
+
 // ---- Request pipeline (what happens to each incoming request, in order) ----
 if (app.Environment.IsDevelopment())
 {
@@ -141,6 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 // Identity's built-in endpoints under /api/auth: login, refresh, forgot and reset password, and so on.
 // Its /register is turned off because it would create a login without a Customer (every login needs one);

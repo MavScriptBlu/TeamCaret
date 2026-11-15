@@ -28,19 +28,20 @@ public class VenuesController(VenueRepository venues) : ControllerBase
 
     /// <summary>
     /// GET /api/venues/officer: the officer venue list (CAR-57). Every venue, removed ones too,
-    /// with its address, by name.
+    /// with its address and its upcoming events (CAR-79), by name.
     /// </summary>
     [HttpGet("officer")]
     [Authorize(Policy = ClubPolicies.Officer)]
     public async Task<IReadOnlyList<VenueDetailDto>> ListForOfficers(CancellationToken cancellationToken)
     {
         var items = await venues.ListAllAsync(cancellationToken);
-        return items.Select(ToDetailDto).ToList();
+        var upcoming = await venues.ListUpcomingEventsByVenueAsync(cancellationToken: cancellationToken);
+        return items.Select(venue => ToDetailDto(venue, upcoming[venue.VenueId])).ToList();
     }
 
     /// <summary>
-    /// GET /api/venues/{id}: one venue with its address, or 404. Removed venues come back too
-    /// (IsActive false) so the edit page can restore them.
+    /// GET /api/venues/{id}: one venue with its address and upcoming events, or 404. Removed
+    /// venues come back too (IsActive false) so the edit page can restore them.
     /// </summary>
     [HttpGet("{id:int}")]
     [Authorize(Policy = ClubPolicies.Officer)] // only the officer pages use it, and it includes removed venues (CAR-69)
@@ -53,7 +54,7 @@ public class VenuesController(VenueRepository venues) : ControllerBase
             return NotFound();
         }
 
-        return ToDetailDto(venue);
+        return await ToDetailDtoWithEventsAsync(venue, cancellationToken);
     }
 
     /// <summary>
@@ -122,12 +123,14 @@ public class VenuesController(VenueRepository venues) : ControllerBase
             return NotFound();
         }
 
-        return ToDetailDto(venue);
+        return await ToDetailDtoWithEventsAsync(venue, cancellationToken);
     }
 
     /// <summary>
     /// DELETE /api/venues/{id}: REMOVE a venue (CAR-58). It's a soft delete, so IsActive becomes
     /// false and the row stays in the database. PUT with IsActive true brings it back.
+    /// Removing is allowed even when upcoming events are booked there (CAR-79 decision: warn,
+    /// don't block): those events keep their venue and still happen. The officer page warns first.
     /// 204 on success, 404 when there's no venue with that id.
     /// </summary>
     [HttpDelete("{id:int}")]
@@ -139,9 +142,18 @@ public class VenuesController(VenueRepository venues) : ControllerBase
     }
 
     /// <summary>
-    /// Turns a Venue entity (with its address) into the DTO sent over the wire.
+    /// Looks up one venue's upcoming events, then builds its DTO.
     /// </summary>
-    private static VenueDetailDto ToDetailDto(Venue venue) => new(
+    private async Task<VenueDetailDto> ToDetailDtoWithEventsAsync(Venue venue, CancellationToken cancellationToken)
+    {
+        var upcoming = await venues.ListUpcomingEventsByVenueAsync(venue.VenueId, cancellationToken);
+        return ToDetailDto(venue, upcoming[venue.VenueId]);
+    }
+
+    /// <summary>
+    /// Turns a Venue entity (with its address) and its upcoming events into the DTO sent over the wire.
+    /// </summary>
+    private static VenueDetailDto ToDetailDto(Venue venue, IEnumerable<Event> upcomingEvents) => new(
         venue.VenueId,
         venue.Name,
         venue.Capacity,
@@ -150,5 +162,8 @@ public class VenuesController(VenueRepository venues) : ControllerBase
         venue.Address?.AddressLine2,
         venue.Address?.City,
         venue.Address?.State,
-        venue.Address?.ZipCode);
+        venue.Address?.ZipCode,
+        upcomingEvents
+            .Select(@event => new VenueEventSummaryDto(@event.EventId, @event.Name, @event.StartsAtUtc))
+            .ToList());
 }

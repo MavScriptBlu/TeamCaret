@@ -13,6 +13,30 @@ Database and design decisions, newest first.
 - The officer Product dashboard isn't part of this story.
 - Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
 
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
+## 2026-11-10 · CAR-84 ready to deploy (any host)
+
+- New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
+- Health checks: `GET /health` on the API answers "Healthy" when the database can be reached, and on the website when the API's `/health` is healthy. Both answer "Unhealthy" with 503 otherwise, and need no sign-in.
+- New optional API setting `Database:MigrateOnStartup` (`Database__MigrateOnStartup`): when true outside Development, the API applies database migrations each time it starts. Off by default; Development still creates and seeds the database as before.
+- New optional website setting `DataProtection:KeysPath` (`DataProtection__KeysPath`): a folder for the sign-in cookie keys, so a restart on a host doesn't sign everyone out.
+- The website's five API clients now share one place that reads `Api:BaseUrl`, and the error says to set `Api__BaseUrl` on a host.
+- Tests: the API's `/health` when the database is reachable and when it isn't, and the website's `/health` when the API is healthy, unhealthy or not running.
+## 2026-11-10 · CAR-79 warn before removing a venue that has events
+
+- Decision: warn, don't block. Removing a venue only takes it off the venue list and the event form's dropdown; events already booked there keep their venue and still happen. This replaces the "blocked" rule from CAR-57.
+- The "Remove venue?" dialog now says how many upcoming events are booked at the venue and names up to three of them with their dates ("2 upcoming events are booked here: ... They keep this venue and still happen."). No warning when there are none. The officer can still remove it.
+- The officer venue list also shows an "Upcoming events" count for each venue.
+- API: `GET /api/venues/officer` and `GET /api/venues/{id}` now include `upcomingEvents` (active events that haven't started yet, soonest first). `DELETE /api/venues/{id}` is unchanged. New `VenueEventSummaryDto` in CCOS.Shared; `VenueDetailDto` gets an optional `UpcomingEvents`.
+- The shared remove dialog (`_RemoveDialog.cshtml`, `officer-remove-dialog.js`) shows a warning when the Remove button has `data-remove-warning`. The event pages don't use it, so they look the same.
+- Tests: the API tests cover a venue with upcoming events (soonest first, past and removed events left out), one with only past events, one with none, and removing a venue with upcoming events (allowed; the event keeps its venue). `VenueRemoveWarningTests` covers the dialog wording for 0, 1, 3 and 5 events.
 ## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
 
 - On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).
