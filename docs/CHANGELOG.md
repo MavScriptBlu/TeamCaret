@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-14 · CAR-83 the API only accepts bearer tokens
+
+- Decision: option 1 from the story. The API's default sign-in scheme is now Identity's bearer token only (`IdentityConstants.BearerScheme` in `Program.cs`). Before, `AddIdentityApiEndpoints` accepted either a bearer token or Identity's sign-in cookie.
+- Why: cross-site request forgery works by riding on a cookie the browser sends by itself. A bearer token has to be added to each request on purpose, so another site can't use it. The website already calls the API server-to-server with the token (`ApiBearerTokenHandler`), so nothing changes for it, and the website's own forms keep their anti-forgery tokens.
+- Not done: option 2 (anti-forgery tokens on the API). The Nov 9 attempt (`fdcfdd0`, `1c599ef`, reverted) crashed saves because the anti-forgery services weren't registered, and an API called by a server has no form to carry the token.
+- Codacy's "add anti-forgery to state-changing endpoints" warning doesn't apply to the API anymore: no cookie authenticates there, so there is nothing to forge.
+- `/api/auth/login?useCookies=true` still answers (it's Identity's built-in endpoint), but the cookie it hands out opens nothing on the API.
+- Test: `AccessRulesTests.An_officer_signed_in_with_a_cookie_is_refused` signs an officer in with a cookie and no token, and creating a product answers 401.
+
 ## 2026-11-13 · CAR-75 Merch list revamp
 
 - From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.

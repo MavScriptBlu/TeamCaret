@@ -78,6 +78,44 @@ public sealed class AccessRulesTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Cross-site requests (CAR-83): a sign-in cookie opens nothing
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task An_officer_signed_in_with_a_cookie_is_refused()
+    {
+        // The test client keeps cookies like a browser does.
+        var client = _factory.CreateClient();
+        var email = $"cookie-officer-{Guid.NewGuid():N}@ccos.test";
+        var register = await client.PostAsJsonAsync(
+            "/api/account/register",
+            new RegisterAccountRequest("Test", "Cookie", email, TestSecret));
+        register.EnsureSuccessStatusCode();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var user = await db.Users.AsNoTracking().SingleAsync(account => account.Email == email);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            db.Members.Add(new Member { MemberId = user.CustomerId, JoinedDate = today.AddMonths(-6), MemberExpiration = today.AddMonths(6) });
+            db.Officers.Add(new Officer { OfficerId = user.CustomerId, Title = "President", GrantedDate = today.AddMonths(-6) });
+            await db.SaveChangesAsync();
+        }
+
+        // Ask for a cookie instead of a token: this is what a cross-site request would ride on.
+        var login = await client.PostAsJsonAsync("/api/auth/login?useCookies=true", new { email, password = TestSecret });
+        login.EnsureSuccessStatusCode();
+        Assert.True(login.Headers.Contains("Set-Cookie"), "the login should hand out a cookie for this test to mean anything");
+
+        // Same officer, cookie only, no bearer token: the API treats them as not signed in.
+        var response = await client.PostAsJsonAsync(
+            "/api/products",
+            new CreateProductRequest("Apparel", "Cookie Mug", "A mug", 12m, 10m, 5));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Officer endpoints
     // ─────────────────────────────────────────────────────────────────────────
 
