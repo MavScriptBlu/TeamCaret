@@ -84,22 +84,12 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
             return;
         }
 
-        var regular = TicketPrices.RegularPriceText(Event);
-        var member = TicketPrices.MemberPriceText(Event);
+        // Same rule as the event cards on /Events (CAR-76): members-only events show just the
+        // member price; other events show the regular price, plus the member price when it's different.
+        var prices = TicketPrices.ForEvent(Event);
+        PriceText = prices.Regular;
+        MemberPriceText = prices.Member;
         MemberPriceHidden = TicketPrices.MemberPriceHidden(Event);
-
-        // Members-only events show just the member price. Other events show the regular price,
-        // plus the member price only when it is actually different.
-        if (Event.MembersOnly)
-        {
-            // Only members can buy tickets, so the regular price doesn't apply.
-            MemberPriceText = member;
-        }
-        else
-        {
-            PriceText = regular;
-            MemberPriceText = member != regular ? member : null;
-        }
     }
 
     /// <summary>
