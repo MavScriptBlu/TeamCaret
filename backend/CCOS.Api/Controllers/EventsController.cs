@@ -149,11 +149,18 @@ public class EventsController(EventRepository events, IAuthorizationService auth
                 input.TicketPrice,
                 input.MemberTicketPrice,
                 input.IsActive,
+                input.RowVersion!.Value,
                 cancellationToken);
         }
         // Two officers saved the same event at once. The second one has to reload and try again.
         catch (DbUpdateConcurrencyException)
         {
+            // A concurrent hard delete also makes EF report a concurrency failure; preserve the API's 404 for that case.
+            if (await events.FindAsync(id, cancellationToken) is null)
+            {
+                return NotFound();
+            }
+
             return Problem(
                 title: "The event was changed by someone else.",
                 detail: "Reload the event and try again.",
@@ -222,5 +229,6 @@ public class EventsController(EventRepository events, IAuthorizationService auth
         @event.TicketTypes
             .Where(t => t.IsActive)
             .Select(t => new TicketTypeDto(t.ProductId, t.Name, t.Price, includeMemberPrice ? t.MemberPrice : null, t.IsActive))
-            .ToList());
+            .ToList(),
+        @event.RowVersion);
 }

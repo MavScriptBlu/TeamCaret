@@ -15,7 +15,8 @@ public record EventDto(
     bool IsActive,
     int VenueId,
     string VenueName,
-    IReadOnlyList<TicketTypeDto> TicketTypes);
+    IReadOnlyList<TicketTypeDto> TicketTypes,
+    uint RowVersion);
 
 /// <summary>
 /// A ticket type for an event, for example "General" at $5 with a $0 member price.

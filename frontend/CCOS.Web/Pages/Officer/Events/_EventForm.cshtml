@@ -10,6 +10,12 @@
 
 <form method="post" class="event-form" novalidate>
     <div asp-validation-summary="ModelOnly" class="venue-validation-summary" role="alert"></div>
+    @if (Model.ShowActiveBox)
+    {
+        @* Submit the version loaded for this Edit form; Create forms have no prior version. *@
+        <input asp-for="RowVersion" type="hidden" />
+        <span asp-validation-for="RowVersion" class="field-validation-error"></span>
+    }
     <div class="event-detail-top">
         @* Image isn't in the database yet; the file is not uploaded or saved. *@
         <partial name="_ImageDrop" model="Model.ImagePrompt" />

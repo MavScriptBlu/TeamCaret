@@ -51,7 +51,8 @@ public class EditModelTests
         isActive,
         venueId,
         venueName,
-        [new TicketTypeDto(70, "General", 10m, 5m, true)]);
+        [new TicketTypeDto(70, "General", 10m, 5m, true)],
+        17u);
 
     private void FillForm(bool isActive = true)
     {
@@ -64,6 +65,7 @@ public class EditModelTests
         _model.TicketPrice = 10m;
         _model.MemberPrice = 5m;
         _model.IsActive = isActive;
+        _model.RowVersion = 17u;
     }
 
     [Fact]
@@ -79,6 +81,7 @@ public class EditModelTests
         Assert.Equal(new DateOnly(2027, 3, 4), _model.Date);
         Assert.Equal(new TimeOnly(18, 0), _model.StartTime);
         Assert.Equal(10m, _model.TicketPrice);
+        Assert.Equal(17u, _model.RowVersion);
         Assert.False(_model.IsActive);
         Assert.True(_model.ShowActiveBox);
     }
@@ -136,6 +139,7 @@ public class EditModelTests
         Assert.Equal(7, redirect.RouteValues!["id"]);
         Assert.NotNull(sent);
         Assert.True(sent.IsActive);
+        Assert.Equal(17u, sent.RowVersion);
         Assert.Equal("Event saved: Robot Night", _model.TempData["EventSaved"]);
     }
 
@@ -184,13 +188,27 @@ public class EditModelTests
     public async Task OnPost_tells_the_officer_when_someone_else_saved_first()
     {
         FillForm();
-        _handlerMock.SetupRequest(HttpMethod.Put, "http://localhost/api/events/7")
+        _model.Name = "My unsaved name";
+        _model.Description = "My unsaved description";
+        UpdateEventRequest? sent = null;
+        _handlerMock.SetupRequest(HttpMethod.Put, "http://localhost/api/events/7", async request =>
+            {
+                sent = await request.Content!.ReadFromJsonAsync<UpdateEventRequest>();
+                return true;
+            })
             .ReturnsResponse(HttpStatusCode.Conflict);
 
         var result = await _model.OnPostAsync(7, CancellationToken.None);
 
         Assert.IsType<PageResult>(result);
-        Assert.Contains("Someone else", _model.ModelState[string.Empty]!.Errors[0].ErrorMessage);
+        Assert.True(_model.HasConflict);
+        Assert.Equal("This event was changed by someone else; reload and try again.",
+            _model.ModelState[string.Empty]!.Errors[0].ErrorMessage);
+        Assert.NotNull(sent);
+        Assert.Equal(17u, sent.RowVersion);
+        Assert.Equal("My unsaved name", _model.Name);
+        Assert.Equal("My unsaved description", _model.Description);
+        Assert.Equal(17u, _model.RowVersion);
     }
 
     [Fact]

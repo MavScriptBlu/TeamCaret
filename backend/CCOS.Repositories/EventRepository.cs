@@ -133,6 +133,7 @@ public sealed class EventRepository(AppDbContext db)
         decimal ticketPrice,
         decimal memberTicketPrice,
         bool isActive,
+        uint rowVersion,
         CancellationToken cancellationToken = default)
     {
         var @event = await db.Events
@@ -170,6 +171,13 @@ public sealed class EventRepository(AppDbContext db)
             ticketType.Price = ticketPrice;
             ticketType.MemberPrice = memberTicketPrice;
         }
+
+        // EF loaded a fresh token above; replace its original value with the version the officer saw.
+        // The UPDATE will then match only if the database row still has that version.
+        db.Entry(@event).Property(candidate => candidate.RowVersion).OriginalValue = rowVersion;
+
+        // xmin is checked only when EF issues an UPDATE, including when the submitted fields are unchanged.
+        db.Entry(@event).Property(candidate => candidate.Name).IsModified = true;
 
         await db.SaveChangesAsync(cancellationToken);
         return new EventUpdateResult(EventUpdateStatus.Saved, @event, @event.TicketsSold);

@@ -11,6 +11,12 @@ Database and design decisions, newest first.
 - After saving, removing or restoring a venue, its card gets a gold outline when you come back to the list (`ExpandedId`, which used to open that row).
 - The officer Products and Events dashboards keep their current layout.
 - Tests: `IndexModelTests` checks the new In the list and Removed counts.
+## 2026-11-15 · CAR-80 stale event edits
+- QA in sprint 4 found that saving an older copy of an event could overwrite changes made in another tab.
+- The Edit flow now carries the event’s uint RowVersion from the API response, through a hidden form field, and back in the update request. The API requires the token and returns 400 if it’s missing.
+- Before saving, EF Core uses the submitted token as the original value for PostgreSQL’s xmin concurrency check. A stale save returns 409 instead of overwriting newer data; the Edit page preserves the officer’s input, shows “This event was changed by someone else; reload and try again.” and offers a Reload link.
+- Restore requests also send the token. Products and Venues were not changed; their edit flows remain out of scope.
+- Tests: PostgreSQL integration tests verify stale copies get 409 without overwriting the first save, and current tokens save with a new token. API tests cover a missing token; Web tests cover token round-tripping and conflict handling. The stale-copy test failed without the client-token check and passed with it restored. All API (127), Data (86), and Web (167) tests passed.
 
 ## 2026-11-14 · CAR-83 the API only accepts bearer tokens
 
