@@ -160,7 +160,7 @@ public class EditModel(EventsApiClient eventsApi, VenuesApiClient venuesApi, ILo
                 HasConflict = true;
                 ModelState.AddModelError(
                     string.Empty,
-                    "This event was changed by someone else. Cancel and try again.");
+                    "This event was changed by someone else. Reload and try again.");
                 // Keep the submitted values and their old token so the officer can copy their edits
                 // if needed. The Reload link performs a fresh GET and replaces both with current data.
                 await LoadVenuesForRedisplayAsync(cancellationToken);
