@@ -86,6 +86,13 @@ public abstract class EventFormPageModel : PageModel
     [BindProperty]
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// The version loaded when the Edit form was opened. Only Edit renders and uses this value;
+    /// Create has no existing event to compare against.
+    /// </summary>
+    [BindProperty]
+    public uint? RowVersion { get; set; }
+
     /// <summary>Page heading, for example "Create Event".</summary>
     public abstract string Heading { get; }
 

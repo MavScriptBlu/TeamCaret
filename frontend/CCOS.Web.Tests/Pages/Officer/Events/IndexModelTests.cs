@@ -42,7 +42,8 @@ public class IndexModelTests
         isActive,
         1,
         "Main Hall",
-        withTicket ? [new TicketTypeDto(id * 10, "General", 10m, 5m, true)] : []);
+        withTicket ? [new TicketTypeDto(id * 10, "General", 10m, 5m, true)] : [],
+        23u);
 
     private void ListReturns(params EventDto[] events) =>
         _handlerMock.SetupRequest(HttpMethod.Get, "http://localhost/api/events/officer")
@@ -139,8 +140,24 @@ public class IndexModelTests
         Assert.Equal("active", redirect.RouteValues!["show"]);
         Assert.NotNull(sent);
         Assert.True(sent.IsActive);
+        Assert.Equal(23u, sent.RowVersion);
         Assert.Equal(10m, sent.TicketPrice);
         Assert.Equal("Event restored: Event 2", _model.TempData["EventRestored"]);
+    }
+
+    [Fact]
+    public async Task OnPostRestore_shows_a_specific_message_when_the_event_changed()
+    {
+        _handlerMock.SetupRequest(HttpMethod.Get, "http://localhost/api/events/officer/2")
+            .ReturnsJsonResponse(Event(2, false));
+        _handlerMock.SetupRequest(HttpMethod.Put, "http://localhost/api/events/2")
+            .ReturnsResponse(HttpStatusCode.Conflict);
+
+        var result = await _model.OnPostRestoreAsync(2, "inactive", CancellationToken.None);
+
+        Assert.IsType<RedirectToPageResult>(result);
+        Assert.Contains("changed while it was being restored", (string)_model.TempData["EventError"]!);
+        Assert.Null(_model.TempData["EventRestored"]);
     }
 
     [Fact]

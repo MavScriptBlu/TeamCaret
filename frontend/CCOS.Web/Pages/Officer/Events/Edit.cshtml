@@ -25,4 +25,8 @@ else if (!Model.Found)
 else
 {
     <partial name="_EventForm" model="Model" />
+    @if (Model.HasConflict)
+    {
+        <p><a asp-page="/Officer/Events/Edit" asp-route-id="@Model.Id">Reload</a></p>
+    }
 }

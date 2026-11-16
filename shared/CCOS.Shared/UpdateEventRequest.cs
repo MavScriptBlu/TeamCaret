@@ -17,6 +17,7 @@ namespace CCOS.Shared;
 /// <param name="TicketPrice">Regular price of the event's ticket.</param>
 /// <param name="MemberTicketPrice">Member price of the event's ticket. Can't be more than the regular price.</param>
 /// <param name="IsActive">True keeps the event available, false removes it.</param>
+/// <param name="RowVersion">The version the caller loaded, used to reject an update based on stale event data.</param>
 public record UpdateEventRequest(
     [Required(ErrorMessage = "Event name is required.")]
     [StringLength(100, ErrorMessage = "Event name can be at most 100 characters.")]
@@ -43,7 +44,11 @@ public record UpdateEventRequest(
     [Range(0, 99999999.99, ErrorMessage = "Member price must be at least 0.")]
     decimal MemberTicketPrice,
 
-    bool IsActive = true) : IValidatableObject
+    bool IsActive = true,
+
+    // Nullable lets validation distinguish a missing token from a valid token whose value is zero.
+    [Required(ErrorMessage = "The event version is required. Reload the event and try again.")]
+    uint? RowVersion = null) : IValidatableObject
 {
     /// <summary>
     /// Cross-field rules shared with the create request.
