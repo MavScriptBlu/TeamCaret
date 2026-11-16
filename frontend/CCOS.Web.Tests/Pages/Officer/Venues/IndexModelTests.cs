@@ -57,6 +57,10 @@ public class IndexModelTests
         Assert.Equal(3, _model.TotalCount);
         Assert.Equal(expectedCount, _model.Venues.Count);
         Assert.False(_model.LoadFailed);
+
+        // The chip counts (CAR-77) come from every venue, whatever the filter.
+        Assert.Equal(2, _model.ActiveCount);
+        Assert.Equal(1, _model.RemovedCount);
     }
 
     [Fact]
