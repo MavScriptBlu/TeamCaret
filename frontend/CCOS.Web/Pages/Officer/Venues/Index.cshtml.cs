@@ -22,7 +22,8 @@ public class IndexModel(VenuesApiClient venuesApi, ILogger<IndexModel> logger) :
     public string? Show { get; set; }
 
     /// <summary>
-    /// Venue row to open after returning from an action.
+    /// The venue that was just saved, removed or restored, so its card is outlined when the officer
+    /// comes back to the list (CAR-77; it used to be the row that opened).
     /// </summary>
     [BindProperty(SupportsGet = true)]
     public int? ExpandedId { get; set; }
@@ -36,6 +37,16 @@ public class IndexModel(VenuesApiClient venuesApi, ILogger<IndexModel> logger) :
     /// Number of venues before filtering. Zero means there are no venues yet.
     /// </summary>
     public int TotalCount { get; private set; }
+
+    /// <summary>
+    /// Venues in the venue list (not removed), for the "In the list" chip and the count line (CAR-77).
+    /// </summary>
+    public int ActiveCount { get; private set; }
+
+    /// <summary>
+    /// Removed venues, for the "Removed" chip and the count line (CAR-77).
+    /// </summary>
+    public int RemovedCount { get; private set; }
 
     /// <summary>
     /// True when the API couldn't be reached, so the page shows an error message instead.
@@ -66,6 +77,8 @@ public class IndexModel(VenuesApiClient venuesApi, ILogger<IndexModel> logger) :
         // The count is taken before filtering so the page can tell "no venues yet"
         // apart from "no venues match this filter".
         TotalCount = all.Count;
+        ActiveCount = all.Count(venue => venue.IsActive);
+        RemovedCount = TotalCount - ActiveCount;
         Venues = Show switch
         {
             "active" => all.Where(venue => venue.IsActive).ToList(),

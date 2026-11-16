@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-15 · CAR-77 Venues list revamp
+
+- From Jason's Sprint 4 review notes, in the same style as the Merch (CAR-75) and Events (CAR-76) lists. The goal: see every venue's details at a glance instead of opening rows one at a time.
+- `/Officer/Venues` is now a grid of venue cards (3 across on a wide screen, 1 on a phone). Each card shows the name, a status tag ("In the list" or "Removed"), the address ("No address yet" when there isn't one), "Holds 200", and how many upcoming events are booked there.
+- Removed venues are greyed out with a dashed border and keep the "Removed" banner (CAR-81). Edit, Remove (with the CAR-79 warning) and Restore sit at the bottom of every card and work as before.
+- The filter dropdown is now chips with counts: All, In the list (3), Removed (1), plus a line like "4 venues · 3 in the list, 1 removed".
+- After saving, removing or restoring a venue, its card gets a gold outline when you come back to the list (`ExpandedId`, which used to open that row).
+- The officer Products and Events dashboards keep their current layout.
+- Tests: `IndexModelTests` checks the new In the list and Removed counts.
 ## 2026-11-15 · CAR-80 stale event edits
 - QA in sprint 4 found that saving an older copy of an event could overwrite changes made in another tab.
 - The Edit flow now carries the event’s uint RowVersion from the API response, through a hidden form field, and back in the update request. The API requires the token and returns 400 if it’s missing.
