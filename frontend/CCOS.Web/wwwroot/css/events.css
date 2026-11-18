@@ -417,6 +417,66 @@ a.events-card:hover {
         background: #6b0f22;
     }
 
+/* Ticket Add to cart on the event page (CAR-92). */
+.event-add-to-cart {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: center;
+    gap: var(--s3);
+}
+
+.event-cart-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    text-align: left;
+}
+
+.event-cart-field label {
+    font-weight: 600;
+}
+
+.event-cart-field select,
+.event-cart-field input {
+    min-height: 44px;
+    padding: var(--s2);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+    background: var(--raised);
+    font: inherit;
+}
+
+.event-cart-field input {
+    width: 5rem;
+}
+
+.event-cart-button {
+    min-height: 44px;
+    min-width: 160px;
+    padding: 10px 24px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--maroon);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.event-cart-button:hover {
+    background: #6b0f22;
+}
+
+.event-in-cart {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.event-in-cart a {
+    color: var(--brand-text);
+}
+
 .event-detail-description {
     padding-top: var(--s5);
 }

@@ -149,6 +149,17 @@
     background: var(--masthead);
 }
 
+/* "2 in your cart · View cart" under the button (CAR-92). */
+.product-in-cart {
+    margin: var(--s3) 0 0;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.product-in-cart a {
+    color: var(--brand-text);
+}
+
 @media (max-width: 760px) {
     .product-detail {
         grid-template-columns: minmax(0, 1fr);

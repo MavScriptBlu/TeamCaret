@@ -57,6 +57,23 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
     /// </summary>
     public bool LoadFailed { get; private set; }
 
+    /// <summary>The ticket types the visitor can add to the cart (CAR-92). Empty when they can't buy tickets.</summary>
+    public IReadOnlyList<TicketOption> TicketOptions { get; private set; } = [];
+
+    /// <summary>How many tickets for this event are already in the cart.</summary>
+    public int TicketsInCart { get; private set; }
+
+    /// <summary>The most tickets the visitor can still add (the seats left, less what's in their cart).</summary>
+    public int MaxMoreTickets { get; private set; }
+
+    /// <summary>
+    /// Why tickets can't be added to the cart, for example "This event has ended.", or null when they can.
+    /// </summary>
+    public string? NoTicketsReason { get; private set; }
+
+    /// <summary>True when the page shows the ticket Add to cart form.</summary>
+    public bool CanAddTickets => NoTicketsReason is null && TicketOptions.Count > 0;
+
     /// <summary>
     /// Loads the event and works out the price text to show. Sends a 404 when the id is
     /// missing or no active event matches, and shows an error message when the API fails.
@@ -90,7 +107,141 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
         PriceText = prices.Regular;
         MemberPriceText = prices.Member;
         MemberPriceHidden = TicketPrices.MemberPriceHidden(Event);
+
+        // Ticket Add to cart (CAR-92).
+        var cart = HttpContext.GetCart();
+        TicketsInCart = cart.TicketsFor(Event.EventId);
+        MaxMoreTickets = Math.Max(0, Event.TicketCapacity - TicketsInCart);
+        NoTicketsReason = WhyNoTickets(Event, User.IsCurrentMember(), DateTime.UtcNow)
+            ?? (MaxMoreTickets == 0 ? "Your cart already has all the seats left for this event." : null);
+        if (NoTicketsReason is null)
+        {
+            TicketOptions = Event.TicketTypes
+                .Where(ticketType => ticketType.IsActive)
+                .Select(ticketType => new TicketOption(
+                    ticketType.TicketTypeId,
+                    $"{ticketType.Name} · {TicketPrices.Format(Cart.PriceYouPay(ticketType.Price, ticketType.MemberPrice))}"))
+                .ToList();
+        }
     }
+
+    /// <summary>
+    /// The Add to cart button for tickets (CAR-92). Loads the event again, so the rules are checked
+    /// with fresh data: tickets on sale, the event hasn't ended, members-only events need a current
+    /// member, and the cart never holds more tickets than the event has seats. Then comes back to
+    /// the event page with a message.
+    /// </summary>
+    /// <param name="id">The event id from the URL.</param>
+    /// <param name="ticketTypeId">The ticket type picked (the only one when there's just one).</param>
+    /// <param name="quantity">How many tickets, from the Qty box.</param>
+    public async Task<IActionResult> OnPostAddToCartAsync(int? id, int ticketTypeId, int quantity, CancellationToken cancellationToken)
+    {
+        if (id is not int eventId)
+        {
+            return RedirectToPage("/Events/Index");
+        }
+
+        EventInfo? eventInfo;
+        try
+        {
+            var dto = await eventsApi.GetAsync(eventId, cancellationToken);
+            eventInfo = dto is null ? null : EventMapping.ToEventInfo(dto);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            EventLoadFailedLog(logger, eventId, ex);
+            TempData[CartMessages.ErrorKey] = CartMessages.TryAgainLater;
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+
+        if (eventInfo is null || !eventInfo.IsActive)
+        {
+            TempData["EventError"] = "That event could not be found. It may have been removed.";
+            return RedirectToPage("/Events/Index");
+        }
+
+        var backToEvent = RedirectToPage("/Events/Details", new { id = eventId });
+
+        var reason = WhyNoTickets(eventInfo, User.IsCurrentMember(), DateTime.UtcNow);
+        if (reason is not null)
+        {
+            TempData[CartMessages.ErrorKey] = reason;
+            return backToEvent;
+        }
+
+        var ticketType = eventInfo.TicketTypes.FirstOrDefault(type => type.IsActive && type.TicketTypeId == ticketTypeId);
+        if (ticketType is null)
+        {
+            TempData[CartMessages.ErrorKey] = "Choose a ticket type.";
+            return backToEvent;
+        }
+
+        if (quantity < 1)
+        {
+            TempData[CartMessages.ErrorKey] = CartMessages.PickAQuantity;
+            return backToEvent;
+        }
+
+        var cart = HttpContext.GetCart();
+        // Seats left is the event's capacity for now. Tickets that have been ordered will count
+        // against it once orders exist (CAR-91).
+        var max = cart.MaxTickets(eventId, ticketTypeId, eventInfo.TicketCapacity);
+        if (max == 0 && cart.TicketsFor(eventId) > 0)
+        {
+            TempData[CartMessages.ErrorKey] = "Your cart already has all the seats left for this event.";
+            return backToEvent;
+        }
+
+        var result = cart.Add(CartItemKind.Ticket, ticketTypeId, eventId, quantity, max);
+        if (result != CartAddResult.NoneAvailable)
+        {
+            HttpContext.SaveCart(cart);
+        }
+
+        CartMessages.Put(TempData, result, $"{eventInfo.Name} – {ticketType.Name} ticket", quantity,
+            cart.QuantityOf(CartItemKind.Ticket, ticketTypeId), max);
+        return backToEvent;
+    }
+
+    /// <summary>
+    /// Why tickets for this event can't go in the cart, or null when they can (CAR-92). Shared by
+    /// the event page and the Cart page.
+    /// </summary>
+    /// <param name="eventInfo">The event.</param>
+    /// <param name="isCurrentMember">True when the visitor is a current member.</param>
+    /// <param name="nowUtc">The time now, in UTC.</param>
+    public static string? WhyNoTickets(EventInfo eventInfo, bool isCurrentMember, DateTime nowUtc)
+    {
+        if (!eventInfo.TicketTypes.Any(ticketType => ticketType.IsActive))
+        {
+            return "Tickets aren't on sale yet.";
+        }
+
+        if (eventInfo.EndsAtUtc <= nowUtc)
+        {
+            return "This event has ended.";
+        }
+
+        if (eventInfo.MembersOnly && !isCurrentMember)
+        {
+            return "Members only: log in as a current member to get tickets.";
+        }
+
+        if (eventInfo.TicketCapacity <= 0)
+        {
+            return "Sold out.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// One choice in the ticket type dropdown, for example "General · $5.00".
+    /// </summary>
+    /// <param name="TicketTypeId">The ticket type id the form sends.</param>
+    /// <param name="Label">The ticket name and the price this visitor pays.</param>
+    public sealed record TicketOption(int TicketTypeId, string Label);
 
     /// <summary>
     /// The Remove event button (after the officer says yes in the dialog). Soft-removes the event

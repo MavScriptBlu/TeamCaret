@@ -14,6 +14,7 @@ public class SiteNavTests
     [InlineData("/products/search", "Merch")]
     [InlineData("/Events", "Events")]
     [InlineData("/Events/Details/2", "Events")]
+    [InlineData("/Cart", "Cart")]
     [InlineData("/Officer/Products", "Product dashboard")]
     [InlineData("/Officer/Products/Edit/5", "Product dashboard")]
     [InlineData("/Officer/Events/Create", "Create event")]

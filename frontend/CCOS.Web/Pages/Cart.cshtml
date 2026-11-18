@@ -1,0 +1,92 @@
+@page
+@model CartModel
+@*
+    Cart page (CAR-92). Lists each item with its price (member prices for members, using the shared
+    _PriceTag), quantity, line total and the order total. Each line has Update and Remove buttons.
+    Checkout comes next (CAR-93).
+*@
+@{
+    ViewData["Title"] = "Your cart";
+}
+
+<link rel="stylesheet" href="~/css/cart.css" asp-append-version="true" />
+
+<div class="cart-page">
+    <h1>Your cart</h1>
+
+    @if (TempData[CartMessages.MessageKey] is string cartMessage)
+    {
+        <p class="cart-flash" role="status">@cartMessage</p>
+    }
+    @if (TempData[CartMessages.ErrorKey] is string cartError)
+    {
+        <p class="cart-flash cart-flash--error" role="alert">@cartError</p>
+    }
+    @foreach (var notice in Model.Notices)
+    {
+        <p class="cart-flash cart-flash--error" role="status">@notice</p>
+    }
+
+    @if (Model.LoadFailed)
+    {
+        <section class="cart-empty" role="alert">
+            <h2>Cart unavailable</h2>
+            <p>Your cart couldn't be loaded right now. Your items are still saved. Please try again later.</p>
+        </section>
+    }
+    else if (Model.Lines.Count == 0)
+    {
+        <section class="cart-empty">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" /><path d="M2 3h3l2.6 12.4a1.5 1.5 0 0 0 1.5 1.1h8.8a1.5 1.5 0 0 0 1.5-1.1L21 7H6" /></svg>
+            <h2>Your cart is empty</h2>
+            <p>Find something you like in Merch, or grab tickets for an upcoming event.</p>
+            <div class="cart-empty-links">
+                <a class="cart-button" asp-page="/Products/Index">Shop merch</a>
+                <a class="cart-button cart-button--quiet" asp-page="/Events/Index">See events</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <p class="cart-count">@Model.ItemCount @(Model.ItemCount == 1 ? "item" : "items")</p>
+
+        <div class="cart-layout">
+            <ul class="cart-lines">
+                @foreach (var line in Model.Lines)
+                {
+                    <li class="cart-line">
+                        <div class="cart-line-info">
+                            <a class="cart-line-name" href="@line.Href">@line.Name</a>
+                            <p class="cart-line-detail">@line.Detail</p>
+                            <partial name="_PriceTag" model="line.PriceTag" />
+                        </div>
+
+                        <form class="cart-line-qty" method="post" asp-page-handler="Update">
+                            <input type="hidden" name="key" value="@line.Key" />
+                            <label for="qty-@line.Key">Qty</label>
+                            <input id="qty-@line.Key" name="quantity" type="number" min="0" max="@line.MaxQuantity" value="@line.Quantity" required />
+                            <button type="submit" class="cart-update" aria-label="Update quantity of @line.Name">Update</button>
+                        </form>
+
+                        <p class="cart-line-total">
+                            <span class="cart-line-total-label">Total</span>
+                            <span>@line.LineTotalText</span>
+                        </p>
+
+                        <form class="cart-line-remove" method="post" asp-page-handler="Remove">
+                            <input type="hidden" name="key" value="@line.Key" />
+                            <button type="submit" class="cart-remove" aria-label="Remove @line.Name from your cart">Remove</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+
+            <aside class="cart-summary" aria-label="Order summary">
+                <h2>Order summary</h2>
+                <p class="cart-summary-total"><span>Order total</span> <strong>@Model.TotalText</strong></p>
+                <p class="cart-summary-note">Checkout is coming soon. You'll reserve your order online and pay in person.</p>
+                <a class="cart-button cart-button--quiet" asp-page="/Products/Index">Keep shopping</a>
+            </aside>
+        </div>
+    }
+</div>

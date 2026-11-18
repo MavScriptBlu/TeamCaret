@@ -14,6 +14,9 @@ public class DetailsModel(ProductsApiClient productsApi, ILogger<DetailsModel> l
     /// <summary>The product to show. Set by OnGetAsync before the page draws.</summary>
     public ProductDetailViewModel Product { get; private set; } = default!;
 
+    /// <summary>How many of this product are already in the visitor's cart (CAR-92).</summary>
+    public int InCart { get; private set; }
+
     /// <summary>
     /// Loads one product for the page. Returns 404 when the id is missing or no active product
     /// matches, and 503 when the API can't be reached. Both show the friendly status page
@@ -55,7 +58,57 @@ public class DetailsModel(ProductsApiClient productsApi, ILogger<DetailsModel> l
             product.Price,
             product.MemberPrice,
             product.StockQuantity);
+        InCart = HttpContext.GetCart().QuantityOf(CartItemKind.Product, product.ProductId);
         return Page();
+    }
+
+    /// <summary>
+    /// The Add to cart button (CAR-92). Checks the stock again with the API, so the cart never
+    /// holds more than is on hand, then comes back to this page with a message.
+    /// </summary>
+    /// <param name="id">The product id from the URL.</param>
+    /// <param name="quantity">How many to add, from the Qty box.</param>
+    public async Task<IActionResult> OnPostAddToCartAsync(int? id, int quantity, CancellationToken cancellationToken)
+    {
+        if (id is not int productId)
+        {
+            return NotFound();
+        }
+
+        CCOS.Shared.ProductDto? product;
+        try
+        {
+            product = await productsApi.GetAsync(productId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogError(ex, "Couldn't check product {ProductId} before adding it to the cart.", productId);
+            TempData[CartMessages.ErrorKey] = CartMessages.TryAgainLater;
+            return RedirectToPage("/Products/Details", new { id = productId });
+        }
+
+        if (product is null)
+        {
+            return NotFound();
+        }
+
+        if (quantity < 1)
+        {
+            TempData[CartMessages.ErrorKey] = CartMessages.PickAQuantity;
+            return RedirectToPage("/Products/Details", new { id = productId });
+        }
+
+        var cart = HttpContext.GetCart();
+        var result = cart.Add(CartItemKind.Product, productId, null, quantity, product.StockQuantity);
+        if (result != CartAddResult.NoneAvailable)
+        {
+            HttpContext.SaveCart(cart);
+        }
+
+        CartMessages.Put(TempData, result, product.Name, quantity,
+            cart.QuantityOf(CartItemKind.Product, productId), product.StockQuantity);
+        return RedirectToPage("/Products/Details", new { id = productId });
     }
 
     /// <summary>

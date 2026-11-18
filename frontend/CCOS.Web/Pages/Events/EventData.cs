@@ -33,8 +33,9 @@ public record EventInfo(
 /// One ticket type for an event, for example "General" at $5 with a $0 member price.
 /// Matches the Product columns a TicketType uses: Name, Price, MemberPrice and IsActive.
 /// MemberPrice is null when the visitor isn't a current member, so the API didn't send it (CAR-69).
+/// TicketTypeId is what the cart saves when tickets are added (CAR-92); it's 0 in tests that don't need it.
 /// </summary>
-public record TicketTypeInfo(string Name, decimal Price, decimal? MemberPrice, bool IsActive = true);
+public record TicketTypeInfo(string Name, decimal Price, decimal? MemberPrice, bool IsActive = true, int TicketTypeId = 0);
 
 /// <summary>
 /// One venue an event can be held at. Matches Venue.VenueId and Venue.Name.
@@ -70,7 +71,7 @@ public static class EventMapping
         dto.VenueId,
         dto.VenueName,
         dto.TicketTypes
-            .Select(ticketType => new TicketTypeInfo(ticketType.Name, ticketType.Price, ticketType.MemberPrice, ticketType.IsActive))
+            .Select(ticketType => new TicketTypeInfo(ticketType.Name, ticketType.Price, ticketType.MemberPrice, ticketType.IsActive, ticketType.TicketTypeId))
             .ToList(),
         []);
 }

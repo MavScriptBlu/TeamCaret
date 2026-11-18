@@ -25,6 +25,9 @@ public static class SiteNav
     /// <summary>Heading for the officer-only links.</summary>
     public const string OfficerSection = "Officers";
 
+    /// <summary>Where the Cart link goes (CAR-92). The menu shows the cart's item count next to it.</summary>
+    public const string CartHref = "/Cart";
+
     private const string IndexSuffix = "/Index";
 
     /// <summary>
@@ -34,6 +37,7 @@ public static class SiteNav
     [
         new("Merch", "/Products", ShopSection, MatchPrefix: "/Products"),
         new("Events", "/Events", ShopSection, MatchPrefix: "/Events"),
+        new("Cart", CartHref, ShopSection, MatchPrefix: CartHref),
         new("Product dashboard", "/Officer/Products", OfficerSection, OfficerOnly: true, MatchPrefix: "/Officer/Products"),
         new("Create event", "/Officer/Events/Create", OfficerSection, OfficerOnly: true),
         new("Manage events", "/Officer/Events", OfficerSection, OfficerOnly: true, MatchPrefix: "/Officer/Events"),
