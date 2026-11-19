@@ -28,6 +28,10 @@ public class OrdersController(
     /// 403 when a ticket is members-only, 409 when an item is out of stock, sold out or gone.
     /// </summary>
     [HttpPost]
+    // No anti-forgery check on purpose: the API only takes bearer tokens, never a sign-in
+    // cookie (CAR-83), so a forged cross-site request has nothing to ride on. Turning the
+    // check on breaks every order call, since the website and checkout send no such token.
+    [IgnoreAntiforgeryToken]
     public async Task<ActionResult<OrderDto>> Place(
         [FromBody] PlaceOrderRequest input,
         CancellationToken cancellationToken)
