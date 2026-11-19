@@ -11,7 +11,7 @@ namespace CCOS.Web.Pages.Officer.Products;
 /// <summary>
 /// Page model for (/Officer/Products/Edit/{id}). Loads the product into the form, then sends
 /// the changes to CCOS.Api when the officer saves.
-/// Officer-only: lock this down with [Authorize] once login is wired up.
+/// Officer-only: locked by AuthorizeFolder("/Officer") in Program.cs (CAR-69).
 /// </summary>
 public class EditModel(ProductsApiClient productsApi, ILogger<EditModel> logger) : PageModel
 {

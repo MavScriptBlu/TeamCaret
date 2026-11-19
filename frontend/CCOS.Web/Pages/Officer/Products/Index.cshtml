@@ -30,8 +30,8 @@
         <form method="get" class="officer-filter">
             <select name="show" aria-label="Filter products" onchange="this.form.submit()">
                 <option value="">All products</option>
-                <option value="active" selected="@(Model.Show == "active")">Active</option>
-                <option value="inactive" selected="@(Model.Show == "inactive")">Inactive</option>
+                <option value="active" selected="@(Model.Show == "active")">In the store</option>
+                <option value="inactive" selected="@(Model.Show == "inactive")">Removed</option>
             </select>
             <noscript><button type="submit">Apply</button></noscript>
         </form>
@@ -66,7 +66,7 @@ else
                         <span class="officer-product-name">@product.Name</span>
                         @if (!product.IsActive)
                         {
-                            <span class="officer-badge">Deactivated</span>
+                            <span class="officer-badge">Removed</span>
                         }
                         else if (product.StockQuantity == 0)
                         {
@@ -83,7 +83,7 @@ else
                         <div class="officer-product-details">
                             @if (!product.IsActive)
                             {
-                                <p class="officer-deactivated">Product Currently Deactivated</p>
+                                <p class="officer-deactivated">Removed from the store. Restore it from Edit.</p>
                             }
                             <dl class="officer-facts">
                                 <div><dt>Name</dt><dd>@product.Name</dd></div>
@@ -91,7 +91,7 @@ else
                                 <div><dt>Member Price</dt><dd>@(product.MemberPrice is decimal memberPrice ? Money.Format(memberPrice) : "–")</dd></div>
                                 <div><dt>Current stock</dt><dd>@product.StockQuantity</dd></div>
                                 <div><dt>Category</dt><dd>@product.Category</dd></div>
-                                <div><dt>IsActive</dt><dd>@(product.IsActive ? "Yes" : "No")</dd></div>
+                                <div><dt>In the store</dt><dd>@(product.IsActive ? "Yes" : "No, removed")</dd></div>
                             </dl>
                             <div class="officer-description">
                                 <h2>Description</h2>
@@ -115,7 +115,7 @@ else
                                         data-product-name="@product.Name"
                                         aria-haspopup="dialog"
                                         aria-controls="deleteProductDialog">
-                                    Delete Product
+                                    Remove product
                                 </button>
                             </form>
 						}
@@ -132,18 +132,18 @@ else
 }
 
 <dialog id="deleteProductDialog" class="officer-delete-dialog" aria-modal="true" aria-labelledby="deleteProductTitle" aria-describedby="deleteProductMessage">
-    <h2 id="deleteProductTitle">Deactivate product?</h2>
+    <h2 id="deleteProductTitle">Remove product?</h2>
 
     <p id="deleteProductMessage">
-        Are you sure you want to deactivate <strong id="deleteProductName">this product</strong>?
-        It will no longer appear on the public Products page. Existing order history is kept,
-        and you can reactivate it from Edit.
+        Are you sure you want to remove <strong id="deleteProductName">this product</strong>?
+        It will no longer appear on the public Products page. Nothing is deleted: order history
+        is kept, and you can restore it from Edit.
     </p>
 
     <div class="officer-delete-dialog-actions">
 
         <button type="button" class="officer-delete" id="confirmProductDelete">
-            Yes, deactivate
+            Yes, remove
         </button>
         <button type="button" class="officer-pill" id="cancelProductDelete" autofocus>
             No

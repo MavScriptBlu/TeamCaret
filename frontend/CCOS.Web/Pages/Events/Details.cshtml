@@ -2,7 +2,7 @@
 @*
     Details page for a specific event.
     Displays event information, including date, location, categories, and ticket prices.
-    Provides officer actions for editing or canceling the event.
+    Provides officer actions for editing or removing the event (CAR-56: "Remove", never "Delete").
     Author: TeamCaret
     Created: 2024-06-18
 *@
@@ -12,8 +12,27 @@
 }
 
 <link rel="stylesheet" href="~/css/events.css" asp-append-version="true" />
+@* The Remove dialog's styles live in products.css. *@
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
 
-@if (Model.Event is null)
+@if (TempData["EventSaved"] is string eventSaved)
+{
+    <p class="events-message" role="status">@eventSaved</p>
+}
+@if (TempData["EventError"] is string eventError)
+{
+    <p class="events-message" role="alert">@eventError</p>
+}
+
+@if (Model.LoadFailed)
+{
+    <section class="event-missing" role="alert">
+        <h1>Event unavailable</h1>
+        <p>This event couldn't be loaded right now. Please try again later.</p>
+        <a asp-page="/Events/Index">Back to events</a>
+    </section>
+}
+else if (Model.Event is null)
 {
     <section class="event-missing">
         <h1>Event not found</h1>
@@ -35,16 +54,27 @@ else
                 <div class="event-detail-head">
                     <h1>@ev.Name</h1>
 
-                    @* Officer actions. Lock these down once login exists. *@
+                    @* Officer actions: only shown to officers (CAR-69). The Officer pages and the API check on their own too. *@
+                    @if (User.IsOfficer())
+                    {
                     <details class="events-options" id="eventOptions">
                         <summary aria-label="Event options">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
                         </summary>
                         <div class="events-options-menu">
                             <a asp-page="/Officer/Events/Edit" asp-route-id="@ev.EventId">Edit event</a>
-                            <button type="button" class="events-options-danger" id="cancelEventButton">Cancel event</button>
+                            <form method="post" asp-page-handler="Remove" asp-route-id="@ev.EventId" data-remove-form>
+                                <button type="button"
+                                        class="events-options-danger"
+                                        id="removeEventButton"
+                                        data-remove-button
+                                        data-remove-name="@ev.Name"
+                                        aria-haspopup="dialog"
+                                        aria-controls="removeDialog">Remove event</button>
+                            </form>
                         </div>
                     </details>
+                    }
                 </div>
 
                 <dl class="event-detail-facts">
@@ -71,17 +101,15 @@ else
                         <p class="event-detail-note">Members only</p>
                     }
                     <div class="event-detail-prices">
-                        @if (Model.PriceText is null && Model.MemberPriceText is null)
+                        @if (Model.PriceText is null && Model.MemberPriceText is null && !Model.MemberPriceHidden)
                         {
                             <p>Tickets aren't on sale yet.</p>
                         }
-                        @if (Model.PriceText is not null)
+                        <partial name="_PriceTag" model='new PriceTag(Model.PriceText, Model.MemberPriceText, Large: true, RegularLabel: "Ticket price")' />
+                        @if (Model.MemberPriceHidden)
                         {
-                            <p>Ticket price: <strong>@Model.PriceText</strong></p>
-                        }
-                        @if (Model.MemberPriceText is not null)
-                        {
-                            <p>Member price: <strong>@Model.MemberPriceText</strong></p>
+                            @* Not a current member, so the API didn't send the member price (CAR-69). *@
+                            <p class="price-tag-hint">Member price: <a asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">log in as a member</a> to see it.</p>
                         }
                     </div>
                     @* Placeholder: RSVP does nothing yet. *@
@@ -98,23 +126,15 @@ else
         }
     </article>
 
-    <dialog class="event-dialog" id="cancelEventDialog" aria-labelledby="cancelEventTitle">
-        <p id="cancelEventTitle">Are you sure you want to cancel this event?</p>
-        @* Both buttons just close the dialog for now. *@
-        <form method="dialog" class="event-dialog-actions" asp-antiforgery="false">
-            <button value="yes" class="event-dialog-yes">Yes</button>
-            <button value="no" class="event-dialog-no">No</button>
-        </form>
-    </dialog>
+    <partial name="_RemoveDialog" model="@(new RemoveDialogModel("event", "the Events page"))" />
 }
 
 @section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
     <script>
         (function () {
             var options = document.getElementById('eventOptions');
-            var cancelButton = document.getElementById('cancelEventButton');
-            var dialog = document.getElementById('cancelEventDialog');
-            if (!options || !cancelButton || !dialog) return;
+            if (!options) return;
 
             // Close the options menu on an outside click or Escape.
             document.addEventListener('click', function (e) {
@@ -127,10 +147,9 @@ else
                 }
             });
 
-            // "Cancel event" opens the confirmation dialog.
-            cancelButton.addEventListener('click', function () {
-                options.open = false;
-                dialog.showModal();
+            // officer-remove-dialog.js opens the Remove confirmation. Close the menu behind it.
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('[data-remove-button]')) options.open = false;
             });
         })();
     </script>

@@ -1,0 +1,164 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Venues";
+    var savedMessage = TempData["VenueSaved"] as string;
+    var removedMessage = TempData["VenueRemoved"] as string;
+    var restoredMessage = TempData["VenueRestored"] as string;
+    var errorMessage = TempData["VenueError"] as string;
+    var venueMessage = removedMessage ?? restoredMessage ?? savedMessage;
+}
+
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (venueMessage is not null)
+{
+    <p class="product-created-message" role="status">@venueMessage</p>
+}
+@if (errorMessage is not null)
+{
+    <p class="products-empty" role="alert">@errorMessage</p>
+}
+
+@* Revamped in CAR-77 from Jason's Sprint 4 review notes, in the same style as the Merch and Events
+   lists: filter chips, a count, and a card per venue with everything visible at once.
+   Venues are never deleted: Remove hides one, Restore brings it back. *@
+
+<div class="officer-head">
+    <h1>Venues</h1>
+</div>
+
+@if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Venues couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.TotalCount == 0)
+{
+    <p class="products-empty">No venues yet. Use <a asp-page="/Officer/Venues/Create">Add a venue</a> to add one.</p>
+}
+else
+{
+    <div class="venues-toolbar">
+        <div class="products-chips" role="group" aria-label="Show">
+            <a class="products-chip" asp-page="/Officer/Venues/Index"
+               aria-current="@(Model.Show is "active" or "inactive" ? null : "true")">All</a>
+            <a class="products-chip" asp-page="/Officer/Venues/Index" asp-route-show="active"
+               aria-current="@(Model.Show == "active" ? "true" : null)">In the list (@Model.ActiveCount)</a>
+            <a class="products-chip" asp-page="/Officer/Venues/Index" asp-route-show="inactive"
+               aria-current="@(Model.Show == "inactive" ? "true" : null)">Removed (@Model.RemovedCount)</a>
+        </div>
+        <a class="officer-pill" asp-page="/Officer/Venues/Create">Add a venue</a>
+    </div>
+
+    <p class="products-count" role="status">
+        @Model.TotalCount @(Model.TotalCount == 1 ? "venue" : "venues") · @Model.ActiveCount in the list, @Model.RemovedCount removed
+    </p>
+
+    @if (Model.Venues.Count == 0)
+    {
+        <div class="products-empty">
+            <p>No venues match this filter.</p>
+            <a asp-page="/Officer/Venues/Index">Show all venues</a>
+        </div>
+    }
+    else
+    {
+        <ul class="venues-grid">
+            @foreach (var venue in Model.Venues)
+            {
+                var upcoming = venue.UpcomingEvents?.Count ?? 0;
+                var upcomingText = upcoming switch
+                {
+                    0 => "No upcoming events",
+                    1 => "1 upcoming event",
+                    _ => $"{upcoming} upcoming events",
+                };
+                var streetLine = string.IsNullOrWhiteSpace(venue.AddressLine2)
+                    ? venue.AddressLine1
+                    : $"{venue.AddressLine1}, {venue.AddressLine2}";
+                var cardClass = ((venue.IsActive ? "" : "is-inactive ") + (Model.ExpandedId == venue.VenueId ? "is-recent" : "")).Trim();
+                <li>
+                    <article class="venue-card @cardClass" id="venue-@venue.VenueId" aria-labelledby="venue-name-@venue.VenueId">
+                        <div class="venue-card-body">
+                            <div class="venue-card-head">
+                                <h2 id="venue-name-@venue.VenueId">@venue.Name</h2>
+                                <span class="venue-tag @(venue.IsActive ? "is-active" : "is-inactive")">@(venue.IsActive ? "In the list" : "Removed")</span>
+                            </div>
+
+                            @if (!venue.IsActive)
+                            {
+                                @* Restore needs a full address, so venues without one are sent to Edit first (CAR-81). *@
+                                <p class="officer-deactivated">
+                                    Removed from the venue list. Nothing was deleted.
+                                    @(venue.AddressLine1 is null ? "Add an address in Edit, then restore it." : "Restore it any time.")
+                                </p>
+                            }
+
+                            <p class="venue-fact">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                                @if (venue.AddressLine1 is null)
+                                {
+                                    <span class="venue-fact-missing">No address yet</span>
+                                }
+                                else
+                                {
+                                    <span>
+                                        @streetLine<br />
+                                        @venue.City, @venue.State @venue.ZipCode
+                                    </span>
+                                }
+                            </p>
+                            <p class="venue-fact">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.6-1.7-4.9-4-5.7" /></svg>
+                                <span>Holds @venue.Capacity</span>
+                            </p>
+                            <p class="venue-fact">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                                <span>@upcomingText</span>
+                            </p>
+                        </div>
+
+                        <div class="venue-card-actions">
+                            <a class="officer-pill" asp-page="/Officer/Venues/Edit" asp-route-id="@venue.VenueId">Edit venue</a>
+                            @if (venue.IsActive)
+                            {
+                                <form method="post"
+                                      asp-page-handler="Remove"
+                                      asp-route-id="@venue.VenueId"
+                                      asp-route-show="@Model.Show"
+                                      class="officer-delete-form"
+                                      data-remove-form>
+                                    <button type="button"
+                                            class="officer-delete"
+                                            data-remove-button
+                                            data-remove-name="@venue.Name"
+                                            data-remove-warning="@VenueRemoveWarning.For(venue.UpcomingEvents)"
+                                            data-remove-row=".venue-card"
+                                            aria-haspopup="dialog"
+                                            aria-controls="removeDialog">
+                                        Remove venue
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post"
+                                      asp-page-handler="Restore"
+                                      asp-route-id="@venue.VenueId"
+                                      asp-route-show="@Model.Show">
+                                    <button type="submit" class="officer-pill">Restore venue</button>
+                                </form>
+                            }
+                        </div>
+                    </article>
+                </li>
+            }
+        </ul>
+    }
+}
+
+<partial name="_RemoveDialog" model="@(new RemoveDialogModel("venue", "the venue list and the event form's venue dropdown"))" />
+
+@section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
+}

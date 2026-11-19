@@ -23,6 +23,9 @@ else
         @{
             ViewData["IsEdit"] = true;
         }
+        @* Page-level errors (like "the API could not be reached") go here: the box inside
+           _ProductForm only shows errors filed under Input, so it never shows these. *@
+        <div asp-validation-summary="ModelOnly" class="product-validation-summary" role="alert"></div>
         <partial name="_ProductForm" for="Input" />
     </section>
 }

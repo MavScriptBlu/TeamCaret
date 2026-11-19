@@ -2,6 +2,235 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-15 · CAR-77 Venues list revamp
+
+- From Jason's Sprint 4 review notes, in the same style as the Merch (CAR-75) and Events (CAR-76) lists. The goal: see every venue's details at a glance instead of opening rows one at a time.
+- `/Officer/Venues` is now a grid of venue cards (3 across on a wide screen, 1 on a phone). Each card shows the name, a status tag ("In the list" or "Removed"), the address ("No address yet" when there isn't one), "Holds 200", and how many upcoming events are booked there.
+- Removed venues are greyed out with a dashed border and keep the "Removed" banner (CAR-81). Edit, Remove (with the CAR-79 warning) and Restore sit at the bottom of every card and work as before.
+- The filter dropdown is now chips with counts: All, In the list (3), Removed (1), plus a line like "4 venues · 3 in the list, 1 removed".
+- After saving, removing or restoring a venue, its card gets a gold outline when you come back to the list (`ExpandedId`, which used to open that row).
+- The officer Products and Events dashboards keep their current layout.
+- Tests: `IndexModelTests` checks the new In the list and Removed counts.
+## 2026-11-15 · CAR-80 stale event edits
+- QA in sprint 4 found that saving an older copy of an event could overwrite changes made in another tab.
+- The Edit flow now carries the event’s uint RowVersion from the API response, through a hidden form field, and back in the update request. The API requires the token and returns 400 if it’s missing.
+- Before saving, EF Core uses the submitted token as the original value for PostgreSQL’s xmin concurrency check. A stale save returns 409 instead of overwriting newer data; the Edit page preserves the officer’s input, shows “This event was changed by someone else; reload and try again.” and offers a Reload link.
+- Restore requests also send the token. Products and Venues were not changed; their edit flows remain out of scope.
+- Tests: PostgreSQL integration tests verify stale copies get 409 without overwriting the first save, and current tokens save with a new token. API tests cover a missing token; Web tests cover token round-tripping and conflict handling. The stale-copy test failed without the client-token check and passed with it restored. All API (127), Data (86), and Web (167) tests passed.
+
+## 2026-11-14 · CAR-83 the API only accepts bearer tokens
+
+- Decision: option 1 from the story. The API's default sign-in scheme is now Identity's bearer token only (`IdentityConstants.BearerScheme` in `Program.cs`). Before, `AddIdentityApiEndpoints` accepted either a bearer token or Identity's sign-in cookie.
+- Why: cross-site request forgery works by riding on a cookie the browser sends by itself. A bearer token has to be added to each request on purpose, so another site can't use it. The website already calls the API server-to-server with the token (`ApiBearerTokenHandler`), so nothing changes for it, and the website's own forms keep their anti-forgery tokens.
+- Not done: option 2 (anti-forgery tokens on the API). The Nov 9 attempt (`fdcfdd0`, `1c599ef`, reverted) crashed saves because the anti-forgery services weren't registered, and an API called by a server has no form to carry the token.
+- Codacy's "add anti-forgery to state-changing endpoints" warning doesn't apply to the API anymore: no cookie authenticates there, so there is nothing to forge.
+- `/api/auth/login?useCookies=true` still answers (it's Identity's built-in endpoint), but the cookie it hands out opens nothing on the API.
+- Test: `AccessRulesTests.An_officer_signed_in_with_a_cookie_is_refused` signs an officer in with a cookie and no token, and creating a product answers 401.
+
+## 2026-11-13 · CAR-75 Merch list revamp
+
+- From Jason's Sprint 4 review notes ("Revamp the list of merch, events and venues"). The goal: see the products right away and find one quickly.
+- Compact header: smaller logo and title, and the big empty banner placeholder from the first wireframe is gone until the club has a real photo. On a laptop the products now show without scrolling.
+- Category is now a row of chips (All, then each category) instead of a dropdown. They're plain links, so they work without JavaScript and keep the other choices.
+- New Sort: name A–Z (default), price low to high, price high to low. Price sorting uses the price the visitor pays, so members sort by member price (`IndexModel.PriceYouPay`). `?sort=` in the URL; an unknown value falls back to name.
+- An item count ("4 items", or "Showing 3 of 4 items · Clear filters" while filtering).
+- The grid fits as many cards as there's room for (4 on a wide screen, 2 on a phone), with a shorter photo area. Price and stock sit together at the bottom of each card so they line up, and the stock is a colored tag. Search results use the same card, so they change too.
+- The officer Product dashboard isn't part of this story.
+- Tests: `IndexModelTests` covers the default and unknown sort, both price sorts (using the member price), sorting with a filter, and `PriceYouPay`.
+
+## 2026-11-10 · CAR-64 desktop sidebar instead of the menu button
+
+- From Jason's Sprint 3 review feedback: at 1024px and wider, the menu links now sit in a left sidebar that's always visible, and the menu button is hidden. Below 1024px (phones, small tablets) the menu button and slide-out menu work as before.
+- The links are kept in one place, `Services/SiteNav.cs`, and drawn by `Pages/Shared/_NavLinks.cshtml` for both the slide-out menu and the sidebar, so the two can't drift apart. Officer links still only show for officers, under an "Officers" heading.
+- The page you're on is highlighted in the menu and marked `aria-current="page"` for screen readers. Edit pages count as their list (editing a venue highlights Manage venues).
+- No new JavaScript; the sidebar is CSS only (`site.css`, "Desktop sidebar"). It stays in view while the page scrolls.
+- Also removed a stray `<circle>` tag left in the header logo link.
+- Tests: `SiteNavTests` covers which link is current for each menu page, pages that aren't in the menu, and that officer links are officer-only.
+## 2026-11-10 · CAR-84 ready to deploy (any host)
+
+- New `docs/DEPLOYMENT.md`: the settings each app needs, two ways to create the database tables, how to start the apps, and how to check they work. It doesn't depend on a host; a section for the host Troy picks gets added later.
+- Health checks: `GET /health` on the API answers "Healthy" when the database can be reached, and on the website when the API's `/health` is healthy. Both answer "Unhealthy" with 503 otherwise, and need no sign-in.
+- New optional API setting `Database:MigrateOnStartup` (`Database__MigrateOnStartup`): when true outside Development, the API applies database migrations each time it starts. Off by default; Development still creates and seeds the database as before.
+- New optional website setting `DataProtection:KeysPath` (`DataProtection__KeysPath`): a folder for the sign-in cookie keys, so a restart on a host doesn't sign everyone out.
+- The website's five API clients now share one place that reads `Api:BaseUrl`, and the error says to set `Api__BaseUrl` on a host.
+- Tests: the API's `/health` when the database is reachable and when it isn't, and the website's `/health` when the API is healthy, unhealthy or not running.
+## 2026-11-10 · CAR-79 warn before removing a venue that has events
+
+- Decision: warn, don't block. Removing a venue only takes it off the venue list and the event form's dropdown; events already booked there keep their venue and still happen. This replaces the "blocked" rule from CAR-57.
+- The "Remove venue?" dialog now says how many upcoming events are booked at the venue and names up to three of them with their dates ("2 upcoming events are booked here: ... They keep this venue and still happen."). No warning when there are none. The officer can still remove it.
+- The officer venue list also shows an "Upcoming events" count for each venue.
+- API: `GET /api/venues/officer` and `GET /api/venues/{id}` now include `upcomingEvents` (active events that haven't started yet, soonest first). `DELETE /api/venues/{id}` is unchanged. New `VenueEventSummaryDto` in CCOS.Shared; `VenueDetailDto` gets an optional `UpcomingEvents`.
+- The shared remove dialog (`_RemoveDialog.cshtml`, `officer-remove-dialog.js`) shows a warning when the Remove button has `data-remove-warning`. The event pages don't use it, so they look the same.
+- Tests: the API tests cover a venue with upcoming events (soonest first, past and removed events left out), one with only past events, one with none, and removing a venue with upcoming events (allowed; the event keeps its venue). `VenueRemoveWarningTests` covers the dialog wording for 0, 1, 3 and 5 events.
+## 2026-11-09 · CAR-81 "Removed" notice no longer covers the details
+
+- On the officer Venues, Events and Products pages, the red "Removed" notice used to be drawn on top of the item's details (on Venues it covered the Capacity line). It's now a banner in its own row above the details, so nothing overlaps at desktop or phone width. All three pages share the style in `products.css` (`.officer-deactivated`).
+- A removed venue with no address now says "Add an address in Edit, then restore it." instead of "Restore it any time", since Restore sends you to Edit first when the address is missing.
+## 2026-11-09 · CAR-59 long names wrap in product cards
+
+- Long names and descriptions with no spaces now wrap inside the officer product cards, the public product cards and the product page, instead of running off the edge (`overflow-wrap: anywhere` in `products.css` and `productDetails.css`).
+## 2026-11-09 · CAR-78 member prices stand out
+
+- Member prices are now the big price. When a member price is shown, it's large and maroon with a gold "Member price" tag, and the regular price sits under it, smaller and crossed out ("Regular ~~$35.00~~"). Same look on the product cards (`/Products` and search), the product page and the event page. The words "Member price" and "Regular" are always written out, since screen readers don't announce crossed-out text.
+- One shared piece draws the prices everywhere: `Pages/Shared/_PriceTag.cshtml` with `Services/PriceTag.cs`, styled in `site.css` (`.price-tag`). A product's member price only shows when it's lower than the regular price, so there's never a crossed-out price that's the same as the member price.
+- Visitors who aren't current members still see just the regular price, and on events the "log in as a member to see it" line, now styled to match. Nothing changed in the API.
+- `/Products` now uses the same `_ProductCard` partial as search, so the two lists can't drift apart.
+- Tests: `PriceTagTests` covers a lower member price, no member price, a member price equal to the regular price, and "Free" for members.
+
+## 2026-11-09 · Mock sample venues and events
+
+- The sample venues now have full addresses, so Edit venue and Restore venue work on them (the old "Sample Venue, Room 101" venues had no address, so Restore sent you to Edit first). One venue, Old Gym, starts out removed so Restore venue can be tried right away.
+- The sample events have realistic names and descriptions, and cover the cases QA needs: four upcoming events, one members-only event with 12 tickets already sold (for the capacity check on Edit), one past event (hidden from /Events, still on the officer list), and one removed event (for Restore event).
+- The sample logins' first names are their role, so the header says who you're signed in as: "Hi, Officer", "Hi, Member", "Hi, Guest", "Hi, Advisor" (was "Hi, Sample" for all four).
+- Sample data is only added to an empty database, so run `docker compose down -v` and then `docker compose up --build -d` to get it. That erases your local database, including anything you added while testing. The sample logins come back too, as long as `SAMPLE_ACCOUNT_PASSWORD` is set in `.env`.
+
+## 2026-11-09 · CAR-69 follow-up: officer locks on events and venues, event member prices, past events
+
+Found in the Sprint 4 QA run and the team's CAR-69 review, now that events and venues (#175) are in Dev.
+
+- Officer lock on the event and venue officer endpoints: `GET /api/events/officer`, `GET /api/events/officer/{id}`, `POST`, `PUT` and `DELETE /api/events`, and `GET /api/venues/officer`, `GET /api/venues/{id}`, `PUT` and `DELETE /api/venues/{id}`. Not signed in answers 401, signed in but not an officer answers 403. Before this, a visitor who wasn't signed in could remove an event from the public event page. `GET /api/venues/{id}` is locked too, since only the officer pages use it and it includes removed venues.
+- The officer menus on `/Events` and on an event's page (Create, Manage, Edit, Remove) only show for officers, like the nav and footer.
+- Review fix: `GET /api/events/{id}` only returns upcoming events, the same rule as the list (`EventRepository.FindUpcomingAsync`, was `FindActiveAsync`). A past event can't be opened by its link; officers still reach it through `/api/events/officer/{id}`.
+- Review fix: event ticket member prices follow the product rule. `TicketTypeDto.MemberPrice` is now `decimal?` and is null on `GET /api/events` and `/api/events/{id}` unless the caller is a current member; the officer endpoints always include it. The event page shows "Member price: log in as a member to see it" instead.
+- Tests: the event API tests sign in as an officer (`TestAccounts.SignInAsOfficerAsync`). New tests: the event officer endpoints refuse a visitor who isn't signed in, visitors get no ticket member prices while officers do, and a past event's page is 404 while officers can still open it.
+
+## 2026-11-08 · CAR-63: Full venue ZIP code validation enforcement
+
+- Enforced the ZIP code format rule (`^\d{5}(-\d{4})?$`, 5 digits or ZIP+4) across all venue creation and update paths (`CreateVenueRequest` DTO and `CreateModel` page model).
+- Updated venue creation and editing forms (`Create.cshtml` and `_VenueForm.cshtml`) to include `inputmode="numeric"` on ZIP code inputs.
+- Added comprehensive unit tests in `VenueValidationTests` covering valid 5-digit ZIPs, ZIP+4, and rejected formats (letters, invalid lengths, symbols).
+- No database migrations required as `VenueAddresses.ZipCode` column definition remains unchanged.
+
+## 2026-11-08 · CAR-68 and CAR-69 Codacy: return addresses stay strings
+
+- Codacy (SonarC# S3994, S3995, S3996) asked for `System.Uri` instead of `string` on `ReturnUrl` (Login, Register, AccessDenied), `AccountSession.SafeReturnUrl` and two test helpers. Kept as strings on purpose and marked with `[SuppressMessage]` plus the reason: it's a relative path from the query string, ASP.NET Core's own `LocalRedirect` and `Url.IsLocalUrl` take strings, and open redirects are already blocked by `SafeReturnUrl` (with tests). No change to how anything works.
+
+## 2026-11-08 · CAR-60 Codacy fixes
+
+Code-quality notes Codacy left on CAR-60. No change to what people see.
+
+- `StatusModel`: the heading and message are worked out from the status code instead of being set to empty and overwritten. Status codes other than 404 and 503 are logged, and the page is never cached (`[ResponseCache(NoStore = true)]`), so a "not reachable" page doesn't stick around once the API is back.
+- `ApiUnavailablePageFilter`: logs through a `[LoggerMessage]` method, with a fallback when the page has no display name. `IsApiUnavailable` is a plain `switch`, so it reads more easily.
+- `ApiUnavailableTests`: the test data is a property, the site with the API switched off is started once and shared (`IClassFixture<ApiDownSite>`), and the three page checks are one test with three cases instead of three copies.
+
+## 2026-11-08 · Review fixes for CAR-67, CAR-68 and CAR-69 (login)
+
+From the team's review of the login stories:
+
+- Creating an account with an email that's already used now says "An account with that email already exists." on the Email field, once. Before, it showed Identity's "Username '...' is already taken" (`AccountController.EmailTakenMessage`).
+- Tests: `/api/me` for a current member (profile, Active status, member yes, officer no, no title, not the advisor).
+- Tests: `AccessRulesTests` now also covers an officer whose dues expired and the advisor, through real web requests. An expired officer is refused on officer endpoints and gets no member prices. The advisor can use officer endpoints but gets no member prices, since the advisor has no membership. Expired members are refused on officer endpoints too.
+- Still to do, after PR #175 (events and venues) merges, since it changes the same files: `GET /api/events/{id}` should only return upcoming events, and event ticket member prices should only go to current members, like products.
+
+## 2026-11-05 · CAR-60 Tell people when the API can't be reached
+
+- Most pages already showed their own message when the API was down (merch, search, events, the officer product pages, venue and account forms). This closes the gaps that were left.
+- A product's page (`/Products/Details/{id}`) used to answer a blank browser error when the API was down or the product didn't exist. `UseStatusCodePagesWithReExecute("/Status/{0}")` now shows `Pages/Status.cshtml`: "The club's system isn't reachable right now" for 503, "We couldn't find that page" for 404, and a general message for anything else. The real status code is kept.
+- Safety net: `ApiUnavailablePageFilter` (a global page filter) catches an API failure that a page didn't handle (can't connect, timed out, unreadable reply) and answers 503 with the same status page instead of crashing. A visitor closing the page isn't counted. Pages that show their own message keep doing so.
+- The error page (`/Error`, outside Development) no longer shows the Microsoft template text; it says something went wrong and to try again, with a reference number.
+- Messages stay on the page rather than in pop-up toasts, the same as the rest of the site.
+- Not changed: the Create and Edit Event pages leave the venue dropdown empty when venues can't be loaded. Those pages are being rewritten in PR #175, so that's a note for that PR.
+
+## 2026-11-04 · CAR-69 Lock officer pages and member pricing
+
+- API: the officer product list (`?includeInactive=true`) and product create, update, reactivate and remove need the `Officer` policy, and so does adding a venue. Not signed in answers 401; signed in but not an officer answers 403. The event create and update endpoints don't exist yet (CAR-54, CAR-57); `EventsController` has a note to give them the same `[Authorize(Policy = ClubPolicies.Officer)]`.
+- API: member prices on `GET /api/products` and `/api/products/{id}` only go to callers who pass the `Member` policy, which checks the dues date (`MemberExpiration`) on the club's date on every request. Guests, expired members and visitors who aren't signed in get `memberPrice: null`. Officers are current members, so they see them; the advisor (no membership) doesn't.
+- Website: `AuthorizeFolder("/Officer", "Officer")` locks every officer page. A visitor who isn't signed in goes to Log in with a "Log in first to see that page." note; a signed-in person who isn't an officer sees the new "Officers only" screen (`/Account/AccessDenied`).
+- Website: the sign-in cookie now notes whether the person is a current member and an officer (an advisor counts as an officer), read from `/api/me` at sign-in and again each time the token is renewed (about hourly). It only decides which pages open and which links show; the API's database check is the real guard.
+- The officer links in the menu and footer (Product dashboard, Create event, Add venue) only show for officers.
+- Public lists were already limited to active products and active, upcoming events, so no change there. Ticket prices on events are unchanged: members-only events show the member price as their price, and checking membership when tickets are bought belongs with ordering.
+- The "lock this down with [Authorize]" and "restrict to officers" TODO comments are gone.
+
+## 2026-11-04 · CAR-68 Log in, create account and log out pages
+
+- New pages in `CCOS.Web`: `/Account/Login`, `/Account/Register` and `/Account/Logout`. A wrong email or password shows one message ("Email or password is incorrect.") so the page never says which emails have accounts. Create account shows the API's messages (email already used, weak password) next to the right field, then signs the person in right away.
+- The website signs people in with a cookie (`AddAuthentication().AddCookie`). The API's sign-in tokens from `/api/auth/login` are kept inside that encrypted cookie, never in the browser's JavaScript. `AccountSession.ValidateAsync` renews the token through `/api/auth/refresh` a minute before it runs out, and signs the person out if it can't.
+- `ApiBearerTokenHandler` adds the signed-in person's token to every call from the Products, Events and Venues clients, so CAR-69 can lock API endpoints without changing the pages. `AccountApiClient` has no handler, since it runs while signing in.
+- The header's placeholder account button is now "Log in", or "Hi, {first name}" and a "Log out" button. Log out is a POST with the anti-forgery token, so a link on another site can't sign people out.
+- After signing in, people go back to the page they came from. Only addresses on this site are allowed (`AccountSession.SafeReturnUrl`), so a link can't send them to another site.
+- Nothing is locked yet: the "Log in first" and "Officers only" screens and locking officer pages are CAR-69.
+
+## 2026-11-04 · Codacy: explicit status handling in the event update
+
+- `EventsController.Update`: the switch on the update result now handles `Saved` on purpose, and the `default` throws `InvalidOperationException` so a new status can't be silently treated as saved. No behavior change today.
+- Codacy also flagged the missing `[ValidateAntiForgeryToken]` on `POST /api/events`. Not changed on purpose: the events API is stateless JSON with no cookie login, so a CSRF token has nothing to protect. Revisit when login (CAR-1) lands.
+- Codacy also flagged the officer endpoints for having no authorization. Still open on purpose: there is no login yet, and each officer endpoint carries a `TODO` pointing at CAR-1.
+
+## 2026-11-04 · Performance: batched ticket updates and CancellationToken in the sample data
+
+- `TicketBookingRepository`: reserving seats for an order used to run one `UPDATE` per event, and canceling an order ran two per event (the N+1 pattern). Reserving is now one `UPDATE` for the whole order. Canceling is one `UPDATE` for the registrations plus one for the events.
+- Same promises as before: an event that is full, removed or missing means the whole reserve changes nothing and throws `SoldOutException` (now naming the first such event), the database still re-checks the room on each row, and `CK_Events_TicketsSold` is the last safety net. Canceling twice is still harmless.
+- Tradeoff: the old loop took events one at a time in event id order so two orders could not lock each other out. One statement lets the database pick the lock order, so its deadlock detection protects us now. If it ever picks an order as the loser, that order fails and can be retried.
+- The batched cancel stops (and rolls back) with `InvalidOperationException` if only some of an order's tickets were still purchased, because it can no longer tell how many seats each event gets back. A plain double cancel still returns 0.
+- The `UPDATE` text only holds `{0}`, `{1}` slots; the ids and amounts go in as real parameters. It uses SQL that SQLite and PostgreSQL both understand. The 13 new tests (`TicketBookingBatchTests`) run on SQLite. I also ran them once against a local PostgreSQL 16 and they passed. Not run on PostgreSQL 17 yet.
+- `DevelopmentData.EnsureCreatedAndSeededAsync` and its seed methods take a `CancellationToken`, and `Program.cs` passes the app's stopping token, so shutting down during startup stops the sample-data setup early.
+
+## 2026-11-04 · CAR-55 and CAR-56 Events save, and event Remove / Restore
+
+- New API calls: `POST /api/events`, `PUT /api/events/{id}`, `DELETE /api/events/{id}`, plus `GET /api/events/officer` and `GET /api/events/officer/{id}` so removed and past events can be listed and opened. Creating an event also creates its "General" ticket type. Updating changes the prices on the first ticket type still on sale.
+- Shared rules in `EventRules` (end after start, member price not above ticket price). A capacity below the tickets already sold is refused, a removed venue can't be picked for a new event, and a save that loses a race with another officer gets a 409 (the `xmin` check).
+- Create Event and Edit Event now save. The form checks every field and shows the message under the field. Club time is converted to UTC with `ClubTime.ToUtc`; a time that doesn't exist when the clocks spring forward is refused with a message.
+- Remove wording (follows CAR-65): the event page menu says **Remove event** and opens the shared "Remove?" dialog with the soft-delete disclaimer (nothing is erased, the event is only hidden and can be restored). The old "Cancel event" dialog, which did nothing, is gone. Edit Event has a **Show in the event list** box (untick removes, tick restores).
+- New officer list at `/Officer/Events` ("Manage events"): filter **In the event list** / **Removed**, **Remove event** and **Restore event** buttons, linked from the menu on `/Events` and the nav.
+- Not changed: the Category box is still sample data and isn't saved (no category column yet).
+- Tests: 23 new API tests and 41 new website tests (the form rules, UTC conversion including summer time, API error messages on the right fields, remove and restore).
+
+## 2026-11-04 · CAR-58 Venue pages: list, edit, Remove / Restore
+
+- New pages under `/Officer/Venues`: a list of every venue (removed ones too) with a filter, **Remove venue** with the shared "Remove?" dialog and soft-delete disclaimer, and **Restore venue**. A venue with no address (the sample venues) is sent to Edit to add one before it can be restored.
+- New **Edit Venue** page with the same form as Create, plus the **Show in the venue list** box. The form is now shared (`VenueFormPageModel` and `_VenueForm`), so Create and Edit say the same things.
+- The Remove dialog and its script are generic (`_RemoveDialog`, `officer-remove-dialog.js`), so events use them too. The dialog adds a line saying nothing is permanently erased.
+- "Manage venues" links added to the nav, the footer and the menu on `/Events`.
+
+## 2026-11-04 · CAR-57 Venue endpoints and CAR-63 ZIP code rule
+
+- CAR-57: `GET /api/venues/officer`, `GET /api/venues/{id}`, `PUT /api/venues/{id}` and `DELETE /api/venues/{id}` (a soft delete: `IsActive = false`). "Officer list" is read as the list officers use: every venue including removed ones, with its address.
+- `PUT` with `isActive: true` restores a removed venue. The unique-name check skips the venue being edited, so saving a venue under its own name works.
+- CAR-63: ZIP codes must be 5 digits or ZIP+4 (`^\d{5}(-\d{4})?$`) on the API (`CreateVenueRequest`, `UpdateVenueRequest`) and on the Razor forms. One rule in `CCOS.Shared.ZipCodeRules` feeds both, so the messages match.
+- Tests: ZIP rule (5-digit, ZIP+4, invalid), venue GET, list, PUT and DELETE.
+
+## 2026-10-30 · CAR-67 Login API and access policies
+
+- `CCOS.Api` signs people in with ASP.NET Core Identity: `AddIdentityApiEndpoints<AppUser>` plus `MapIdentityApi` under `/api/auth` (login, refresh, forgot and reset password). One account per email (`RequireUniqueEmail`). Not signed in answers 401 and not allowed answers 403, never a redirect.
+- `POST /api/account/register` creates the Customer and the login in one transaction (`AccountRepository.RegisterAsync`), so a failed login (email taken, weak password) rolls the customer back too. Identity's built-in `/api/auth/register` is turned off with a 404, because it can't create the Customer every login needs. This is the one change from the CAR-52 plan, which listed register under `MapIdentityApi`.
+- `GET /api/me` returns who's signed in (`CurrentAccountDto`): customer id, names, email, member status, current member, current officer and officer title, worked out fresh on the club's date.
+- Two policies, `Member` and `Officer` (`ClubPolicies` in `CCOS.Shared`). `MembershipAuthorizationHandler` finds the CustomerId behind the signed-in login and asks `MemberRepository` on every request, so renewals, expirations and leaving the club count right away. An officer whose dues expired fails both until they renew.
+- Advisor (from the Remaining Work checklist added to CAR-67): Identity roles are on (`AddRoles<IdentityRole>`), and the club's advisor (`ClubRoles.Advisor`, Troy) passes the `Officer` policy without a membership or title. The role is read from the database on every request, like membership. `/api/me` has `isAdvisor`. The roles tables already came with CAR-66, so no migration. `DevelopmentData` seeds `advisor@ccos.test`, checked on its own so an already-seeded database gets it too. This is a simple stand-in for the admin; the Admins table is still CAR-74.
+- Nothing is locked yet: applying the policies to the officer endpoints and member prices is CAR-69.
+- Tests: `AccountApiTests` covers register and login, `/api/me` for a guest and an officer, 401 without signing in, a duplicate email (400, no leftover customer), the turned-off built-in register, a wrong password, the Member and Officer rules for guest, member, expired member, officer and expired officer, the advisor passing Officer (and losing it when the role is removed), and a membership change showing up on the next request. The test password is random each run, so no credential is in the code.
+- `docs/api/README.md`: the Auth section now describes the real endpoints and policies.
+
+## 2026-10-30 · CAR-65 "Remove" instead of "Delete" / "Deactivate"
+
+- Instructor feedback from the Sprint 3 review: nothing is ever deleted, so the site says "Remove" and "Restore". On the officer product dashboard: the **Remove product** button, the **Removed** badge, "Removed from the store. Restore it from Edit.", the **Remove product?** dialog ("Yes, remove", and it now says nothing is deleted), and the message "Product removed. You can restore it from Edit." Errors say "removed" too.
+- The dashboard filter reads **In the store** / **Removed** (was Active / Inactive), and the product facts show "In the store: Yes / No, removed" instead of `IsActive`.
+- The Edit page's Active box is now **Show in the store**, with a hint: untick to remove, tick to restore.
+- Code names didn't change (the `Delete` page handler, `IsActive`, `DELETE /api/products/{id}`, CSS classes, file names), so the API and tests are untouched. Log messages say "remove" to match.
+- Docs: the demo script (CAR-42) and the product QA checklist (CAR-15) use the new wording. Event and venue remove pages (CAR-56, CAR-58) should use the same words.
+
+## 2026-10-30 · CAR-72 API tests run in test mode · CAR-73 Dependabot targets Dev
+
+- CAR-72: `ProductsControllerTests` now turns on test mode with `builder.UseSetting("Testing", "true")`, the setting `Program.cs` actually reads. It used to set a `CCOS_TEST_MODE` environment variable that nothing read, so on a machine with a PostgreSQL user secret the API registered PostgreSQL next to the test's SQLite database and all 5 API tests failed. CI passed only because it has no user secret. The unused variable is gone.
+- CAR-73: `.github/dependabot.yml` sets `target-branch: "Dev"` for NuGet and GitHub Actions, so dependency update PRs go into Dev instead of main. Dependabot reads this file from main, so it takes effect after the next Dev → main sync.
+- Team rule (from the Sprint 3 retro): Dev is merged into main once at the end of each sprint, after the review.
+
+## 2026-10-28 · CAR-66 Membership and login tables
+
+- New tables from the CAR-28 design: `Customers`, `Members`, `Officers` and `OfficerHistory`. `MemberId` is the `CustomerId` and `OfficerId` is the `MemberId` (not generated). Membership dates are `DateOnly` (`date` in PostgreSQL). Status isn't stored: `Member.StatusOn(today)` works it out from `IsActive` and `MemberExpiration`, and `MemberStatus` lives in `CCOS.Shared`.
+- `AppDbContext` is now an `IdentityDbContext<AppUser>`, so ASP.NET Core Identity's tables (`AspNetUsers` and the rest) are in the same database and migrations (CAR-52). `AppUser.CustomerId` is required and unique: one login per customer. Added `Microsoft.AspNetCore.Identity.EntityFrameworkCore` 10.0.12 to `CCOS.Data`, and `CCOS.Data` now references `CCOS.Shared`.
+- Every relationship is Restrict (no cascade deletes), including Identity's own, which default to cascade. Members have no query filter. `OfficerHistory` has a filtered unique index (`UX_OfficerHistory_MemberId_Open`), so a member can't have two open titles.
+- **Admins deferred:** the Admins table isn't built yet (CAR-74). `Members.DeactivatedByAdminId`, `Officers.GrantedByAdminId` and `OfficerHistory.GrantedByAdminId` exist as optional columns with no link to another table. This is different from the ERD and CAR-28 until CAR-74 is done.
+- `CCOS.Repositories`: `ClubClock` gives the club's date (America/Chicago), and `MemberRepository` answers "current member?" and "current officer?" with that date passed in. An officer must also be a current member.
+- `DevelopmentData` seeds three sample logins (officer, member, guest) when there are no customers. Their shared password is never in the code: it's read from the `SampleAccounts:Password` setting (user secrets for `dotnet run`, `SAMPLE_ACCOUNT_PASSWORD` in `.env` for Docker). If it isn't set, the sample logins are skipped with a warning. Codacy flagged the first version, which had the password in the code. Setup is in `backend/README.md`.
+- Tests: `MembershipSchemaTests` covers the model rules, `date` columns on PostgreSQL, member status, the club time zone, the current-member and current-officer rules, and the one-open-title index.
+- If you use the SQLite fallback, delete `backend/CCOS.Api/ccos-dev.db` once so it rebuilds with the new tables.
+
+## 2026-10-26 · Officer product Save button works after a validation error
+
+- Checked the officer product create, edit and delete pages end to end against `CCOS.Api` in a browser: create, edit, deactivate from the dashboard, reactivate with the Active box on Edit, and the "not found" page all work.
+- Fixed: after the server showed a message (for example "member price cannot be greater than the regular price"), fixing the field and clicking Save did nothing. Clicking moved focus off the field, the validator cleared the message, the form got shorter and Save moved about 50px up before the click finished. `product-create.js` now keeps focus in place when Save is pressed with the mouse, so the click lands and the form submits. Used by both Create and Edit.
+- Noted (not changed): the event form has the same layout and may have the same problem.
+
 ## 2026-10-19 · Code comments and spacing pass
 
 - Added `///` summaries to every class, record and public method that didn't have one: the data layer (`AppDbContext`, entities, `UtcDateTimeConverter`), `TicketBookingRepository` and its helper types, the API (`Program.cs`, `ProductsController`, `DevelopmentData`), the shared request records, the website `Program.cs`, services, Razor page models (public pages and the officer product, event and venue pages) and the schema tests.

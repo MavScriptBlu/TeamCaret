@@ -1,0 +1,32 @@
+@model string
+@using CCOS.Web.Services
+@*
+    The site's menu links, kept in one place (CAR-64). _Layout draws them twice: in the slide-out
+    menu on phones and small tablets, and in the left sidebar on desktop. Only one of the two is
+    ever shown. The model is a short id prefix ("drawer" or "side") so the ids don't clash.
+    Officer links only show for officers (CAR-69); the pages and the API check on their own too.
+*@
+@{
+    var isOfficer = User.IsOfficer();
+    var current = SiteNav.CurrentFor(Context.Request.Path.Value);
+    var groups = SiteNav.Links
+        .Where(link => isOfficer || !link.OfficerOnly)
+        .GroupBy(link => link.Section)
+        .ToList();
+}
+@foreach (var group in groups)
+{
+    var showTitle = groups.Count > 1;
+    var titleId = $"{Model}-nav-{group.Key.ToLowerInvariant()}";
+    @* Headings only help when there's more than one group, so visitors and members just see the links. *@
+    <div class="navgroup" role="@(showTitle ? "group" : null)" aria-labelledby="@(showTitle ? titleId : null)">
+        @if (showTitle)
+        {
+            <p class="navgroup-title" id="@titleId">@group.Key</p>
+        }
+        @foreach (var link in group)
+        {
+            <a href="@link.Href" aria-current="@(link == current ? "page" : null)">@link.Text</a>
+        }
+    </div>
+}

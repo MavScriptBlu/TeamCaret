@@ -1,9 +1,19 @@
 using CCOS.Api;
+using CCOS.Api.Authorization;
+using CCOS.Api.Health;
 using CCOS.Data;
+using CCOS.Data.Entities;
 using CCOS.Repositories;
+using CCOS.Shared;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Tests set this flag so Program.cs doesn't register its own DbContext (tests bring their own).
+var isTestMode = builder.Configuration.GetValue<bool>("Testing");
 
 // ---- Services (things the app can use) ----
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -32,42 +42,121 @@ builder.Services.AddControllers();
 var connectionString = builder.Configuration.GetConnectionString("CCOS");
 var useLocalDatabase = string.IsNullOrWhiteSpace(connectionString);
 
-// A real (non-Development) run must never fall back to the local file, so stop right away.
-if (useLocalDatabase && !builder.Environment.IsDevelopment())
+if (!isTestMode && useLocalDatabase && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException(
         "ConnectionStrings:CCOS must be set outside Development. " +
         "See backend/README.md for setup instructions.");
 }
 
-// Hands out a database connection (AppDbContext) to anything that asks for one.
-builder.Services.AddDbContext<AppDbContext>(options =>
+if (!isTestMode)
 {
-    if (useLocalDatabase)
+    // Hands out a database connection (AppDbContext) to anything that asks for one.
+    builder.Services.AddDbContext<AppDbContext>(options =>
     {
         // SQLite fallback for Development only when no connection string is configured.
         // This file is gitignored and auto-created with seed data on first run.
-        var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
-        options.UseSqlite($"Data Source={databasePath}");
-    }
-    else
+        if (useLocalDatabase)
+        {
+            var databasePath = Path.Combine(builder.Environment.ContentRootPath, "ccos-dev.db");
+            options.UseSqlite($"Data Source={databasePath}");
+        }
+        else
+        {
+            // PostgreSQL: the production database.
+            // Use this in Development too for consistency with prod.
+            options.UseNpgsql(connectionString);
+        }
+    });
+}
+
+// GET /health (CAR-84): "Healthy" when the database can be reached, "Unhealthy" (503) when it can't.
+// Hosts use it to check the API is up. No sign-in needed, and it shows nothing private.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
+
+// One repository per web request, so it shares that request's database connection.
+builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<EventRepository>();
+builder.Services.AddScoped<VenueRepository>();
+builder.Services.AddScoped<MemberRepository>();
+builder.Services.AddScoped<AccountRepository>();
+
+// The club's "today" (America/Chicago) for every membership check (CAR-28).
+builder.Services.AddSingleton<ClubClock>();
+
+// ---- Sign-in (CAR-67, docs/CAR-52_Login_Approach.md) ----
+// ASP.NET Core Identity with its accounts in our database. AddIdentityApiEndpoints turns on
+// bearer tokens: the website signs in through /api/auth/login, keeps the token on the server,
+// and sends it on every API call.
+builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
     {
-        // PostgreSQL: the production database. Use this in Development too for parity.
-        options.UseNpgsql(connectionString);
-    }
+        // One account per email address.
+        options.User.RequireUniqueEmail = true;
+    })
+    // Roles, for the Advisor (ClubRoles). Members and officers come from their own tables, not roles.
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>();
+
+// CAR-83: the API only accepts bearer tokens, never a sign-in cookie. AddIdentityApiEndpoints
+// would otherwise also accept Identity's cookie, and a browser sends cookies along on requests
+// that another site starts (cross-site request forgery). A bearer token has to be added on
+// purpose, so another site can't borrow it. The website already calls the API server-to-server
+// with the token (ApiBearerTokenHandler), and its own forms keep their anti-forgery tokens.
+// A login with ?useCookies=true still answers, but the cookie it hands out opens nothing here.
+builder.Services.Configure<AuthenticationOptions>(options =>
+{
+    options.DefaultScheme = IdentityConstants.BearerScheme;
+    options.DefaultAuthenticateScheme = IdentityConstants.BearerScheme;
+    options.DefaultChallengeScheme = IdentityConstants.BearerScheme;
+    options.DefaultForbidScheme = IdentityConstants.BearerScheme;
 });
 
-// One ProductRepository per web request, so it shares that request's database connection.
-builder.Services.AddScoped<ProductRepository>();
-builder.Services.AddScoped<VenueRepository>();
+// This is an API: answer 401 (not signed in) and 403 (not allowed) instead of redirecting to a login page.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+
+// The two access rules. Both check the Members and Officers tables (and the Advisor role for Officer)
+// on every request, so nothing about membership is cached in the token.
+builder.Services.AddScoped<IAuthorizationHandler, MembershipAuthorizationHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(ClubPolicies.Member, policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new MembershipRequirement(officerRequired: false)))
+    .AddPolicy(ClubPolicies.Officer, policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new MembershipRequirement(officerRequired: true)));
 
 var app = builder.Build();
 
 // ---- Startup work ----
 // Development: create the tables if needed and add sample products (SQLite or PostgreSQL).
-if (app.Environment.IsDevelopment())
+// Skip in test mode - tests manage their own database state.
+if (app.Environment.IsDevelopment() && !isTestMode)
 {
-    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase);
+    await DevelopmentData.EnsureCreatedAndSeededAsync(app.Services, useLocalDatabase, app.Lifetime.ApplicationStopping);
+}
+
+// Outside Development nothing creates or updates the tables on its own. Run the migrations from a
+// computer that can reach the database, or set Database:MigrateOnStartup to true (environment
+// variable Database__MigrateOnStartup) so the API applies them each time it starts.
+// No sample data or sample logins are added outside Development. See docs/DEPLOYMENT.md (CAR-84).
+if (!app.Environment.IsDevelopment() && !isTestMode && app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync(app.Lifetime.ApplicationStopping);
 }
 
 // ---- Request pipeline (what happens to each incoming request, in order) ----
@@ -79,33 +168,27 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Read the sign-in token on each request, then apply the access rules.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
+app.MapHealthChecks("/health");
 
-// Leftover weather sample from the project template. Nothing in CCOS uses it, and it
-// can be deleted once the team no longer wants it as a quick "is the API up" check.
-var summaries = new[]
+// Identity's built-in endpoints under /api/auth: login, refresh, forgot and reset password, and so on.
+// Its /register is turned off because it would create a login without a Customer (every login needs one);
+// accounts are created through POST /api/account/register instead (AccountController).
+var identityApi = app.MapGroup("/api/auth");
+identityApi.AddEndpointFilter(async (context, next) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    if (context.HttpContext.Request.Path.Value?.EndsWith("/register", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            detail: "Create accounts with POST /api/account/register.");
+    }
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
+    return await next(context);
+});
+identityApi.MapIdentityApi<AppUser>();
 app.Run();
-
-/// <summary>One day of fake weather, for the template sample endpoint above.</summary>
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

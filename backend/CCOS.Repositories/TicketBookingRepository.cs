@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Text;
 using CCOS.Data;
 using CCOS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +10,10 @@ namespace CCOS.Repositories;
 /// Handles the ticket counts on events: holding seats when an order is placed and giving
 /// them back when an order is canceled.
 ///
-/// Every change to Events.TicketsSold goes through a single conditional UPDATE in the database,
-/// so two people buying the last ticket at the same time can't both get it (CAR-30).
+/// Every change to Events.TicketsSold goes through a conditional UPDATE in the database, so two
+/// people buying the last ticket at the same time can't both get it (CAR-30). An order that
+/// touches several events still uses one UPDATE for all of them, not one per event, so a big
+/// order doesn't make a trip to the database for every ticket line.
 /// </summary>
 public sealed class TicketBookingRepository(AppDbContext db)
 {
@@ -76,26 +80,43 @@ public sealed class TicketBookingRepository(AppDbContext db)
             throw new InvalidOperationException("Ticket reservations must run inside the order transaction.");
         }
 
-        foreach (var reservation in groupedReservations)
-        {
-            // One UPDATE that only runs if the event is active and has room. The room check and
-            // the increase happen together in the database, so there is no gap for another buyer.
-            // It returns how many rows changed: 0 means the event was full, inactive, or missing.
-            var reserved = await db.Events
-                .Where(@event =>
-                    @event.EventId == reservation.EventId
-                    && @event.IsActive
-                    && @event.TicketsSold + (long)reservation.Quantity <= @event.TicketCapacity)
-                .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(
-                        @event => @event.TicketsSold,
-                        @event => @event.TicketsSold + reservation.Quantity),
-                    cancellationToken);
+        // One UPDATE for the whole order. (This used to be one UPDATE per event, which is the
+        // "N+1" pattern: the more ticket lines, the more trips to the database.)
+        //
+        // The UPDATE only changes anything when EVERY event in the order is active and has room,
+        // so if one event is full, none of them are touched. The room check and the increase
+        // happen together in the database, so there is no gap for another buyer. The room check
+        // is also repeated on the row being changed: that copy is the one the database re-checks
+        // if another buyer sneaks in first. CK_Events_TicketsSold is the last safety net.
+        //
+        // Tradeoff: the old loop took events one at a time in event id order so two orders could
+        // never lock each other out. One statement locks its rows in whatever order the database
+        // picks, so the database's own deadlock detection protects us now. If it ever chooses an
+        // order as the loser, that order fails and the caller can retry it.
+        var arguments = ToArguments(groupedReservations);
+        var eventIds = IdList(groupedReservations.Count);
 
-            if (reserved == 0)
-            {
-                throw new SoldOutException(reservation.EventId);
-            }
+        var reserved = await ExecuteRawAsync(
+            $"""
+            UPDATE "Events"
+            SET "TicketsSold" = "TicketsSold" + {AmountCase("\"EventId\"", groupedReservations.Count)}
+            WHERE "EventId" IN ({eventIds})
+              AND "IsActive"
+              AND CAST("TicketsSold" AS BIGINT) + {AmountCase("\"EventId\"", groupedReservations.Count)} <= "TicketCapacity"
+              AND NOT EXISTS (
+                SELECT 1 FROM "Events" AS "other"
+                WHERE "other"."EventId" IN ({eventIds})
+                  AND NOT ("other"."IsActive"
+                    AND CAST("other"."TicketsSold" AS BIGINT) + {AmountCase("\"other\".\"EventId\"", groupedReservations.Count)} <= "other"."TicketCapacity"))
+            """,
+            arguments,
+            cancellationToken);
+
+        // Fewer rows than events means an event was full, inactive or missing. The caller rolls
+        // back the order transaction when it sees SoldOutException.
+        if (reserved != groupedReservations.Count)
+        {
+            throw new SoldOutException(await FindFirstUnavailableEventAsync(groupedReservations, cancellationToken));
         }
     }
 
@@ -127,61 +148,155 @@ public sealed class TicketBookingRepository(AppDbContext db)
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        // Find which events this order has live tickets for, sorted by event id so the
-        // locks are taken in the same order every time (same deadlock guard as reserving).
-        var eventRegistrations = await db.TicketRegistrations
+        // Read the order's live tickets once, so we know how many seats go back to each event.
+        var purchased = await db.TicketRegistrations
             .Where(registration =>
                 registration.OrderLine.OrderId == orderId
                 && registration.Status == RegistrationStatus.Purchased)
-            .GroupBy(registration => registration.EventId)
-            .Select(group => group.Key)
-            .OrderBy(eventId => eventId)
+            .Select(registration => registration.EventId)
             .ToListAsync(cancellationToken);
 
-        var totalCanceled = 0;
-        foreach (var eventId in eventRegistrations)
+        // Nothing left to cancel (never bought, or already canceled): done, and safe to run again.
+        if (purchased.Count == 0)
         {
-            // Step 1: mark this event's purchased tickets as canceled.
-            // Only "Purchased" rows match, so running this twice never cancels anything twice.
-            var canceled = await db.TicketRegistrations
-                .Where(registration =>
-                    registration.EventId == eventId
-                    && registration.OrderLine.OrderId == orderId
-                    && registration.Status == RegistrationStatus.Purchased)
-                .ExecuteUpdateAsync(
-                    setters => setters
-                        .SetProperty(registration => registration.Status, RegistrationStatus.Canceled)
-                        .SetProperty(registration => registration.CanceledAtUtc, canceledAt),
-                    cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return 0;
+        }
 
-            if (canceled == 0)
-            {
-                continue;
-            }
+        // Step 1: mark every purchased ticket on the order as canceled, in one UPDATE (this used to
+        // be one per event). Only "Purchased" rows match, so running this twice never cancels
+        // anything twice.
+        var canceled = await db.TicketRegistrations
+            .Where(registration =>
+                registration.OrderLine.OrderId == orderId
+                && registration.Status == RegistrationStatus.Purchased)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(registration => registration.Status, RegistrationStatus.Canceled)
+                    .SetProperty(registration => registration.CanceledAtUtc, canceledAt),
+                cancellationToken);
 
-            // Step 2: give those seats back. The TicketsSold >= canceled check keeps the count
-            // from dropping below zero if the numbers were ever out of sync.
-            var decremented = await db.Events
-                .Where(@event =>
-                    @event.EventId == eventId
-                    && @event.TicketsSold >= canceled)
-                .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(
-                        @event => @event.TicketsSold,
-                        @event => @event.TicketsSold - canceled),
-                    cancellationToken);
+        // Someone else canceled the same order at the same moment and got there first.
+        // Their cancel already handled everything, so there is nothing for us to do.
+        if (canceled == 0)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return 0;
+        }
 
-            if (decremented == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Event {eventId} has fewer sold tickets than the registrations being canceled.");
-            }
+        // Only some of the tickets were still purchased, so we can't tell how many seats each event
+        // gets back. Stop (the transaction is rolled back) and let the caller try again.
+        if (canceled != purchased.Count)
+        {
+            throw new InvalidOperationException(
+                $"Order {orderId} changed while it was being canceled. Nothing was changed; try again.");
+        }
 
-            totalCanceled += canceled;
+        // Step 2: give the seats back, again in one UPDATE for all the events. The
+        // "TicketsSold >= amount" check keeps the count from dropping below zero if the numbers
+        // were ever out of sync.
+        var seatsBack = purchased
+            .GroupBy(eventId => eventId)
+            .OrderBy(group => group.Key)
+            .Select(group => new EventTicketReservation(group.Key, group.Count()))
+            .ToList();
+
+        var decremented = await ExecuteRawAsync(
+            $"""
+            UPDATE "Events"
+            SET "TicketsSold" = "TicketsSold" - {AmountCase("\"EventId\"", seatsBack.Count)}
+            WHERE "EventId" IN ({IdList(seatsBack.Count)})
+              AND "TicketsSold" >= {AmountCase("\"EventId\"", seatsBack.Count)}
+            """,
+            ToArguments(seatsBack),
+            cancellationToken);
+
+        if (decremented != seatsBack.Count)
+        {
+            throw new InvalidOperationException(
+                "An event has fewer sold tickets than the registrations being canceled "
+                + $"(events {string.Join(", ", seatsBack.Select(seats => seats.EventId))}).");
         }
 
         // Only save the cancellations once every event has been updated.
         await transaction.CommitAsync(cancellationToken);
-        return totalCanceled;
+        return canceled;
+    }
+
+    /// <summary>
+    /// Runs one raw UPDATE with its numbers sent as real parameters (never pasted into the text),
+    /// so nothing a visitor types can reach the SQL. The text only ever holds the {0}, {1}... slots.
+    /// </summary>
+    /// <returns>How many rows the UPDATE changed.</returns>
+    private Task<int> ExecuteRawAsync(string sql, object[] arguments, CancellationToken cancellationToken)
+    {
+        return db.Database.ExecuteSqlAsync(FormattableStringFactory.Create(sql, arguments), cancellationToken);
+    }
+
+    /// <summary>
+    /// The values for the slots: event id then amount, for each event. Slot 0 and 1 are the first
+    /// event, slot 2 and 3 the second, and so on.
+    /// </summary>
+    private static object[] ToArguments(IReadOnlyList<EventTicketReservation> reservations)
+    {
+        var arguments = new object[reservations.Count * 2];
+        for (var index = 0; index < reservations.Count; index++)
+        {
+            arguments[index * 2] = reservations[index].EventId;
+            arguments[(index * 2) + 1] = reservations[index].Quantity;
+        }
+
+        return arguments;
+    }
+
+    /// <summary>
+    /// The slots for every event id, like "{0}, {2}, {4}".
+    /// </summary>
+    private static string IdList(int eventCount) =>
+        string.Join(", ", Enumerable.Range(0, eventCount).Select(index => $"{{{index * 2}}}"));
+
+    /// <summary>
+    /// A CASE that gives each event its own amount, like
+    /// CASE "EventId" WHEN {0} THEN {1} WHEN {2} THEN {3} ELSE 0 END.
+    /// </summary>
+    private static string AmountCase(string idColumn, int eventCount)
+    {
+        var text = new StringBuilder("CASE ").Append(idColumn);
+        for (var index = 0; index < eventCount; index++)
+        {
+            text.Append($" WHEN {{{index * 2}}} THEN {{{(index * 2) + 1}}}");
+        }
+
+        return text.Append(" ELSE 0 END").ToString();
+    }
+
+    /// <summary>
+    /// After a failed reserve, finds the first event (lowest id) that can't give the seats asked
+    /// for, so the exception can name it. Nothing was changed, so this sees the state from before.
+    /// </summary>
+    private async Task<int> FindFirstUnavailableEventAsync(
+        IReadOnlyList<EventTicketReservation> reservations,
+        CancellationToken cancellationToken)
+    {
+        var eventIds = reservations.Select(reservation => reservation.EventId).ToList();
+
+        var states = await db.Events
+            .AsNoTracking()
+            .Where(@event => eventIds.Contains(@event.EventId))
+            .Select(@event => new { @event.EventId, @event.IsActive, @event.TicketsSold, @event.TicketCapacity })
+            .ToListAsync(cancellationToken);
+
+        foreach (var reservation in reservations)
+        {
+            var state = states.FirstOrDefault(candidate => candidate.EventId == reservation.EventId);
+
+            if (state is null || !state.IsActive || state.TicketsSold + (long)reservation.Quantity > state.TicketCapacity)
+            {
+                return reservation.EventId;
+            }
+        }
+
+        // Every event looks fine now, so another buyer must have just left. Name the first one.
+        return reservations[0].EventId;
     }
 }

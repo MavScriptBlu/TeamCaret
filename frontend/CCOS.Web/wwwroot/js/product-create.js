@@ -113,3 +113,21 @@
         });
     });
 })();
+
+// Keeps the Save button clickable after a field shows a validation message.
+// Pressing the mouse normally moves focus off the field first. The validator then
+// clears that field's message, the form gets shorter, and Save slides out from under
+// the cursor before the click finishes, so nothing happens. Keeping focus where it is
+// until the click lands means the submit runs and checks every field at once.
+(function () {
+    var saveButtons = document.querySelectorAll(".product-form-save");
+
+    saveButtons.forEach(function (button) {
+        button.addEventListener("mousedown", function (event) {
+            // Left button only, so right-click menus still work.
+            if (event.button === 0) {
+                event.preventDefault();
+            }
+        });
+    });
+})();

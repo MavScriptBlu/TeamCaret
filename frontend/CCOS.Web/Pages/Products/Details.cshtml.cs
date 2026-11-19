@@ -16,7 +16,8 @@ public class DetailsModel(ProductsApiClient productsApi, ILogger<DetailsModel> l
 
     /// <summary>
     /// Loads one product for the page. Returns 404 when the id is missing or no active product
-    /// matches, and 503 when the API can't be reached.
+    /// matches, and 503 when the API can't be reached. Both show the friendly status page
+    /// (Pages/Status.cshtml, CAR-60) instead of a blank browser error.
     /// </summary>
     /// <param name="id">The product id from the URL.</param>
     public async Task<IActionResult> OnGetAsync(int? id, CancellationToken cancellationToken)

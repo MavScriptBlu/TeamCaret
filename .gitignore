@@ -65,6 +65,9 @@ appsettings.Production.json
 !.env.example
 secrets.json
 **/Properties/PublishProfiles/*.pubxml
+.git/
+.vscode/
+
 
 # --- Azure ---------------------------------------------------------------
 .azure/
@@ -189,3 +192,5 @@ scratchpad/
 *.tar.gz
 *.rar
 *.7z
+
+.fake

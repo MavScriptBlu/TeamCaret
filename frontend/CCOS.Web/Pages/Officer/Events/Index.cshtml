@@ -1,0 +1,151 @@
+@page
+@model CCOS.Web.Pages.Officer.Events.IndexModel
+@using CCOS.Web.Pages.Events
+@{
+    ViewData["Title"] = "Manage events";
+    var removedMessage = TempData["EventRemoved"] as string;
+    var restoredMessage = TempData["EventRestored"] as string;
+    var errorMessage = TempData["EventError"] as string;
+    var eventMessage = removedMessage ?? restoredMessage;
+}
+
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (eventMessage is not null)
+{
+    <p class="product-created-message" role="status">@eventMessage</p>
+}
+@if (errorMessage is not null)
+{
+    <p class="products-empty" role="alert">@errorMessage</p>
+}
+
+@* Same look as the officer product dashboard. Events are never deleted: Remove hides one, Restore brings it back. *@
+
+<div class="officer-head">
+    <h1>Events</h1>
+    <div class="officer-actions">
+        <a class="officer-pill" asp-page="/Officer/Events/Create">Create an event</a>
+        <form method="get" class="officer-filter">
+            <select name="show" aria-label="Filter events" onchange="this.form.submit()">
+                <option value="">All events</option>
+                <option value="active" selected="@(Model.Show == "active")">In the event list</option>
+                <option value="inactive" selected="@(Model.Show == "inactive")">Removed</option>
+            </select>
+            <noscript><button type="submit">Apply</button></noscript>
+        </form>
+    </div>
+</div>
+
+@if (Model.LoadFailed)
+{
+    <p class="products-empty" role="alert">Events couldn't be loaded right now. Please try again later.</p>
+}
+else if (Model.TotalCount == 0)
+{
+    <p class="products-empty">No events yet. Use Create an event to add one.</p>
+}
+else if (Model.Events.Count == 0)
+{
+    <div class="products-empty">
+        <p>No events match this filter.</p>
+        <a asp-page="/Officer/Events/Index">Show all events</a>
+    </div>
+}
+else
+{
+    <ul class="officer-products">
+        @for (var index = 0; index < Model.Events.Count; index++)
+        {
+            var item = Model.Events[index];
+            var ticketType = item.TicketTypes.FirstOrDefault(candidate => candidate.IsActive);
+            <li>
+                <details class="officer-product @(item.IsActive ? "" : "is-inactive")"
+                          open="@(Model.ExpandedId == item.EventId || (Model.ExpandedId is null && index == 0))">
+                    <summary>
+                        <span class="officer-product-name">@item.Name</span>
+                        @if (!item.IsActive)
+                        {
+                            <span class="officer-badge">Removed</span>
+                        }
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                    </summary>
+
+                    <div class="officer-product-body">
+                        <div class="officer-product-image" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                        </div>
+
+                        <div class="officer-product-details">
+                            @if (!item.IsActive)
+                            {
+                                <p class="officer-deactivated">Removed from the event list. Nothing was deleted. Restore it any time.</p>
+                            }
+                            <dl class="officer-facts">
+                                <div><dt>Name</dt><dd>@item.Name</dd></div>
+                                <div><dt>When</dt><dd>@ClubTime.FormatRange(item.StartsAtUtc, item.EndsAtUtc)</dd></div>
+                                <div><dt>Venue</dt><dd>@item.VenueName</dd></div>
+                                <div><dt>Capacity</dt><dd>@item.TicketCapacity@(item.MembersOnly ? " (members only)" : "")</dd></div>
+                                <div>
+                                    <dt>Ticket</dt>
+                                    <dd>
+                                        @if (ticketType is null)
+                                        {
+                                            @:No ticket on sale
+                                        }
+                                        else
+                                        {
+                                            @TicketPrices.Format(ticketType.Price)
+                                            @:, members @TicketPrices.Format(ticketType.MemberPrice.GetValueOrDefault())
+                                        }
+                                    </dd>
+                                </div>
+                                <div><dt>In the event list</dt><dd>@(item.IsActive ? "Yes" : "No, removed")</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="officer-product-actions">
+                        @if (item.IsActive)
+                        {
+                            <form method="post"
+                                  asp-page-handler="Remove"
+                                  asp-route-id="@item.EventId"
+                                  asp-route-show="@Model.Show"
+                                  class="officer-delete-form"
+                                  data-remove-form>
+                                <button type="button"
+                                        class="officer-delete"
+                                        data-remove-button
+                                        data-remove-name="@item.Name"
+                                        data-remove-row=".officer-product"
+                                        aria-haspopup="dialog"
+                                        aria-controls="removeDialog">
+                                    Remove event
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post"
+                                  asp-page-handler="Restore"
+                                  asp-route-id="@item.EventId"
+                                  asp-route-show="@Model.Show">
+                                <button type="submit" class="officer-pill">Restore event</button>
+                            </form>
+                        }
+                        <span class="officer-product-links">
+                            <a class="officer-pill" asp-page="/Officer/Events/Edit" asp-route-id="@item.EventId">Edit event</a>
+                        </span>
+                    </div>
+                </details>
+            </li>
+        }
+    </ul>
+}
+
+<partial name="_RemoveDialog" model="@(new RemoveDialogModel("event", "the Events page"))" />
+
+@section Scripts {
+    <script src="~/js/officer-remove-dialog.js" asp-append-version="true"></script>
+}
