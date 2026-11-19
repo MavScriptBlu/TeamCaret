@@ -100,9 +100,21 @@ in `CCOS.Shared.ZipCodeRules`, so the API and the Razor forms say the same thing
 ### Orders
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/orders` | List all orders |
-| GET | `/orders/{id}` | Get order by ID |
-| POST | `/orders` | Create order |
+| POST | `/orders` | Place one order of merch and event tickets for the signed-in customer (CAR-91). 201 with the order. 400 for a bad body, 401 when not signed in, 403 when a ticket is for a members-only event and they aren't a current member, 409 when an item is out of stock, sold out, removed or for an event that already started. Nothing is saved on any error. |
+
+Request body (`PlaceOrderRequest`): `{ "lines": [ { "productId": 3, "quantity": 2 }, { "productId": 12, "quantity": 1 } ] }`.
+`productId` is the merch product id or the ticket type id (ticket types are products too, same id the
+cart keeps). 1 to 50 lines, quantity 1 to 100. The same product on two lines is added together.
+
+- Prices are worked out on the server: the member price for current members (same check as the
+  `Member` policy, CAR-69) when it's lower, the regular price for everyone else. The request never carries a price.
+- Merch stock goes down and event seats are held (`TicketBookingRepository`) in one transaction, with one
+  `TicketRegistration` per ticket. Pay in person: every new order is `Pending` until an officer marks it paid.
+- 201 body (`OrderDto`): `orderId`, `orderDate`, `status` (`Pending`), `totalAmount`, and `lines`
+  (`productId`, `name`, `eventId` for tickets or null for merch, `quantity`, `unitPrice`, `lineTotal`).
+- 403 and 409 bodies are problem details with a `detail` sentence that names the item (for example
+  "CTF Night doesn't have enough seats left for this order.") and a `productId` that says which cart line it was.
+- Listing and reading orders come later (CAR-95 My Orders, CAR-96/97 officer views).
 
 ## Response Format
 

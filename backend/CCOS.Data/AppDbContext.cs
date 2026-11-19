@@ -117,6 +117,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.Property(order => order.Status).HasMaxLength(20).HasDefaultValue("Pending");
             entity.Property(order => order.OrderDate).HasDefaultValueSql("now()");
             entity.Property(order => order.TotalAmount).HasPrecision(10, 2);
+
+            // CAR-91: every order belongs to the customer who placed it. Customers are never
+            // deleted, so this is Restrict like every other link into history.
+            entity.HasOne(order => order.Customer)
+                .WithMany()
+                .HasForeignKey(order => order.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(order => order.CustomerId).HasDatabaseName("IX_Orders_CustomerId");
         });
 
         // ---- Order lines ----
@@ -281,7 +289,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
                 .HasForeignKey(registration => registration.EventId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(registration => registration.OrderLine)
-                .WithMany()
+                .WithMany(line => line.TicketRegistrations)
                 .HasForeignKey(registration => registration.OrderLineId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<TicketType>()

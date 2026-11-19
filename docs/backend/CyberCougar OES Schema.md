@@ -35,7 +35,7 @@ dotnet ef migrations script --idempotent --project CCOS.Data
 
 | Area | Tables | Key constraints | Details in |
 | --- | --- | --- | --- |
-| Products and orders | `Products`, `Orders`, `OrderLines` | `Products.IsActive` + global query filter; `ProductType` is `'Item'` or `'Ticket'`, and only tickets have an `EventId` | CAR-24, CAR-30 |
+| Products and orders | `Products`, `Orders`, `OrderLines` | `Products.IsActive` + global query filter; `ProductType` is `'Item'` or `'Ticket'`, and only tickets have an `EventId`; `Orders.CustomerId` points at who placed it (Restrict) | CAR-24, CAR-30, CAR-91 |
 | Membership | `Customers`, `Members`, `Officers`, `OfficerHistory`, `Admins` | `MemberId` = `CustomerId`; status is worked out from `IsActive` + `MemberExpiration`, never stored; one open `OfficerHistory` row per member | CAR-28 |
 | Events and tickets | `Venues`, `VenueAddresses`, `Events`, `TicketRegistrations` | `CHECK (TicketsSold <= TicketCapacity)`; booking raises `TicketsSold` with one conditional `UPDATE`; `EndsAtUtc > StartsAtUtc`; `Events.RowVersion` for officer edits | CAR-30 |
 | Treasury | `TreasurySettings`, `Expenses`, `Deposits`, `Reconciliations` | Not designed yet | ERD only |

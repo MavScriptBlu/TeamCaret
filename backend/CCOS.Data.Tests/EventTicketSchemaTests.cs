@@ -199,7 +199,8 @@ public class EventTicketSchemaTests
             Event = @event
         };
 
-        var order = new Order { OrderDate = DateTime.UtcNow, TotalAmount = 20 };
+        // Every order belongs to a customer now (CAR-91).
+        var order = new Order { Customer = new Customer { FirstName = "Test", LastName = "Buyer" }, OrderDate = DateTime.UtcNow, TotalAmount = 20 };
 
         // Save in steps because each row needs the id of the one before it.
         db.Venues.Add(venue);
