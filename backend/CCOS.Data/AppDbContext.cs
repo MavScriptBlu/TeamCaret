@@ -109,7 +109,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         {
             entity.ToTable("Orders", table =>
             {
-                table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Fulfilled', 'Canceled')");
+                table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Paid', 'Picked up', 'Canceled')");
                 table.HasCheckConstraint("CK_Orders_TotalAmount", "\"TotalAmount\" >= 0");
             });
 
@@ -117,6 +117,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.Property(order => order.Status).HasMaxLength(20).HasDefaultValue("Pending");
             entity.Property(order => order.OrderDate).HasDefaultValueSql("now()");
             entity.Property(order => order.TotalAmount).HasPrecision(10, 2);
+            entity.HasIndex(order => order.CustomerId).HasDatabaseName("IX_Orders_CustomerId");
+
+            // PostgreSQL's hidden xmin value catches two officers changing the same order at once.
+            if (Database.IsNpgsql())
+            {
+                entity.Property(order => order.RowVersion)
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
+            }
+            else
+            {
+                // SQLite tests do not have xmin, so use a regular concurrency-token column there.
+                entity.Property(order => order.RowVersion).IsConcurrencyToken();
+            }
+
+            entity.HasOne(order => order.Customer)
+                .WithMany()
+                .HasForeignKey(order => order.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ---- Order lines ----

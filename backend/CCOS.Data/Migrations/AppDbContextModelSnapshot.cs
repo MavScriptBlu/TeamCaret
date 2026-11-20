@@ -281,10 +281,19 @@ namespace CCOS.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderId"));
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<uint>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -299,9 +308,12 @@ namespace CCOS.Data.Migrations
 
                     b.HasKey("OrderId");
 
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_Orders_CustomerId");
+
                     b.ToTable("Orders", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Fulfilled', 'Canceled')");
+                            t.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Paid', 'Picked up', 'Canceled')");
 
                             t.HasCheckConstraint("CK_Orders_TotalAmount", "\"TotalAmount\" >= 0");
                         });
@@ -743,6 +755,16 @@ namespace CCOS.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("CCOS.Data.Entities.Order", b =>
+                {
+                    b.HasOne("CCOS.Data.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("CCOS.Data.Entities.OrderLine", b =>
