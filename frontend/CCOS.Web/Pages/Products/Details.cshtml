@@ -16,6 +16,8 @@
 
 <a class="product-back" asp-page="/Products/Index">&larr; Back to Products</a>
 
+<partial name="_CartMessage" />
+
 <div class="product-detail">
     <section class="product-gallery" aria-label="@product.Name photos">
         <div class="product-photo product-photo-main"
@@ -87,26 +89,33 @@
             <p class="product-stock product-stock-out">Out of stock</p>
         }
 
-        <div class="product-purchase">
-            @if (product.StockQuantity > 0)
-            {
-				<div class="product-quantity">
-					<label for="product-quantity">Qty</label>
-					<input id="product-quantity"
-						   type="number"
-						   min="0"
-						   max="@product.StockQuantity"
-						   value="0" />
-				</div>
-                
-                @*placeholder for the add to cart button, currently does nothing*@
-				<button class="add-to-cart" type="button">Add to cart</button>
-            }
-            else
-            {
-				<button class="add-to-cart" type="button" disabled>Out of stock</button>
-            }
+        @if (product.StockQuantity > 0)
+        {
+            @* Add to cart (CAR-92). The page checks the stock again when the button is pressed. *@
+            <form class="product-purchase" method="post" asp-page-handler="AddToCart" asp-route-id="@product.Id">
+                <div class="product-quantity">
+                    <label for="product-quantity">Qty</label>
+                    <input id="product-quantity"
+                           name="quantity"
+                           type="number"
+                           min="1"
+                           max="@product.StockQuantity"
+                           value="1"
+                           required />
+                </div>
+                <button class="add-to-cart" type="submit">Add to cart</button>
+            </form>
+        }
+        else
+        {
+            <div class="product-purchase">
+                <button class="add-to-cart" type="button" disabled>Out of stock</button>
+            </div>
+        }
 
-        </div>
+        @if (Model.InCart > 0)
+        {
+            <p class="product-in-cart">@Model.InCart in your cart · <a asp-page="/Cart">View cart</a></p>
+        }
     </section>
 </div>

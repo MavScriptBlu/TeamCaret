@@ -2,6 +2,19 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-17 · CAR-92 Cart
+
+- Visitors can collect merch and event tickets in a cart before checkout (CAR-93 comes next).
+- Decision: the cart is kept in the website session (`AddSession` with the memory cache), not the database. The session only holds ids and quantities (`CartItem`); names, prices and stock are loaded fresh from the API every time the cart is shown, so prices are never stale and member prices appear as soon as a member logs in. No migrations.
+- The session cookie is `ccos.cart` (HttpOnly, Lax, marked essential). An unused cart is cleared after 2 hours, and a restart of the website clears all carts. With more than one copy of the website on a host, the memory cache would have to become a shared one (for example Redis).
+- "Add to cart" on the product page (with Qty) and on the event page (ticket type and Qty) replace the placeholder buttons. Both check the API again when pressed. The RSVP button is still a placeholder (CAR-94).
+- Limits: never more than the product's stock. Tickets for one event share its seats across all ticket types. Seats left is the event's capacity for now, because ordered tickets can't be counted until orders exist (CAR-91). Members-only events need a current member, and tickets stop selling once the event starts (the same cutoff as `POST /api/orders`, CAR-91).
+- `/Cart` lists each item with `_PriceTag`, Qty with Update, Remove, line total and order total. Items that are no longer sold are taken out, and quantities over the stock are lowered, with a note. An empty cart links to Merch and Events.
+- "Cart" in the menu (`SiteNav.CartHref`) shows the item count in a gold badge.
+- Log out empties the cart, so the next person on a shared computer (like the school's) doesn't see it. Logging in keeps the cart, with member prices showing right away.
+- `TicketTypeInfo` now carries `TicketTypeId` (optional, last), so the event page can say which ticket type was picked.
+- Tests: `CartTests` (rules and session), `CartModelTests` (lines, totals, member prices, Update, Remove), and Add to cart tests for the product and event pages.
+
 ## 2026-11-15 · CAR-77 Venues list revamp
 
 - From Jason's Sprint 4 review notes, in the same style as the Merch (CAR-75) and Events (CAR-76) lists. The goal: see every venue's details at a glance instead of opening rows one at a time.

@@ -23,6 +23,7 @@
 {
     <p class="events-message" role="alert">@eventError</p>
 }
+<partial name="_CartMessage" />
 
 @if (Model.LoadFailed)
 {
@@ -112,6 +113,41 @@ else
                             <p class="price-tag-hint">Member price: <a asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">log in as a member</a> to see it.</p>
                         }
                     </div>
+                    @* Add tickets to the cart (CAR-92). The page checks the rules again when the button is pressed. *@
+                    @if (Model.CanAddTickets)
+                    {
+                        <form class="event-add-to-cart" method="post" asp-page-handler="AddToCart" asp-route-id="@ev.EventId">
+                            @if (Model.TicketOptions.Count == 1)
+                            {
+                                <input type="hidden" name="ticketTypeId" value="@Model.TicketOptions[0].TicketTypeId" />
+                            }
+                            else
+                            {
+                                <div class="event-cart-field">
+                                    <label for="ticket-type">Ticket</label>
+                                    <select id="ticket-type" name="ticketTypeId">
+                                        @foreach (var option in Model.TicketOptions)
+                                        {
+                                            <option value="@option.TicketTypeId">@option.Label</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            <div class="event-cart-field">
+                                <label for="ticket-quantity">Qty</label>
+                                <input id="ticket-quantity" name="quantity" type="number" min="1" max="@Model.MaxMoreTickets" value="1" required />
+                            </div>
+                            <button type="submit" class="event-cart-button">Add to cart</button>
+                        </form>
+                    }
+                    else if (Model.NoTicketsReason is not null && ev.TicketTypes.Any(ticketType => ticketType.IsActive))
+                    {
+                        <p class="event-detail-note">@Model.NoTicketsReason</p>
+                    }
+                    @if (Model.TicketsInCart > 0)
+                    {
+                        <p class="event-in-cart">@Model.TicketsInCart in your cart · <a asp-page="/Cart">View cart</a></p>
+                    }
                     @* Placeholder: RSVP does nothing yet. *@
                     <button type="button" class="event-rsvp">RSVP</button>
                 </div>

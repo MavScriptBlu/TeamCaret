@@ -92,6 +92,22 @@ builder.Services.AddHttpClient<VenuesApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
+// The cart (CAR-92) lives in the visitor's session: kept in the website's memory and found again
+// through a cookie. Nothing goes in the database. With more than one copy of the website on a
+// host, swap the memory cache for a shared one (for example Redis).
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.Name = "ccos.cart";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    // The cart is needed for the site to work, so the cookie doesn't wait for cookie consent.
+    options.Cookie.IsEssential = true;
+    // An unused cart is cleared after 2 hours.
+    options.IdleTimeout = TimeSpan.FromHours(2);
+});
+
 // GET /health (CAR-84): "Healthy" when the API answers its own /health (so the API and its
 // database work too), "Unhealthy" (503) when it doesn't. Hosts use it to check the site is up.
 builder.Services.AddHttpClient(ApiHealthCheck.ClientName, client =>
@@ -135,6 +151,9 @@ app.UseRouting();
 // Reads the sign-in cookie, so pages know who's signed in (CAR-68).
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Loads the visitor's cart session (CAR-92).
+app.UseSession();
 
 app.MapHealthChecks("/health");
 app.MapStaticAssets();

@@ -1,0 +1,16 @@
+@*
+    "Added to your cart" message on the product and event pages (CAR-92), with a link to the cart.
+    The page's Add to cart button puts the text in TempData: CartMessage when something was added,
+    CartError when nothing could be.
+*@
+@if (TempData["CartMessage"] is string cartMessage)
+{
+    <p class="cart-flash" role="status">
+        @cartMessage
+        <a asp-page="/Cart">View cart</a>
+    </p>
+}
+@if (TempData["CartError"] is string cartError)
+{
+    <p class="cart-flash cart-flash--error" role="alert">@cartError</p>
+}
