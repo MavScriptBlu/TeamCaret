@@ -24,7 +24,8 @@ public class OrdersController(
 {
     /// <summary>
     /// POST /api/orders: place one order for the signed-in customer.
-    /// 201 with the order, 400 for a bad request, 401 when not signed in,
+    /// 201 with the order, 400 for a bad request (including one product adding up to more than 100
+    /// across repeated lines), 401 when not signed in,
     /// 403 when a ticket is members-only, 409 when an item is out of stock, sold out or gone.
     /// </summary>
     [HttpPost]
@@ -47,10 +48,25 @@ public class OrdersController(
 
         bool isCurrentMember = await members.IsCurrentMemberAsync(customerId.Value, clock.Today, cancellationToken);
 
-        // ---- Place it ----
+        // ---- Add up repeated lines, then check the totals ----
+        // WHY: the 1 to 100 rule on each line runs before anything is merged, so a hand-made
+        // request with the same product on three lines of 100 would sneak through as 300.
+        // Merging here and checking the per-product total closes that gap.
         List<OrderRequestLine> lines = input.Lines
-            .Select(line => new OrderRequestLine(line.ProductId, line.Quantity))
+            .GroupBy(line => line.ProductId)
+            .Select(group => new OrderRequestLine(group.Key, group.Sum(line => line.Quantity)))
             .ToList();
+
+        OrderRequestLine? tooMany = lines.FirstOrDefault(line => line.Quantity > OrderLineRequest.MaxQuantity);
+        if (tooMany is not null)
+        {
+            ModelState.AddModelError(
+                nameof(PlaceOrderRequest.Lines),
+                $"Quantity must be from 1 to {OrderLineRequest.MaxQuantity} for each item. Item {tooMany.ProductId} adds up to {tooMany.Quantity}.");
+            return ValidationProblem(ModelState);
+        }
+
+        // ---- Place it ----
 
         PlaceOrderResult result = await orders.PlaceOrderAsync(customerId.Value, isCurrentMember, lines, cancellationToken);
 
