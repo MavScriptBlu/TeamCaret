@@ -281,6 +281,9 @@ namespace CCOS.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderId"));
 
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -298,6 +301,9 @@ namespace CCOS.Data.Migrations
                         .HasColumnType("numeric(10,2)");
 
                     b.HasKey("OrderId");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_Orders_CustomerId");
 
                     b.ToTable("Orders", null, t =>
                         {
@@ -745,6 +751,17 @@ namespace CCOS.Data.Migrations
                     b.Navigation("Member");
                 });
 
+            modelBuilder.Entity("CCOS.Data.Entities.Order", b =>
+                {
+                    b.HasOne("CCOS.Data.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("CCOS.Data.Entities.OrderLine", b =>
                 {
                     b.HasOne("CCOS.Data.Entities.Order", "Order")
@@ -771,7 +788,7 @@ namespace CCOS.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("CCOS.Data.Entities.OrderLine", "OrderLine")
-                        .WithMany()
+                        .WithMany("TicketRegistrations")
                         .HasForeignKey("OrderLineId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -881,6 +898,11 @@ namespace CCOS.Data.Migrations
             modelBuilder.Entity("CCOS.Data.Entities.Order", b =>
                 {
                     b.Navigation("OrderLines");
+                });
+
+            modelBuilder.Entity("CCOS.Data.Entities.OrderLine", b =>
+                {
+                    b.Navigation("TicketRegistrations");
                 });
 
             modelBuilder.Entity("CCOS.Data.Entities.Venue", b =>

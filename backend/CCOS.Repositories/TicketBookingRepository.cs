@@ -18,7 +18,7 @@ namespace CCOS.Repositories;
 public sealed class TicketBookingRepository(AppDbContext db)
 {
     // TODO: Add scheduled/admin TicketsSold consistency monitoring in its follow-up, outside the booking path.
-    // TODO: Order placement must validate membership and ticket activity, add registrations, and own this transaction.
+    // Order placement (membership, ticket activity, registrations, the transaction) lives in OrderRepository (CAR-91).
 
     /// <summary>
     /// Holds seats for one event. A shortcut for ReserveTicketsForOrderAsync with a single event.

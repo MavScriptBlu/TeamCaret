@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
+
+- New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.
+- Prices come from the database, never the request: member price for current members when it's lower, regular price otherwise (same member check as CAR-69, same rule as the cart's price tags).
+- One transaction: merch stock drops with a conditional `UPDATE` (stock >= quantity, so two buyers can't both get the last one), seats are held through `TicketBookingRepository`, and one `TicketRegistration` is saved per ticket. Out of stock or sold out rolls everything back and answers 409 with a sentence naming the item and its `productId`.
+- Members-only event tickets answer 403 for anyone who isn't a current member. Tickets for removed events or events that already started answer 409.
+- No online payment yet (CAR-87): new orders are `Pending`, paid in person, then an officer marks them paid.
+- Schema: `Orders.CustomerId` (required, FK to `Customers`, Restrict, indexed), which the ERD already had. Migration `AddOrderCustomer`. Nothing placed orders before this, so the table is empty when it runs. `OrderLine.TicketRegistrations` is a new navigation only (no column change).
+- Tests: `OrdersControllerTests` (SQLite) covers a normal order, member vs. non-member vs. expired member prices, out of stock, sold out (and that merch stock rolls back with it), started events, removed products, members-only refused and allowed, sign-in and bad input. `OrdersPostgresTests` races 10 buyers for the last item and the last seat on real PostgreSQL: exactly one wins each time. Two older data tests now give their sample order a customer. All API (147), Data (86) and Web (167) tests passed.
+
 ## 2026-11-15 · CAR-77 Venues list revamp
 
 - From Jason's Sprint 4 review notes, in the same style as the Merch (CAR-75) and Events (CAR-76) lists. The goal: see every venue's details at a glance instead of opening rows one at a time.

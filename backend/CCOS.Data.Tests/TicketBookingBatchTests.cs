@@ -187,7 +187,8 @@ public sealed class TicketBookingBatchTests : IAsyncLifetime
     // An order with the given number of purchased tickets per event.
     private async Task<Order> AddOrderAsync(params (Event Event, int Tickets)[] lines)
     {
-        var order = new Order { OrderDate = DateTime.UtcNow, TotalAmount = 10 };
+        // Every order belongs to a customer now (CAR-91).
+        var order = new Order { Customer = new Customer { FirstName = "Test", LastName = "Buyer" }, OrderDate = DateTime.UtcNow, TotalAmount = 10 };
         _db.Orders.Add(order);
         await _db.SaveChangesAsync();
 
