@@ -2,6 +2,14 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-20 · CAR-91 quantity limit after merging repeated lines
+
+- Review note on PR #211: the 1 to 100 quantity check ran on each line before lines for the same product were added together, so a hand-made request (say three lines of 100 shirts) could order 300 of one thing.
+- Decision: `OrdersController` now adds repeated lines together first, then checks each product's total against `OrderLineRequest.MaxQuantity`. Over the limit is a 400 validation problem that names the item and its total. Nothing is saved.
+- Why in the controller: that's where the other 400s come from, and it keeps the limit in one place (`CCOS.Shared`) instead of copying it into the repository.
+- Known follow-up, left as is on purpose: the "Item {id} isn't for sale anymore" 409 shows the raw id. Checkout can swap in the name using the `productId` it gets back, so that's fine for now.
+- Test: `Repeated_lines_that_add_up_to_more_than_100_are_a_400` (60 + 60 of one product is a 400 and saves nothing; it failed before the fix) and `Repeated_lines_that_add_up_to_exactly_100_are_still_checked_against_stock` (50 + 50 passes the limit and hits the stock check). API tests: 145 passed; the 4 PostgreSQL Testcontainers tests need Docker and couldn't run in this environment.
+
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
 - New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.
