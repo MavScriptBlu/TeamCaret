@@ -104,7 +104,8 @@ in `CCOS.Shared.ZipCodeRules`, so the API and the Razor forms say the same thing
 
 Request body (`PlaceOrderRequest`): `{ "lines": [ { "productId": 3, "quantity": 2 }, { "productId": 12, "quantity": 1 } ] }`.
 `productId` is the merch product id or the ticket type id (ticket types are products too, same id the
-cart keeps). 1 to 50 lines, quantity 1 to 100. The same product on two lines is added together.
+cart keeps). 1 to 50 lines, quantity 1 to 100. The same product on two lines is added together, and the
+1 to 100 limit applies to that total too (two lines of 60 for one product is a 400).
 
 - Prices are worked out on the server: the member price for current members (same check as the
   `Member` policy, CAR-69) when it's lower, the regular price for everyone else. The request never carries a price.

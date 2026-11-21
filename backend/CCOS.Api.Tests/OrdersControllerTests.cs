@@ -339,6 +339,30 @@ public sealed class OrdersControllerTests : IClassFixture<WebApplicationFactory<
         await AssertNothingSavedAsync();
     }
 
+    [Fact]
+    public async Task Repeated_lines_that_add_up_to_more_than_100_are_a_400()
+    {
+        HttpClient client = await SignedInClientAsync(isMember: false);
+
+        // Each line is fine on its own (60 is within 1 to 100), but together it's 120 shirts.
+        HttpResponseMessage response = await PlaceAsync(client, (_shirtId, 60), (_shirtId, 60));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        await AssertNothingSavedAsync();
+    }
+
+    [Fact]
+    public async Task Repeated_lines_that_add_up_to_exactly_100_are_still_checked_against_stock()
+    {
+        HttpClient client = await SignedInClientAsync(isMember: false);
+
+        // 50 + 50 is right at the limit, so it gets past the quantity check. The shirt only has
+        // 10 in stock, so it's a 409 from the stock check, not a 400.
+        HttpResponseMessage response = await PlaceAsync(client, (_shirtId, 50), (_shirtId, 50));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
