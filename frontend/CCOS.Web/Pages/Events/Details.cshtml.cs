@@ -127,7 +127,7 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
 
     /// <summary>
     /// The Add to cart button for tickets (CAR-92). Loads the event again, so the rules are checked
-    /// with fresh data: tickets on sale, the event hasn't ended, members-only events need a current
+    /// with fresh data: tickets on sale, the event hasn't started, members-only events need a current
     /// member, and the cart never holds more tickets than the event has seats. Then comes back to
     /// the event page with a message.
     /// </summary>
@@ -218,9 +218,10 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
             return "Tickets aren't on sale yet.";
         }
 
-        if (eventInfo.EndsAtUtc <= nowUtc)
+        // Same cutoff as POST /api/orders (CAR-91): tickets stop selling once the event starts.
+        if (eventInfo.StartsAtUtc <= nowUtc)
         {
-            return "This event has ended.";
+            return "Ticket sales have closed for this event.";
         }
 
         if (eventInfo.MembersOnly && !isCurrentMember)

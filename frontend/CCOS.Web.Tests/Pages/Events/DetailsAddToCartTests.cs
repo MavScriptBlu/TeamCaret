@@ -73,20 +73,21 @@ public class DetailsAddToCartTests
     }
 
     [Fact]
-    public async Task Tickets_for_an_event_that_has_ended_cannot_be_added()
+    public async Task Tickets_for_an_event_that_has_started_cannot_be_added()
     {
+        // Matches POST /api/orders (CAR-91): sales close at the start time, even while the event is still on.
         var http = CartTestContext.Attach(_model);
-        var past = CartModelTests.GameNight(capacity: 50, General) with
+        var started = CartModelTests.GameNight(capacity: 50, General) with
         {
-            StartsAtUtc = DateTime.UtcNow.AddDays(-2),
-            EndsAtUtc = DateTime.UtcNow.AddDays(-2).AddHours(3),
+            StartsAtUtc = DateTime.UtcNow.AddHours(-1),
+            EndsAtUtc = DateTime.UtcNow.AddHours(2),
         };
-        RespondWith(past);
+        RespondWith(started);
 
         await _model.OnPostAddToCartAsync(5, 12, 1, CancellationToken.None);
 
         Assert.True(http.GetCart().IsEmpty);
-        Assert.Equal("This event has ended.", _model.TempData[CartMessages.ErrorKey]);
+        Assert.Equal("Ticket sales have closed for this event.", _model.TempData[CartMessages.ErrorKey]);
     }
 
     private static TicketTypeDto General => new(12, "General", 5m, null, true);

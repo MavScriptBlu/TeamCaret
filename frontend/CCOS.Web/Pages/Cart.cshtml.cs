@@ -180,7 +180,7 @@ public class CartModel(ProductsApiClient productsApi, EventsApiClient eventsApi,
     }
 
     // Loads one cart item's name, price and how many are available from the API. Problem is set
-    // instead when the item can't stay in the cart (removed, out of stock, event ended, ...).
+    // instead when the item can't stay in the cart (removed, out of stock, event started, ...).
     private async Task<LookUp> LookUpAsync(Cart cart, CartItem item, Dictionary<int, EventInfo?> events, CancellationToken cancellationToken)
     {
         if (item.Kind == CartItemKind.Product)
