@@ -136,6 +136,29 @@ public sealed class TicketBookingRepository(AppDbContext db)
         DateTime? canceledAtUtc = null,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var canceled = await CancelOrderRegistrationsInCurrentTransactionAsync(
+            orderId,
+            canceledAtUtc,
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return canceled;
+    }
+
+    /// <summary>
+    /// Cancels every purchased ticket and releases its seats inside the caller's transaction.
+    /// Use this when ticket changes must succeed or fail together with other order changes.
+    /// </summary>
+    public async Task<int> CancelOrderRegistrationsInCurrentTransactionAsync(
+        int orderId,
+        DateTime? canceledAtUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("Ticket cancellations must run inside an order transaction.");
+        }
+
         // The database stores UTC only, so convert whatever time we were given.
         // A time with no zone attached is treated as already being UTC.
         var canceledAt = canceledAtUtc ?? DateTime.UtcNow;
@@ -145,8 +168,6 @@ public sealed class TicketBookingRepository(AppDbContext db)
             DateTimeKind.Local => canceledAt.ToUniversalTime(),
             _ => DateTime.SpecifyKind(canceledAt, DateTimeKind.Utc)
         };
-
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
         // Read the order's live tickets once, so we know how many seats go back to each event.
         var purchased = await db.TicketRegistrations
@@ -159,7 +180,6 @@ public sealed class TicketBookingRepository(AppDbContext db)
         // Nothing left to cancel (never bought, or already canceled): done, and safe to run again.
         if (purchased.Count == 0)
         {
-            await transaction.CommitAsync(cancellationToken);
             return 0;
         }
 
@@ -180,7 +200,6 @@ public sealed class TicketBookingRepository(AppDbContext db)
         // Their cancel already handled everything, so there is nothing for us to do.
         if (canceled == 0)
         {
-            await transaction.CommitAsync(cancellationToken);
             return 0;
         }
 
@@ -218,8 +237,6 @@ public sealed class TicketBookingRepository(AppDbContext db)
                 + $"(events {string.Join(", ", seatsBack.Select(seats => seats.EventId))}).");
         }
 
-        // Only save the cancellations once every event has been updated.
-        await transaction.CommitAsync(cancellationToken);
         return canceled;
     }
 
