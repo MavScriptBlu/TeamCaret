@@ -179,11 +179,11 @@ public class AccountPagesTests
     [Fact]
     public async Task Logout_Post_EmptiesTheCart()
     {
-        var model = new LogoutModel();
-        var services = CreatePageContext().HttpContext.RequestServices;
-        var cart = new Cart();
+        LogoutModel model = new();
+        IServiceProvider services = CreatePageContext().HttpContext.RequestServices;
+        Cart cart = new();
         cart.Add(CartItemKind.Product, 1, null, 2, available: 10);
-        var http = CartTestContext.Attach(model, cart);
+        HttpContext http = CartTestContext.Attach(model, cart);
         http.RequestServices = services;
 
         await model.OnPostAsync();

@@ -3,6 +3,7 @@ using System.Text.Json;
 using CCOS.Shared;
 using CCOS.Web.Pages.Products;
 using CCOS.Web.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,7 +19,7 @@ public class DetailsAddToCartTests
 
     public DetailsAddToCartTests()
     {
-        var httpClient = _mockHttp.ToHttpClient();
+        HttpClient httpClient = _mockHttp.ToHttpClient();
         httpClient.BaseAddress = new Uri("http://localhost");
         _model = new DetailsModel(new ProductsApiClient(httpClient), new Mock<ILogger<DetailsModel>>().Object);
     }
@@ -26,10 +27,10 @@ public class DetailsAddToCartTests
     [Fact]
     public async Task Add_to_cart_adds_the_product_and_comes_back_with_a_message()
     {
-        var http = CartTestContext.Attach(_model);
+        HttpContext http = CartTestContext.Attach(_model);
         RespondWith(stock: 10);
 
-        var result = await _model.OnPostAddToCartAsync(1, 2, CancellationToken.None);
+        IActionResult result = await _model.OnPostAddToCartAsync(1, 2, CancellationToken.None);
 
         var redirect = Assert.IsType<RedirectToPageResult>(result);
         Assert.Equal("/Products/Details", redirect.PageName);
@@ -40,7 +41,7 @@ public class DetailsAddToCartTests
     [Fact]
     public async Task Add_to_cart_never_adds_more_than_the_stock()
     {
-        var http = CartTestContext.Attach(_model);
+        HttpContext http = CartTestContext.Attach(_model);
         RespondWith(stock: 3);
 
         await _model.OnPostAddToCartAsync(1, 5, CancellationToken.None);
@@ -51,7 +52,7 @@ public class DetailsAddToCartTests
     [Fact]
     public async Task An_out_of_stock_product_cannot_be_added()
     {
-        var http = CartTestContext.Attach(_model);
+        HttpContext http = CartTestContext.Attach(_model);
         RespondWith(stock: 0);
 
         await _model.OnPostAddToCartAsync(1, 1, CancellationToken.None);
@@ -63,7 +64,7 @@ public class DetailsAddToCartTests
     [Fact]
     public async Task A_quantity_of_zero_is_refused()
     {
-        var http = CartTestContext.Attach(_model);
+        HttpContext http = CartTestContext.Attach(_model);
         RespondWith(stock: 10);
 
         await _model.OnPostAddToCartAsync(1, 0, CancellationToken.None);
@@ -78,7 +79,7 @@ public class DetailsAddToCartTests
         CartTestContext.Attach(_model);
         _mockHttp.When(HttpMethod.Get, "http://localhost/api/products/1").Respond(HttpStatusCode.NotFound);
 
-        var result = await _model.OnPostAddToCartAsync(1, 1, CancellationToken.None);
+        IActionResult result = await _model.OnPostAddToCartAsync(1, 1, CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result);
     }
