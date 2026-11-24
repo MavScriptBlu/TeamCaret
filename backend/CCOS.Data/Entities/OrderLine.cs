@@ -18,4 +18,7 @@ public class OrderLine
     public string ProductNameSnapshot { get; set; } = null!;
 
     public Order Order { get; set; } = null!;
+
+    /// <summary>The tickets bought on this line, one per seat (CAR-91). Empty for merch.</summary>
+    public ICollection<TicketRegistration> TicketRegistrations { get; set; } = new List<TicketRegistration>();
 }
