@@ -176,6 +176,21 @@ public class AccountPagesTests
         _auth.Verify(a => a.SignOutAsync(It.IsAny<HttpContext>(), CookieAuthenticationDefaults.AuthenticationScheme, It.IsAny<AuthenticationProperties?>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Logout_Post_EmptiesTheCart()
+    {
+        LogoutModel model = new();
+        IServiceProvider services = CreatePageContext().HttpContext.RequestServices;
+        Cart cart = new();
+        cart.Add(CartItemKind.Product, 1, null, 2, available: 10);
+        HttpContext http = CartTestContext.Attach(model, cart);
+        http.RequestServices = services;
+
+        await model.OnPostAsync();
+
+        Assert.True(http.GetCart().IsEmpty);
+    }
+
     [Theory]
     [InlineData("/Events", "/Events")]
     [InlineData("https://evil.example/", "/Products")]
