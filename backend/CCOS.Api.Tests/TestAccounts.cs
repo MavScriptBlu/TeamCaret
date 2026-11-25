@@ -45,4 +45,35 @@ internal static class TestAccounts
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
     }
+
+    // for tests that call member-only endpoints. The account is registered through the API,
+    // given a membership straight in the database (the way an admin screen will later), then logged in with a bearer token.
+    public static async Task SignInAsMemberAsync(WebApplicationFactory<Program> factory, HttpClient client)
+    {
+        var email = $"member-{Guid.NewGuid():N}@ccos.test";
+        var register = await client.PostAsJsonAsync(
+            "/api/account/register",
+            new RegisterAccountRequest("Test", "Member", email, TestSecret));
+        register.EnsureSuccessStatusCode();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var user = await db.Users.AsNoTracking().SingleAsync(account => account.Email == email);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            db.Members.Add(new Member
+            {
+                MemberId = user.CustomerId,
+                JoinedDate = today.AddMonths(-6),
+                MemberExpiration = today.AddMonths(6),
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = TestSecret });
+        login.EnsureSuccessStatusCode();
+        var body = await login.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+    }
 }

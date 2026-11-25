@@ -79,6 +79,7 @@ builder.Services.AddHealthChecks()
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<VenueRepository>();
+builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<MemberRepository>();
 builder.Services.AddScoped<AccountRepository>();
 

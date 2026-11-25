@@ -6,6 +6,27 @@ namespace CCOS.Repositories;
 
 public sealed class OrderRepository(AppDbContext db)
 {
+    public async Task<IReadOnlyList<Order>> ListAsync(
+        string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        var orders = db.Orders
+            .AsNoTracking()
+            .Include(order => order.Customer)
+            .Include(order => order.OrderLines)
+            .AsQueryable();
+
+        if (status is not null)
+        {
+            orders = orders.Where(order => order.Status == status);
+        }
+
+        return await orders
+            .OrderByDescending(order => order.OrderDate)
+            .ThenByDescending(order => order.OrderId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<OrderStatusChangeResult> ChangeStatusAsync(
         int orderId,
         string nextStatus,
@@ -30,7 +51,7 @@ public sealed class OrderRepository(AppDbContext db)
 
         if (!order.TryTransitionTo(nextStatus))
         {
-            return new OrderStatusChangeResult(OrderStatusChangeOutcome.InvalidTransition);
+            return new OrderStatusChangeResult(OrderStatusChangeOutcome.InvalidTransition, order);
         }
 
         try
