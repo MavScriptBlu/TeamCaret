@@ -84,6 +84,6 @@ Then open the website, create an account, and log in.
 
 ## Still to decide
 
-- Access to the club's Azure account (CAR-53). The Azure steps are in [DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md).
+- Whether our access to the SA_Caret_Fall26 subscription is enough to create everything (CAR-53). The Azure steps are in [DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md).
 - How the club's first officer gets set up on a fresh database.
 - Whether the demo uses the hosted site with real data, or the Docker setup with sample data.

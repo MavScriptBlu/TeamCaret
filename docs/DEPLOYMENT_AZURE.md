@@ -4,8 +4,8 @@ The Azure follow-along for CAR-98. [DEPLOYMENT.md](./DEPLOYMENT.md) explains the
 database tables and the health checks for any host. This page is the "just tell me what to type"
 version for Azure.
 
-Troy confirmed Azure (CAR-87). We're still waiting on access to the club's Azure account (CAR-53),
-so anything marked **TBD** below gets filled in once we have it.
+Troy confirmed Azure (CAR-87), and we have a subscription now: **SA_Caret_Fall26** (CAR-53).
+Anything still marked **TBD** below gets filled in once we know it.
 
 ## What we're making
 
@@ -25,8 +25,13 @@ Five things, all in one resource group (a folder in Azure that holds everything 
 
 ## Before you start
 
-- [ ] An Azure account you can create things in. **TBD (CAR-53):** the club's account, Troy's, or
-      our own Azure for Students accounts.
+- [ ] Access to the **SA_Caret_Fall26** subscription. Its ID is in the Azure portal under
+      **Subscriptions** if you ever need it.
+- [ ] Heads up: the portal shows our access as **"Specified access"**. That can mean we only got
+      some permissions, not full control. If a create step says `AuthorizationFailed` or "does
+      not have authorization to perform action", it's a permissions thing, not you. Send the
+      error to Troy and ask for the **Contributor** role on the subscription (or on a resource
+      group he makes for us).
 - [ ] The Azure CLI installed (`az --version` should print something). Get it from Microsoft's
       "Install the Azure CLI" page.
 - [ ] The .NET 10 SDK (you already have it if you can build CCOS).
@@ -43,9 +48,26 @@ az login
 az account show --output table
 ```
 
-`az login` opens a browser so you can sign in. The second command shows which account you're
-using. If it's the wrong one, run `az account list --output table` and then
-`az account set --subscription "<name from the list>"`.
+`az login` opens a browser so you can sign in. If it asks you to pick a subscription, pick
+**SA_Caret_Fall26**. Then make sure it's the one you're using:
+
+```powershell
+az account set --subscription "SA_Caret_Fall26"
+az account show --output table
+```
+
+The table should say `SA_Caret_Fall26`. If `az account set` can't find it, run
+`az account list --output table` to see what your login can see. Not in the list means your
+account hasn't been given access yet, so check with Troy.
+
+Want to see what we're allowed to do? This lists our roles:
+
+```powershell
+az role assignment list --assignee (az ad signed-in-user show --query id --output tsv) --all --output table
+```
+
+**Owner** or **Contributor** means we can do every step here. **Reader** means we can only look,
+so ask Troy for Contributor before going further.
 
 ## Step 2: Pick names
 
@@ -234,7 +256,9 @@ Swap `$api` for `$web` to watch the website.
 
 Rough guess, so check the Azure pricing pages before you trust it: the B1 plan is around
 $13 a month and the B1ms database around $15 to $20 a month with storage. Azure for Students comes
-with credit that covers this for a semester. **TBD:** whose account pays.
+with credit that covers this for a semester. **TBD:** who pays for SA_Caret_Fall26 and how much
+credit it has. It showed $0.00 spent when we got it. Check **Cost Management** in the portal now
+and then so nothing sneaks up on us.
 
 To stop the meter when we're done with it, delete everything in one go. This can't be undone and
 wipes the database too:
@@ -245,7 +269,7 @@ az group delete --name $rg
 
 ## Still to decide
 
-- Whose Azure account this lives in, and who gets access (CAR-53).
+- Whether "Specified access" on SA_Caret_Fall26 is enough to create everything, or we need Troy to give us Contributor.
 - Final names and region (step 2).
 - How the club's first officer gets set up on a fresh database. Same open item as
   [DEPLOYMENT.md](./DEPLOYMENT.md).

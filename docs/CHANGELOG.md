@@ -8,7 +8,7 @@ Database and design decisions, newest first.
 - Decision: Azure Database for PostgreSQL, not Azure SQL like the old backlog says, since the code only talks to PostgreSQL (Npgsql).
 - Decision: zip deploy of `dotnet publish` output instead of containers. App Service keeps the API's sign-in keys in `/home` on its own that way, and the website's go in `/home/data/ccos-keys` through `DataProtection__KeysPath`.
 - Both apps get `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` because Azure handles https in front of them. Without it the https redirect can loop and the sign-in cookie can't tell the visitor is on https.
-- Things we don't know yet (whose account, names, region) are marked **TBD**, waiting on CAR-53.
+- Uses our subscription, **SA_Caret_Fall26** (CAR-53). It shows "Specified access", so the guide says how to check our role and what to do if a create step gets refused. The subscription ID stays out of the repo since the repo is public. Names and region are still **TBD**.
 - `docs/DEPLOYMENT.md`, `docs/README.md` and `README.md` now point to it.
 - Docs only, no code changes, so no tests to run.
 
