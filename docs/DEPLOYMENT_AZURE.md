@@ -10,7 +10,8 @@ Anything still marked **TBD** below gets filled in once we know it.
 > **It's built now.** The real names, region, plan size and settings we ended up with are in
 > [DEPLOYMENT.md, part 5](./DEPLOYMENT.md#5-our-live-setup-on-azure-car-98-car-53). Short version:
 > our subscription had no quota for B1 in the US regions we tried, so the plan is **Free F1 in
-> West US 2**, and Free F1 can't do `--always-on true` in step 6, so skip that part on F1.
+> West US 2** while the database stays in Central US. The steps below are set up that way, so
+> following them gets you the same thing that's live.
 
 ## What we're making
 
@@ -79,22 +80,30 @@ so ask Troy for Contributor before going further.
 Paste these in once at the start of your PowerShell window. Every step after this uses them.
 
 ```powershell
-$rg       = "ccos-rg"
-$location = "centralus"
-$dbServer = "ccos-db-<something unique>"
-$dbAdmin  = "ccosadmin"
-$dbPass   = "<make a strong password>"
-$plan     = "ccos-plan"
-$api      = "ccos-api-<something unique>"
-$web      = "ccos-web-<something unique>"
+$rg          = "ccos-rg"
+$location    = "centralus"
+$appLocation = "westus2"
+$dbServer    = "ccos-db-<something unique>"
+$dbAdmin     = "ccosadmin"
+$plan        = "ccos-plan"
+$api         = "ccos-api-<something unique>"
+$web         = "ccos-web-<something unique>"
+
+# Asks for the database password without it landing in your PowerShell history
+$securePass = Read-Host "Database password" -AsSecureString
+$dbPass     = [System.Net.NetworkCredential]::new("", $securePass).Password
 ```
 
 - `<something unique>` can be anything with lowercase letters, numbers and dashes, like
   `caret26`. The database and both apps need names nobody else in all of Azure is using.
 - The password needs 8+ characters with at least three of: uppercase, lowercase, numbers,
   symbols. Skip `;` and `"` since they break the connection string. Save it somewhere safe.
-- **TBD:** the final names and region. `centralus` is close to Wisconsin. If a student account says
-  a region isn't allowed (`RequestDisallowedByAzure`), try `eastus2` or `northcentralus`.
+  Never type it right into a command, because PowerShell saves your commands in a history file
+  that sticks around after you close the window. The `Read-Host` line keeps it out of there.
+- `$location` is for the resource group and the database (`centralus`, close to Wisconsin).
+  `$appLocation` is for the app plan, since `westus2` was the only US region where our student
+  subscription had room for one. If you get a quota error or `RequestDisallowedByAzure`, try
+  another region.
 
 If you close the PowerShell window, paste this block in again before you carry on.
 
@@ -135,13 +144,14 @@ az postgres flexible-server firewall-rule create --resource-group $rg --name $db
 ## Step 5: Make the App Service plan and the two apps
 
 ```powershell
-az appservice plan create --resource-group $rg --name $plan --location $location --sku B1 --is-linux
+az appservice plan create --resource-group $rg --name $plan --location $appLocation --sku F1 --is-linux
 az webapp create --resource-group $rg --plan $plan --name $api --runtime "DOTNETCORE:10.0"
 az webapp create --resource-group $rg --plan $plan --name $web --runtime "DOTNETCORE:10.0"
 ```
 
-- `B1` is the cheapest paid size. The free one (`F1`) falls asleep and has a daily time limit,
-  which is no fun in the middle of a demo.
+- `F1` is the free size, and we're staying on it since it's a school account. It falls asleep
+  after about 20 minutes with nobody on it and has a daily time limit, so open the site a minute
+  before a demo. `B1` is the cheapest paid size if that ever changes, and it costs money.
 - If `DOTNETCORE:10.0` gets an error, run `az webapp list-runtimes --os linux` and use the .NET 10
   line it shows.
 
@@ -169,7 +179,7 @@ az webapp config appsettings set --resource-group $rg --name $api --settings ASP
 **Website:**
 
 ```powershell
-az webapp config appsettings set --resource-group $rg --name $web --settings ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_FORWARDEDHEADERS_ENABLED=true "Api__BaseUrl=$apiUrl" DataProtection__KeysPath=/home/data/ccos-keys
+az webapp config appsettings set --resource-group $rg --name $web --settings ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_FORWARDEDHEADERS_ENABLED=true "Api__BaseUrl=$apiUrl" DataProtection__KeysPath=/home/data/keys
 ```
 
 Why these:
@@ -180,16 +190,17 @@ Why these:
 - `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`: Azure handles the https part in front of our apps,
   so the apps only see plain http. This tells them the visitor really is on https, so the https
   redirect and the secure sign-in cookie work right.
-- `DataProtection__KeysPath=/home/data/ccos-keys`: `/home` is the one folder on App Service that
+- `DataProtection__KeysPath=/home/data/keys`: `/home` is the one folder on App Service that
   survives restarts, so people stay logged in after a restart or a new deploy.
 
-Last bit of setup: https only, always on, and tell Azure how to start each app.
+Last bit of setup: https only, and tell Azure how to start each app. (No "always on" here,
+since the free F1 plan doesn't have it.)
 
 ```powershell
 az webapp update --resource-group $rg --name $api --https-only true
 az webapp update --resource-group $rg --name $web --https-only true
-az webapp config set --resource-group $rg --name $api --always-on true --startup-file "dotnet CCOS.Api.dll"
-az webapp config set --resource-group $rg --name $web --always-on true --startup-file "dotnet CCOS.Web.dll"
+az webapp config set --resource-group $rg --name $api --startup-file "dotnet CCOS.Api.dll"
+az webapp config set --resource-group $rg --name $web --startup-file "dotnet CCOS.Web.dll"
 ```
 
 ## Step 7: Build and send the code up
@@ -261,8 +272,8 @@ Swap `$api` for `$web` to watch the website.
 
 ## What it costs
 
-Rough guess, so check the Azure pricing pages before you trust it: the B1 plan is around
-$13 a month and the B1ms database around $15 to $20 a month with storage. Azure for Students comes
+Rough guess, so check the Azure pricing pages before you trust it: the F1 app plan is free,
+and the B1ms database is around $15 to $20 a month with storage. Azure for Students comes
 with credit that covers this for a semester. **TBD:** who pays for SA_Caret_Fall26 and how much
 credit it has. It showed $0.00 spent when we got it. Check **Cost Management** in the portal now
 and then so nothing sneaks up on us.
