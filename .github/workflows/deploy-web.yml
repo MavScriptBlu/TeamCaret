@@ -6,9 +6,9 @@ on:
   # The "Run workflow" button on the Actions tab, for when you just want it to go now
   workflow_dispatch:
   push:
-    # BJ/Azure is a placeholder. Once the team picks the live branch, swap it in here
-    # (and in deploy-api.yml) so only that branch ships to the real site.
-    branches: [ BJ/Azure ]
+    # main is our "in production" branch. Merge to main and the live site updates by itself.
+    # Keep this the same in deploy-api.yml so the API and the website always ship from the same place.
+    branches: [ main ]
     # Only redeploy when the website's code actually changed, not for a docs typo
     paths:
       - 'frontend/**'

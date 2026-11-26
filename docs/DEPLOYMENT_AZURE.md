@@ -215,6 +215,8 @@ az webapp deploy --resource-group $rg --name $web --src-path publish/web.zip --t
 - Zip what's **inside** the publish folder, not the folder itself. The `/*` handles that.
 - `publish/` is just a build folder, and `.gitignore` already skips it.
 - To ship a new version later, run these same three lines again.
+- Or skip all this: `main` is our production branch, and a push to `main` ships it by itself
+  (`deploy-api.yml` and `deploy-web.yml`, see [DEPLOYMENT.md](./DEPLOYMENT.md)).
 
 ## Step 8: Check it works
 
@@ -277,5 +279,3 @@ az group delete --name $rg
 - Whether we stay on Free F1 or move up to B1 before demo day.
 - How the club's first officer gets set up on a fresh database. Same open item as
   [DEPLOYMENT.md](./DEPLOYMENT.md).
-- Which branch is the live one. GitHub deploys are set up (`deploy-api.yml` and `deploy-web.yml`)
-  and use `BJ/Azure` for now. Step 7 by hand still works too.

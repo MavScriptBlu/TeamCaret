@@ -124,13 +124,18 @@ real names. The values with passwords live in Azure only, never in the repo.
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `ConnectionStrings__CCOS` | `Host=ccos-db-caret26.postgres.database.azure.com;Port=5432;Database=ccos;Username=ccosadmin;Password=<in Azure only>;SSL Mode=Require` |
 | `Database__MigrateOnStartup` | `true`, so new migrations go up on their own when the API starts |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true`. Azure does the https part in front of the app, so without this the app thinks everyone is on plain http and the https redirect and secure cookies get weird |
+| `WEBSITE_WEBDEPLOY_USE_SCM` | `true`, so the GitHub deploys can use the publish profile |
 
 **Website (`ccos-web-caret26`):**
 
 | Setting | Value |
 |---|---|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `Api__BaseUrl` | `https://ccos-api-caret26.azurewebsites.net/` (keep the `/` on the end) |
 | `DataProtection__KeysPath` | `/home/data/keys`, so a restart doesn't sign everyone out |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | `true`. Azure does the https part in front of the app, so without this the app thinks everyone is on plain http and the https redirect and secure cookies get weird |
+| `WEBSITE_WEBDEPLOY_USE_SCM` | `true`, so the GitHub deploys can use the publish profile |
 
 ### Is it up?
 
@@ -180,9 +185,10 @@ access can't do the one-click identity setup. Each one needs a repo secret holdi
 publish profile: `AZURE_API_PUBLISH_PROFILE` and `AZURE_WEB_PUBLISH_PROFILE`. Until those
 secrets exist, the workflows say so and skip the deploy instead of failing.
 
-They run when someone presses **Run workflow** on the Actions tab, or on a push to `BJ/Azure`
-that touches that app's code. `BJ/Azure` is just a placeholder. The team still has to pick which
-branch is the live one, then swap it in both files.
+`main` is our "in production" branch. A push or merge to `main` that touches an app's code sends
+that app live by itself. You can also press **Run workflow** on the Actions tab to send one up any
+time. Heads up: the auto deploy only starts once these two workflow files are on `main` (so after
+this work merges through `Dev` into `main`).
 
 ### Connecting to the database yourself
 
@@ -191,7 +197,6 @@ firewall rule and the connection string.
 
 ## Still to decide
 
-- Which branch is the live one that deploys (the workflows use `BJ/Azure` for now).
 - Whether we stay on Free F1 or move up to B1 before demo day.
 - How the club's first officer gets set up on a fresh database. For now it's a bit of SQL by
   hand (part 7 of the setup doc), which Seng or Dylan should look over first. A real screen for
