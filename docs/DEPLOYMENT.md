@@ -1,8 +1,8 @@
 # Deploying CCOS
 
 How to run CCOS somewhere other than your own computer (CAR-84). It doesn't depend on a
-particular host. We're waiting on Troy to pick the host and database; once he does, add a short
-section for that host at the bottom.
+particular host. Troy picked Azure (CAR-87), and the step by step for that is in
+[DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md).
 
 CCOS is two apps and a database:
 
@@ -84,6 +84,6 @@ Then open the website, create an account, and log in.
 
 ## Still to decide
 
-- The host and database (waiting on Troy, CAR-87).
+- Access to the club's Azure account (CAR-53). The Azure steps are in [DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md).
 - How the club's first officer gets set up on a fresh database.
 - Whether the demo uses the hosted site with real data, or the Docker setup with sample data.

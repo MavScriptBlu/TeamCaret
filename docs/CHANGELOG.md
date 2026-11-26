@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-26 · CAR-98 Azure setup walkthrough
+
+- New `docs/DEPLOYMENT_AZURE.md`: copy and paste steps (PowerShell + Azure CLI) for putting CCOS on Azure. One resource group, one PostgreSQL flexible server (Burstable B1ms, PostgreSQL 17), one Linux B1 App Service plan with two web apps (API and website) on .NET 10.
+- Decision: Azure Database for PostgreSQL, not Azure SQL like the old backlog says, since the code only talks to PostgreSQL (Npgsql).
+- Decision: zip deploy of `dotnet publish` output instead of containers. App Service keeps the API's sign-in keys in `/home` on its own that way, and the website's go in `/home/data/ccos-keys` through `DataProtection__KeysPath`.
+- Both apps get `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` because Azure handles https in front of them. Without it the https redirect can loop and the sign-in cookie can't tell the visitor is on https.
+- Things we don't know yet (whose account, names, region) are marked **TBD**, waiting on CAR-53.
+- `docs/DEPLOYMENT.md`, `docs/README.md` and `README.md` now point to it.
+- Docs only, no code changes, so no tests to run.
+
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
 - New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.
