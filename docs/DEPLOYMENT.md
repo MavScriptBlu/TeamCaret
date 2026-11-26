@@ -109,8 +109,8 @@ What Free F1 means for us:
 - The apps fall asleep after about 20 minutes with no visitors. The first click after a nap is
   slow, so open the site a minute before you demo it.
 - There's a daily CPU limit. Plenty for testing, not for a big crowd.
-- No "Always On". That setting needs a paid plan. If we move up to B1 later it's one click
-  (plan > **Scale up**), and then Always On can be turned on.
+- No "Always On". That setting needs a paid plan, and we're staying on Free F1 since it's a
+  school account.
 
 ### Settings
 
@@ -197,7 +197,6 @@ firewall rule and the connection string.
 
 ## Still to decide
 
-- Whether we stay on Free F1 or move up to B1 before demo day.
 - How the club's first officer gets set up on a fresh database. For now it's a bit of SQL by
   hand (part 7 of the setup doc), which Seng or Dylan should look over first. A real screen for
   it could come with the Admins table (CAR-74).

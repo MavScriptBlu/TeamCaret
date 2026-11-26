@@ -276,6 +276,5 @@ az group delete --name $rg
 
 ## Still to decide
 
-- Whether we stay on Free F1 or move up to B1 before demo day.
 - How the club's first officer gets set up on a fresh database. Same open item as
   [DEPLOYMENT.md](./DEPLOYMENT.md).
