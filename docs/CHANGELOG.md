@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-26 · CAR-98 / CAR-53 CCOS is live on Azure
+
+- CCOS is up on Azure and both `/health` pages say Healthy. The live site is <https://ccos-web-caret26.azurewebsites.net/>.
+- What's running: resource group `ccos-rg`, PostgreSQL 17 flexible server `ccos-db-caret26` (Central US, Burstable B1ms, 32 GB) with database `ccos`, and Linux App Service plan `ccos-plan` with the apps `ccos-api-caret26` and `ccos-web-caret26` (.NET 10, HTTPS only). `docs/DEPLOYMENT.md` has a new "Our live setup on Azure" part with every name and setting, the health links, and how to send new code up by hand.
+- Decision: the plan is Free F1 in West US 2. Our student subscription had zero quota for B1 or F1 in Central US, North Central US, East US 2 and East US. F1 sleeps when nobody's on it and has no Always On, so moving to B1 before demo day is still open.
+- Decision: GitHub deploys use publish profiles (`azure/webapps-deploy@v3` with the `AZURE_API_PUBLISH_PROFILE` and `AZURE_WEB_PUBLISH_PROFILE` secrets), since our access can't do the one-click identity setup. New `.github/workflows/deploy-api.yml` and `deploy-web.yml` run from the Run workflow button or a push to `BJ/Azure` that touches that app. `BJ/Azure` is a stand-in until the team picks the live branch. Without the secrets they skip instead of failing.
+- `backend/README.md` explains how to connect to the Azure database: host, SSL required, adding your IP to the firewall, and keeping the password out of the repo. Docker is still the local setup.
+- No passwords or connection strings with passwords are in the repo. No code changes, so no tests to run.
+
 ## 2026-11-26 · CAR-98 Azure setup walkthrough
 
 - New `docs/DEPLOYMENT_AZURE.md`: copy and paste steps (PowerShell + Azure CLI) for putting CCOS on Azure. One resource group, one PostgreSQL flexible server (Burstable B1ms, PostgreSQL 17), one Linux B1 App Service plan with two web apps (API and website) on .NET 10.

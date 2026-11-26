@@ -7,6 +7,11 @@ version for Azure.
 Troy confirmed Azure (CAR-87), and we have a subscription now: **SA_Caret_Fall26** (CAR-53).
 Anything still marked **TBD** below gets filled in once we know it.
 
+> **It's built now.** The real names, region, plan size and settings we ended up with are in
+> [DEPLOYMENT.md, part 5](./DEPLOYMENT.md#5-our-live-setup-on-azure-car-98-car-53). Short version:
+> our subscription had no quota for B1 in the US regions we tried, so the plan is **Free F1 in
+> West US 2**, and Free F1 can't do `--always-on true` in step 6, so skip that part on F1.
+
 ## What we're making
 
 Five things, all in one resource group (a folder in Azure that holds everything for one project):
@@ -269,8 +274,8 @@ az group delete --name $rg
 
 ## Still to decide
 
-- Whether "Specified access" on SA_Caret_Fall26 is enough to create everything, or we need Troy to give us Contributor.
-- Final names and region (step 2).
+- Whether we stay on Free F1 or move up to B1 before demo day.
 - How the club's first officer gets set up on a fresh database. Same open item as
   [DEPLOYMENT.md](./DEPLOYMENT.md).
-- Whether we set up automatic deploys from GitHub later, or keep doing step 7 by hand.
+- Which branch is the live one. GitHub deploys are set up (`deploy-api.yml` and `deploy-web.yml`)
+  and use `BJ/Azure` for now. Step 7 by hand still works too.

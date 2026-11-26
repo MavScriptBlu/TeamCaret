@@ -83,6 +83,61 @@ dotnet run --project backend/CCOS.Api
 Open the `/api/products` URL it prints. Anything you save now is in PostgreSQL, so it's
 still there next time and everyone on the same database sees the same data.
 
+## Connect to the Azure database
+
+The live site uses its own PostgreSQL on Azure (CAR-53). Docker is still the one you use for
+everyday work, so nothing above changes. You only need this to look at live data, run a
+migration by hand, or set up the first officer.
+
+| | |
+|---|---|
+| Host | `ccos-db-caret26.postgres.database.azure.com` |
+| Port | `5432` |
+| Database | `ccos` |
+| Username | `ccosadmin` |
+| Password | Ask Blu. It lives in Azure and a password manager, never in the repo. |
+| SSL | Required. Azure says no to anything that isn't encrypted. |
+
+### 1. Let your computer through the firewall
+
+The database only lets in Azure itself plus IP addresses on its list. Your IP at school and at
+home are different, so add whichever one you're on (and remove it when you're done):
+
+```powershell
+$myIp = (Invoke-RestMethod https://api.ipify.org)
+az postgres flexible-server firewall-rule create --resource-group ccos-rg --name ccos-db-caret26 --rule-name "$env:USERNAME-laptop" --start-ip-address $myIp --end-ip-address $myIp
+```
+
+No Azure CLI? In the portal it's the database server > **Networking** > **Add current client IP
+address** > Save. Either way it can take a few minutes to kick in.
+
+### 2. Connect
+
+In DBeaver (or any PostgreSQL tool), use the values in the table and set SSL mode to `require`.
+
+To point `dotnet ef` at it for one PowerShell window, without touching your user secret:
+
+```powershell
+$env:CCOS_CONNECTION_STRING = "Host=ccos-db-caret26.postgres.database.azure.com;Port=5432;Database=ccos;Username=ccosadmin;Password=<the password>;SSL Mode=Require"
+dotnet ef database update --project backend/CCOS.Data
+```
+
+You usually don't need that last line, since the live API applies new migrations by itself when
+it starts (`Database__MigrateOnStartup=true`). Close the window when you're done so the password
+isn't sitting in it.
+
+Don't put the Azure connection string in `appsettings.json`, `.env` or your user secrets. One
+slip and the password ends up on GitHub, and this repo is public.
+
+To take your IP back off the list:
+
+```powershell
+az postgres flexible-server firewall-rule delete --resource-group ccos-rg --name ccos-db-caret26 --rule-name "$env:USERNAME-laptop" --yes
+```
+
+The rest of the Azure setup (names, settings, health pages) is in
+[docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md#5-our-live-setup-on-azure-car-98-car-53).
+
 ## The API container
 
 `task up` also runs the API in a container (`ccos-api`). It gets its connection string from

@@ -82,8 +82,118 @@ monitor at the website's `/health`, since it checks all three pieces at once.
 
 Then open the website, create an account, and log in.
 
+## 5. Our live setup on Azure (CAR-98, CAR-53)
+
+This is what's actually running right now, built from the steps in
+[DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md). If you change anything in Azure, update this table
+too so the next person isn't guessing.
+
+### What's where
+
+| Piece | Azure name | Details |
+|---|---|---|
+| Resource group | `ccos-rg` | Holds everything below. |
+| Database server | `ccos-db-caret26` | Azure Database for PostgreSQL flexible server, PostgreSQL 17, Burstable B1ms, 32 GB, **Central US** |
+| Database | `ccos` | Inside that server. Admin user is `ccosadmin`. |
+| App Service plan | `ccos-plan` | Linux, **Free F1**, **West US 2** |
+| API | `ccos-api-caret26` | `backend/CCOS.Api`, runtime `DOTNETCORE:10.0`, HTTPS only |
+| Website | `ccos-web-caret26` | `frontend/CCOS.Web`, runtime `DOTNETCORE:10.0`, HTTPS only |
+
+Why the plan is in a different region than the database: our student subscription had zero
+quota for B1 or F1 plans in Central US, North Central US, East US 2 and East US. West US 2 was
+the first one that let us in. The apps still reach the database fine, it's just a little slower
+than if they sat next to each other.
+
+What Free F1 means for us:
+
+- The apps fall asleep after about 20 minutes with no visitors. The first click after a nap is
+  slow, so open the site a minute before you demo it.
+- There's a daily CPU limit. Plenty for testing, not for a big crowd.
+- No "Always On". That setting needs a paid plan. If we move up to B1 later it's one click
+  (plan > **Scale up**), and then Always On can be turned on.
+
+### Settings
+
+Set in each app under **Settings** > **Environment variables** > **App settings**. These are the
+real names. The values with passwords live in Azure only, never in the repo.
+
+**API (`ccos-api-caret26`):**
+
+| Setting | Value |
+|---|---|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `ConnectionStrings__CCOS` | `Host=ccos-db-caret26.postgres.database.azure.com;Port=5432;Database=ccos;Username=ccosadmin;Password=<in Azure only>;SSL Mode=Require` |
+| `Database__MigrateOnStartup` | `true`, so new migrations go up on their own when the API starts |
+
+**Website (`ccos-web-caret26`):**
+
+| Setting | Value |
+|---|---|
+| `Api__BaseUrl` | `https://ccos-api-caret26.azurewebsites.net/` (keep the `/` on the end) |
+| `DataProtection__KeysPath` | `/home/data/keys`, so a restart doesn't sign everyone out |
+
+### Is it up?
+
+| Open this | Healthy means |
+|---|---|
+| <https://ccos-api-caret26.azurewebsites.net/health> | The API is up and can reach the database |
+| <https://ccos-web-caret26.azurewebsites.net/health> | The website is up and the API (and so the database) is healthy |
+
+The live site itself: <https://ccos-web-caret26.azurewebsites.net/>
+
+If it says `Unhealthy`, or takes forever the first time, it might just be waking up from an F1
+nap. Give it 30 seconds and refresh before you panic.
+
+### Sending new code up by hand
+
+From the repo root in PowerShell, on the branch you want live. Sign in first with `az login`.
+
+```powershell
+$rg     = "ccos-rg"
+$apiApp = "ccos-api-caret26"
+$webApp = "ccos-web-caret26"
+
+# API
+dotnet publish backend/CCOS.Api/CCOS.Api.csproj --configuration Release --output publish/api
+Compress-Archive -Path publish/api/* -DestinationPath publish/api.zip -Force
+az webapp deploy --resource-group $rg --name $apiApp --src-path publish/api.zip --type zip
+
+# Website
+dotnet publish frontend/CCOS.Web/CCOS.Web.csproj --configuration Release --output publish/web
+Compress-Archive -Path publish/web/* -DestinationPath publish/web.zip -Force
+az webapp deploy --resource-group $rg --name $webApp --src-path publish/web.zip --type zip
+```
+
+Do the API first so the website never talks to an older API than it expects. Then check both
+`/health` pages. The `publish/` folder is just build output, so delete it when you're done
+(don't commit it).
+
+### Sending new code up from GitHub
+
+Two workflows do the same thing as above, without the zipping:
+
+- `.github/workflows/deploy-api.yml` sends `backend/CCOS.Api` to `ccos-api-caret26`
+- `.github/workflows/deploy-web.yml` sends `frontend/CCOS.Web` to `ccos-web-caret26`
+
+They use the publish profile way (part 5's backup way in the setup doc), since our student
+access can't do the one-click identity setup. Each one needs a repo secret holding that app's
+publish profile: `AZURE_API_PUBLISH_PROFILE` and `AZURE_WEB_PUBLISH_PROFILE`. Until those
+secrets exist, the workflows say so and skip the deploy instead of failing.
+
+They run when someone presses **Run workflow** on the Actions tab, or on a push to `BJ/Azure`
+that touches that app's code. `BJ/Azure` is just a placeholder. The team still has to pick which
+branch is the live one, then swap it in both files.
+
+### Connecting to the database yourself
+
+See [backend/README.md](../backend/README.md#connect-to-the-azure-database), which covers the
+firewall rule and the connection string.
+
 ## Still to decide
 
-- Whether our access to the SA_Caret_Fall26 subscription is enough to create everything (CAR-53). The Azure steps are in [DEPLOYMENT_AZURE.md](./DEPLOYMENT_AZURE.md).
-- How the club's first officer gets set up on a fresh database.
+- Which branch is the live one that deploys (the workflows use `BJ/Azure` for now).
+- Whether we stay on Free F1 or move up to B1 before demo day.
+- How the club's first officer gets set up on a fresh database. For now it's a bit of SQL by
+  hand (part 7 of the setup doc), which Seng or Dylan should look over first. A real screen for
+  it could come with the Admins table (CAR-74).
 - Whether the demo uses the hosted site with real data, or the Docker setup with sample data.

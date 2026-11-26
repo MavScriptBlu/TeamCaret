@@ -1,0 +1,81 @@
+# Sends the website (frontend/CCOS.Web) up to Azure App Service (CAR-98).
+# Same thing as the by-hand steps in docs/DEPLOYMENT.md, minus the zipping.
+name: Deploy website to Azure
+
+on:
+  # The "Run workflow" button on the Actions tab, for when you just want it to go now
+  workflow_dispatch:
+  push:
+    # BJ/Azure is a placeholder. Once the team picks the live branch, swap it in here
+    # (and in deploy-api.yml) so only that branch ships to the real site.
+    branches: [ BJ/Azure ]
+    # Only redeploy when the website's code actually changed, not for a docs typo
+    paths:
+      - 'frontend/**'
+      - 'shared/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/deploy-web.yml'
+
+permissions:
+  contents: read
+
+# Two deploys at once to the same app is asking for trouble, so they wait in line
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy the website
+    runs-on: ubuntu-latest
+    env:
+      AZURE_APP_NAME: ccos-web-caret26
+    steps:
+      # No publish profile saved yet means nowhere to send it, so skip instead of going red
+      - name: Check the publish profile is set
+        id: profile
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_WEB_PUBLISH_PROFILE }}
+        run: |
+          if [ -z "$PUBLISH_PROFILE" ]; then
+            echo "::notice::AZURE_WEB_PUBLISH_PROFILE isn't set yet, so there's nothing to deploy with. See docs/DEPLOYMENT.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.profile.outputs.ready == 'true'
+
+      - name: Install .NET
+        if: steps.profile.outputs.ready == 'true'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Only the website project, so the API and the tests don't tag along in the zip
+      - name: Publish the website
+        if: steps.profile.outputs.ready == 'true'
+        run: dotnet publish frontend/CCOS.Web/CCOS.Web.csproj --configuration Release --output ./web-out
+
+      - name: Send it to Azure
+        if: steps.profile.outputs.ready == 'true'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEB_PUBLISH_PROFILE }}
+          package: ./web-out
+
+      # The website's /health also checks the API and the database, so a pass here means all
+      # three are good. Free F1 might be napping, so give it a few tries first.
+      - name: Check the website is healthy
+        if: steps.profile.outputs.ready == 'true'
+        run: |
+          for attempt in $(seq 1 10); do
+            if curl -fsS "https://${AZURE_APP_NAME}.azurewebsites.net/health"; then
+              echo
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "The website never said Healthy. Check its Log stream in the Azure portal."; exit 1
