@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -273,7 +274,43 @@ public sealed class OrdersControllerTests : IClassFixture<WebApplicationFactory<
 
         HttpResponseMessage response = await PlaceAsync(client, (_shirtId, 1));
 
-        await AssertProblemAsync(response, HttpStatusCode.Conflict, _shirtId, null);
+        // The message names the shirt, never its raw id.
+        string detail = await AssertProblemAsync(response, HttpStatusCode.Conflict, _shirtId, "Club Shirt isn't for sale anymore");
+        Assert.DoesNotContain(_shirtId.ToString(CultureInfo.InvariantCulture), detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_ticket_type_that_was_removed_names_its_event()
+    {
+        HttpClient client = await SignedInClientAsync(isMember: false);
+        using (IServiceScope scope = _factory.Services.CreateScope())
+        {
+            AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Product workshopTicket = await db.Products.SingleAsync(product => product.ProductId == _workshopTicketId);
+            workshopTicket.IsActive = false;
+            await db.SaveChangesAsync();
+        }
+
+        HttpResponseMessage response = await PlaceAsync(client, (_workshopTicketId, 1));
+
+        // "Tickets for Linux Workshop" tells them way more than "General" or an id would.
+        string detail = await AssertProblemAsync(response, HttpStatusCode.Conflict, _workshopTicketId, "Tickets for Linux Workshop");
+        Assert.DoesNotContain(_workshopTicketId.ToString(CultureInfo.InvariantCulture), detail, StringComparison.Ordinal);
+        await AssertNothingSavedAsync();
+    }
+
+    [Fact]
+    public async Task An_id_that_never_existed_gets_a_plain_message_with_no_id()
+    {
+        HttpClient client = await SignedInClientAsync(isMember: false);
+        const int madeUpProductId = 987654;
+
+        HttpResponseMessage response = await PlaceAsync(client, (madeUpProductId, 1));
+
+        // No name to show, so keep it general and still keep the id out of the sentence.
+        string detail = await AssertProblemAsync(response, HttpStatusCode.Conflict, madeUpProductId, "One of the items in your cart");
+        Assert.DoesNotContain(madeUpProductId.ToString(CultureInfo.InvariantCulture), detail, StringComparison.Ordinal);
+        await AssertNothingSavedAsync();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -385,9 +422,9 @@ public sealed class OrdersControllerTests : IClassFixture<WebApplicationFactory<
 
     /// <summary>
     /// Checks the status code, that productId points at the item that stopped the order, and
-    /// (when given) that the message names it.
+    /// (when given) that the message names it. Hands back the message so a test can check more.
     /// </summary>
-    private static async Task AssertProblemAsync(
+    private static async Task<string> AssertProblemAsync(
         HttpResponseMessage response,
         HttpStatusCode expectedStatus,
         int expectedProductId,
@@ -403,6 +440,8 @@ public sealed class OrdersControllerTests : IClassFixture<WebApplicationFactory<
         {
             Assert.Contains(expectedNameInMessage, detail, StringComparison.Ordinal);
         }
+
+        return detail;
     }
 
     /// <summary>No orders, no registrations, and every stock and seat count is back where setup left it.</summary>

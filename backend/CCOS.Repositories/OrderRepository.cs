@@ -79,9 +79,9 @@ public sealed class OrderRepository(AppDbContext db, TicketBookingRepository tic
         {
             if (!productsById.TryGetValue(line.ProductId, out Product? product))
             {
-                return PlaceOrderResult.Unavailable(
-                    line.ProductId,
-                    $"Item {line.ProductId} isn't for sale anymore. Take it out of your cart and try again.");
+                // Say the item's name, not its raw id, so the customer knows which cart line to fix.
+                string removedMessage = await DescribeRemovedItemAsync(line.ProductId, cancellationToken);
+                return PlaceOrderResult.Unavailable(line.ProductId, removedMessage);
             }
 
             Event? ticketEvent = null;
@@ -167,6 +167,39 @@ public sealed class OrderRepository(AppDbContext db, TicketBookingRepository tic
     /// </summary>
     public static decimal PriceFor(Product product, bool isCurrentMember) =>
         isCurrentMember && product.MemberPrice < product.Price ? product.MemberPrice : product.Price;
+
+    /// <summary>
+    /// The sentence for an item that isn't for sale anymore (deactivated, or never existed). Uses
+    /// the item's name, or its event's name for a ticket, so the customer never sees a raw id.
+    /// </summary>
+    private async Task<string> DescribeRemovedItemAsync(int productId, CancellationToken cancellationToken)
+    {
+        // The normal query skips deactivated products, so peek past the filter just to get the name.
+        Product? removedProduct = await db.Products
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(product => product.ProductId == productId, cancellationToken);
+
+        if (removedProduct is null)
+        {
+            // Nothing by that id at all (maybe a hand-made request), so there's no name to show.
+            return "One of the items in your cart isn't for sale anymore. Take it out of your cart and try again.";
+        }
+
+        // A removed ticket type reads better as its event ("Tickets for CTF Night") than "General".
+        if (removedProduct is TicketType removedTicket && removedTicket.EventId is not null)
+        {
+            string? eventName = await db.Events
+                .AsNoTracking()
+                .Where(@event => @event.EventId == removedTicket.EventId.Value)
+                .Select(@event => @event.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return $"Tickets for {eventName ?? removedProduct.Name} aren't on sale anymore.";
+        }
+
+        return $"{removedProduct.Name} isn't for sale anymore. Take it out of your cart and try again.";
+    }
 
     /// <summary>
     /// Takes merch out of stock with one conditional UPDATE, so two buyers can't both get the last

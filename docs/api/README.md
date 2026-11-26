@@ -114,6 +114,9 @@ cart keeps). 1 to 50 lines, quantity 1 to 100. The same product on two lines is 
   (`productId`, `name`, `eventId` for tickets or null for merch, `quantity`, `unitPrice`, `lineTotal`).
 - 403 and 409 bodies are problem details with a `detail` sentence that names the item (for example
   "CTF Night doesn't have enough seats left for this order.") and a `productId` that says which cart line it was.
+  The sentence never shows a raw id. A removed product says its name ("Club Shirt isn't for sale anymore."),
+  a removed ticket type says its event ("Tickets for CTF Night aren't on sale anymore."), and an id that never
+  existed gets "One of the items in your cart isn't for sale anymore." Use `productId` to find the line.
 - Listing and reading orders come later (CAR-95 My Orders, CAR-96/97 officer views).
 
 ## Response Format
