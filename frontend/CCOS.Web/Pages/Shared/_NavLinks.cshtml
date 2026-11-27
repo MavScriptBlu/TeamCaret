@@ -9,6 +9,7 @@
 @{
     var isOfficer = User.IsOfficer();
     var current = SiteNav.CurrentFor(Context.Request.Path.Value);
+    var cartCount = Context.GetCart().Count;
     var groups = SiteNav.Links
         .Where(link => isOfficer || !link.OfficerOnly)
         .GroupBy(link => link.Section)
@@ -26,7 +27,16 @@
         }
         @foreach (var link in group)
         {
-            <a href="@link.Href" aria-current="@(link == current ? "page" : null)">@link.Text</a>
+            @if (link.Href == SiteNav.CartHref && cartCount > 0)
+            {
+                @* The cart's item count (CAR-92). Screen readers hear "Cart, 3 items". *@
+                <a href="@link.Href" aria-current="@(link == current ? "page" : null)"
+                   aria-label="@link.Text, @cartCount @(cartCount == 1 ? "item" : "items")">@link.Text <span class="nav-count" aria-hidden="true">@cartCount</span></a>
+            }
+            else
+            {
+                <a href="@link.Href" aria-current="@(link == current ? "page" : null)">@link.Text</a>
+            }
         }
     </div>
 }

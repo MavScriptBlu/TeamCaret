@@ -254,6 +254,40 @@ img {
             box-shadow: inset 3px 0 0 var(--maroon);
         }
 
+/* "Added to your cart" messages on the product, event and Cart pages (CAR-92). */
+.cart-flash {
+    margin: 0 0 var(--s4);
+    padding: var(--s3) var(--s4);
+    border-left: 4px solid #28613b;
+    border-radius: var(--r-sm);
+    background: #eaf4ed;
+    font-weight: 600;
+}
+
+.cart-flash a {
+    margin-left: var(--s2);
+    color: var(--brand-text);
+}
+
+.cart-flash--error {
+    border-left-color: var(--maroon);
+    background: #f6eef0;
+}
+
+/* The cart's item count next to "Cart" in the menu (CAR-92). */
+.nav-count {
+    display: inline-block;
+    min-width: 1.6em;
+    margin-left: var(--s1);
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: var(--masthead);
+    font-size: 13px;
+    line-height: 1.6em;
+    text-align: center;
+}
+
 .navgroup + .navgroup {
     margin-top: var(--s4);
 }
