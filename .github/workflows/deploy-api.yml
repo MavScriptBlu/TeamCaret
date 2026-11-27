@@ -1,0 +1,82 @@
+# Sends the API (backend/CCOS.Api) up to Azure App Service (CAR-98).
+# Same thing as the by-hand steps in docs/DEPLOYMENT.md, minus the zipping.
+name: Deploy API to Azure
+
+on:
+  # The "Run workflow" button on the Actions tab, for when you just want it to go now
+  workflow_dispatch:
+  push:
+    # main is our "in production" branch. Merge to main and the live site updates by itself.
+    # Keep this the same in deploy-web.yml so the API and the website always ship from the same place.
+    branches: [ main ]
+    # Only redeploy when the API's code actually changed, not for a docs typo
+    paths:
+      - 'backend/**'
+      - 'shared/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/deploy-api.yml'
+
+permissions:
+  contents: read
+
+# Two deploys at once to the same app is asking for trouble, so they wait in line
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy the API
+    runs-on: ubuntu-latest
+    env:
+      AZURE_APP_NAME: ccos-api-caret26
+    steps:
+      # No publish profile saved yet means nowhere to send it, so skip instead of going red
+      - name: Check the publish profile is set
+        id: profile
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
+        run: |
+          if [ -z "$PUBLISH_PROFILE" ]; then
+            echo "::notice::AZURE_API_PUBLISH_PROFILE isn't set yet, so there's nothing to deploy with. See docs/DEPLOYMENT.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.profile.outputs.ready == 'true'
+
+      - name: Install .NET
+        if: steps.profile.outputs.ready == 'true'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Only the API project, so the website and the tests don't tag along in the zip
+      - name: Publish the API
+        if: steps.profile.outputs.ready == 'true'
+        run: dotnet publish backend/CCOS.Api/CCOS.Api.csproj --configuration Release --output ./api-out
+
+      - name: Send it to Azure
+        if: steps.profile.outputs.ready == 'true'
+        # Pinned to v3.0.8's exact commit so the code can't get swapped out under us (Codacy).
+        # Dependabot still bumps it when a new version comes out.
+        uses: azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3.0.8
+        with:
+          app-name: ${{ env.AZURE_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
+          package: ./api-out
+
+      # Free F1 might be napping, so give it a few tries before calling it broken
+      - name: Check the API is healthy
+        if: steps.profile.outputs.ready == 'true'
+        run: |
+          for attempt in $(seq 1 10); do
+            if curl -fsS "https://${AZURE_APP_NAME}.azurewebsites.net/health"; then
+              echo
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "The API never said Healthy. Check its Log stream in the Azure portal."; exit 1
