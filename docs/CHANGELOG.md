@@ -2,6 +2,17 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-27 · CAR-94 RSVP
+
+- The RSVP button on the event page works. Signing in is required ("Log in to RSVP" goes to Log in and back).
+- **Free events** (price $0 for this visitor): RSVP reserves one ticket right away and the page says "You're going" with the ticket count. **Paid events**: RSVP adds one ticket of the cheapest type to the cart and goes to the cart; checkout finishes it (CAR-93).
+- **Members only**: non-members see a disabled RSVP button and why. **Sold out**: the button says "Sold out" and can't be clicked. Once the event starts, the RSVP area is hidden.
+- **Cancel RSVP** gives the seat back: the free tickets are marked Canceled, `Events.TicketsSold` goes down in the same transaction, and an order that was only the RSVP is marked Canceled (so My orders, CAR-95, shows it canceled).
+- Decision: an RSVP is a normal order of one free ticket (`RsvpRepository` calls `OrderRepository.PlaceOrderAsync`), so seats, members-only events and start times are checked exactly like checkout. Someone already going isn't booked twice. Paid tickets aren't RSVPs, so Cancel RSVP leaves them alone (officers handle those, CAR-96).
+- New endpoints: `GET`, `POST` and `DELETE /api/events/{id}/rsvp` (status, RSVP, cancel). They skip the anti-forgery check on purpose, like `POST /api/orders`: the API only takes bearer tokens (CAR-83).
+- `EventDto` gets `TicketsSold` (last and optional, so older callers keep working), so the event page can say "Sold out".
+- Tests: `RsvpApiTests` (RSVP holds a seat, no double booking, sold out, members only, paid refused, cancel gives the seat back and cancels the order, nothing to cancel, 401) and `RsvpTests` on the website (what the button shows, free RSVP, paid goes to the cart, refused, signed out, cancel, API down).
+
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
 - New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.

@@ -85,6 +85,7 @@ builder.Services.AddScoped<AccountRepository>();
 // Placing an order (CAR-91) holds seats through TicketBookingRepository in the same request and transaction.
 builder.Services.AddScoped<TicketBookingRepository>();
 builder.Services.AddScoped<OrderRepository>();
+builder.Services.AddScoped<RsvpRepository>();
 
 // The club's "today" (America/Chicago) for every membership check (CAR-28).
 builder.Services.AddSingleton<ClubClock>();

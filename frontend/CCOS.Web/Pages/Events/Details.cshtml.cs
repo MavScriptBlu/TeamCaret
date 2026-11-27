@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using CCOS.Shared;
 using CCOS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -74,12 +75,24 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
     /// <summary>True when the page shows the ticket Add to cart form.</summary>
     public bool CanAddTickets => NoTicketsReason is null && TicketOptions.Count > 0;
 
+    /// <summary>TempData key for RSVP messages ("You're going!", "Your RSVP is canceled").</summary>
+    public const string RsvpMessageKey = "RsvpMessage";
+
+    /// <summary>What the RSVP area shows (CAR-94).</summary>
+    public RsvpView Rsvp { get; private set; } = RsvpView.Hidden;
+
+    /// <summary>How many tickets the signed-in person holds for this event.</summary>
+    public int RsvpTickets { get; private set; }
+
+    /// <summary>True when the person's ticket is a free RSVP, so Cancel RSVP can give it back.</summary>
+    public bool CanCancelRsvp { get; private set; }
+
     /// <summary>
     /// Loads the event and works out the price text to show. Sends a 404 when the id is
     /// missing or no active event matches, and shows an error message when the API fails.
     /// </summary>
     /// <param name="id">The event id from the URL.</param>
-    public async Task OnGetAsync(int? id, CancellationToken cancellationToken)
+    public async Task OnGetAsync(int? id, [FromServices] RsvpApiClient rsvpApi, CancellationToken cancellationToken)
     {
         try
         {
@@ -123,7 +136,199 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
                     $"{ticketType.Name} · {TicketPrices.Format(Cart.PriceYouPay(ticketType.Price, ticketType.MemberPrice))}"))
                 .ToList();
         }
+
+        // RSVP (CAR-94).
+        RsvpStatusDto? status = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                status = await rsvpApi.GetStatusAsync(Event.EventId, cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException
+                || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+            {
+                // The RSVP button still works; the page just can't say "You're going" right now.
+                EventLoadFailedLog(logger, Event.EventId, ex);
+            }
+        }
+
+        RsvpTickets = status?.Tickets ?? 0;
+        CanCancelRsvp = status?.CanCancel == true;
+        Rsvp = RsvpViewFor(Event, User.Identity?.IsAuthenticated == true, User.IsCurrentMember(), status?.Going == true, DateTime.UtcNow);
     }
+
+    /// <summary>
+    /// The RSVP button (CAR-94). Signing in is required. A free event (price $0 for this visitor)
+    /// reserves one ticket right away through the API; a paid event adds one ticket to the cart
+    /// instead and goes to the cart, where checkout finishes it.
+    /// </summary>
+    /// <param name="id">The event id from the URL.</param>
+    /// <param name="rsvpApi">Calls the RSVP endpoints.</param>
+    /// <param name="cancellationToken">Stops the work when the visitor leaves.</param>
+    public async Task<IActionResult> OnPostRsvpAsync(int? id, [FromServices] RsvpApiClient rsvpApi, CancellationToken cancellationToken)
+    {
+        if (id is not int eventId)
+        {
+            return RedirectToPage("/Events/Index");
+        }
+
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToPage("/Account/Login", new { returnUrl = $"/Events/Details/{eventId}", loginFirst = true });
+        }
+
+        EventInfo? eventInfo;
+        try
+        {
+            var dto = await eventsApi.GetAsync(eventId, cancellationToken);
+            eventInfo = dto is null ? null : EventMapping.ToEventInfo(dto);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            EventLoadFailedLog(logger, eventId, ex);
+            TempData[CartMessages.ErrorKey] = RsvpTryAgainLater;
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+
+        if (eventInfo is null || !eventInfo.IsActive)
+        {
+            TempData["EventError"] = "That event could not be found. It may have been removed.";
+            return RedirectToPage("/Events/Index");
+        }
+
+        // A paid event: one ticket of the cheapest type goes in the cart, then on to the cart.
+        var cheapest = CheapestTicket(eventInfo);
+        if (cheapest is not null && Cart.PriceYouPay(cheapest.Price, cheapest.MemberPrice) > 0m)
+        {
+            var added = await OnPostAddToCartAsync(eventId, cheapest.TicketTypeId, 1, cancellationToken);
+            if (TempData.Peek(CartMessages.MessageKey) is string)
+            {
+                TempData[CartMessages.MessageKey] = $"Added a {eventInfo.Name} ticket to your cart. Check out to finish your RSVP.";
+                return RedirectToPage("/Cart");
+            }
+
+            return added;
+        }
+
+        RsvpResponse response;
+        try
+        {
+            response = await rsvpApi.RsvpAsync(eventId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            EventLoadFailedLog(logger, eventId, ex);
+            TempData[CartMessages.ErrorKey] = RsvpTryAgainLater;
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return RedirectToPage("/Account/Login", new { returnUrl = $"/Events/Details/{eventId}", loginFirst = true });
+        }
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            TempData[RsvpMessageKey] = $"You're going to {eventInfo.Name}! It's in My orders too.";
+        }
+        else
+        {
+            TempData[CartMessages.ErrorKey] = response.Message ?? RsvpTryAgainLater;
+        }
+
+        return RedirectToPage("/Events/Details", new { id = eventId });
+    }
+
+    /// <summary>The Cancel RSVP button (CAR-94): gives the seat back.</summary>
+    /// <param name="id">The event id from the URL.</param>
+    /// <param name="rsvpApi">Calls the RSVP endpoints.</param>
+    /// <param name="cancellationToken">Stops the work when the visitor leaves.</param>
+    public async Task<IActionResult> OnPostCancelRsvpAsync(int? id, [FromServices] RsvpApiClient rsvpApi, CancellationToken cancellationToken)
+    {
+        if (id is not int eventId)
+        {
+            return RedirectToPage("/Events/Index");
+        }
+
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToPage("/Account/Login", new { returnUrl = $"/Events/Details/{eventId}", loginFirst = true });
+        }
+
+        RsvpResponse response;
+        try
+        {
+            response = await rsvpApi.CancelAsync(eventId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            EventLoadFailedLog(logger, eventId, ex);
+            TempData[CartMessages.ErrorKey] = RsvpTryAgainLater;
+            return RedirectToPage("/Events/Details", new { id = eventId });
+        }
+
+        if (response.StatusCode == HttpStatusCode.NoContent)
+        {
+            TempData[RsvpMessageKey] = "Your RSVP is canceled and your seat was given back.";
+        }
+        else
+        {
+            TempData[CartMessages.ErrorKey] = response.Message ?? RsvpTryAgainLater;
+        }
+
+        return RedirectToPage("/Events/Details", new { id = eventId });
+    }
+
+    /// <summary>
+    /// What the RSVP area shows, in order: nothing when tickets aren't on sale or sales have
+    /// closed; Sold out; Going; Log in to RSVP; Members only; then RSVP (free) or RSVP and pay at
+    /// checkout (paid).
+    /// </summary>
+    /// <param name="eventInfo">The event.</param>
+    /// <param name="isSignedIn">True when someone is signed in.</param>
+    /// <param name="isCurrentMember">True for a current member.</param>
+    /// <param name="isGoing">True when the signed-in person already holds a ticket.</param>
+    /// <param name="nowUtc">The time now, in UTC.</param>
+    public static RsvpView RsvpViewFor(EventInfo eventInfo, bool isSignedIn, bool isCurrentMember, bool isGoing, DateTime nowUtc)
+    {
+        var cheapest = CheapestTicket(eventInfo);
+        if (cheapest is null || eventInfo.StartsAtUtc <= nowUtc)
+        {
+            return RsvpView.Hidden;
+        }
+
+        if (isGoing)
+        {
+            return RsvpView.Going;
+        }
+
+        if (eventInfo.TicketsSold >= eventInfo.TicketCapacity)
+        {
+            return RsvpView.SoldOut;
+        }
+
+        if (!isSignedIn)
+        {
+            return RsvpView.SignIn;
+        }
+
+        if (eventInfo.MembersOnly && !isCurrentMember)
+        {
+            return RsvpView.MembersOnly;
+        }
+
+        return Cart.PriceYouPay(cheapest.Price, cheapest.MemberPrice) == 0m ? RsvpView.Free : RsvpView.Paid;
+    }
+
+    // The active ticket type that costs this visitor the least, or null when none are on sale.
+    private static TicketTypeInfo? CheapestTicket(EventInfo eventInfo) => eventInfo.TicketTypes
+        .Where(ticketType => ticketType.IsActive)
+        .OrderBy(ticketType => Cart.PriceYouPay(ticketType.Price, ticketType.MemberPrice))
+        .FirstOrDefault();
+
+    private const string RsvpTryAgainLater = "We couldn't update your RSVP right now. Please try again in a few minutes.";
 
     /// <summary>
     /// The Add to cart button for tickets (CAR-92). Loads the event again, so the rules are checked
@@ -243,6 +448,31 @@ public class DetailsModel(EventsApiClient eventsApi, ILogger<DetailsModel> logge
     /// <param name="TicketTypeId">The ticket type id the form sends.</param>
     /// <param name="Label">The ticket name and the price this visitor pays.</param>
     public sealed record TicketOption(int TicketTypeId, string Label);
+
+    /// <summary>What the RSVP area on the event page shows (CAR-94).</summary>
+    public enum RsvpView
+    {
+        /// <summary>No RSVP area: tickets aren't on sale, or sales have closed.</summary>
+        Hidden,
+
+        /// <summary>A "Log in to RSVP" link.</summary>
+        SignIn,
+
+        /// <summary>A free event: RSVP reserves a ticket right away.</summary>
+        Free,
+
+        /// <summary>A paid event: RSVP adds a ticket to the cart.</summary>
+        Paid,
+
+        /// <summary>Members only, and the visitor isn't a current member.</summary>
+        MembersOnly,
+
+        /// <summary>Every seat is taken.</summary>
+        SoldOut,
+
+        /// <summary>The visitor already holds a ticket.</summary>
+        Going,
+    }
 
     /// <summary>
     /// The Remove event button (after the officer says yes in the dialog). Soft-removes the event

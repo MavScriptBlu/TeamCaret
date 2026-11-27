@@ -24,6 +24,10 @@
     <p class="events-message" role="alert">@eventError</p>
 }
 <partial name="_CartMessage" />
+@if (TempData[DetailsModel.RsvpMessageKey] is string rsvpMessage)
+{
+    <p class="cart-flash" role="status">@rsvpMessage <a href="/MyOrders">My orders</a></p>
+}
 
 @if (Model.LoadFailed)
 {
@@ -148,8 +152,42 @@ else
                     {
                         <p class="event-in-cart">@Model.TicketsInCart in your cart · <a asp-page="/Cart">View cart</a></p>
                     }
-                    @* Placeholder: RSVP does nothing yet. *@
-                    <button type="button" class="event-rsvp">RSVP</button>
+                    @* RSVP (CAR-94): free events reserve a ticket right away; paid events add one to the cart. *@
+                    @switch (Model.Rsvp)
+                    {
+                        case DetailsModel.RsvpView.Going:
+                            <div class="event-rsvp-going" role="status">
+                                <p><strong>You're going.</strong> @(Model.RsvpTickets == 1 ? "1 ticket" : $"{Model.RsvpTickets} tickets") · <a href="/MyOrders">My orders</a></p>
+                                @if (Model.CanCancelRsvp)
+                                {
+                                    <form method="post" asp-page-handler="CancelRsvp" asp-route-id="@ev.EventId">
+                                        <button type="submit" class="event-rsvp-cancel">Cancel RSVP</button>
+                                    </form>
+                                }
+                            </div>
+                            break;
+                        case DetailsModel.RsvpView.Free:
+                            <form method="post" asp-page-handler="Rsvp" asp-route-id="@ev.EventId">
+                                <button type="submit" class="event-rsvp">RSVP</button>
+                            </form>
+                            break;
+                        case DetailsModel.RsvpView.Paid:
+                            <form method="post" asp-page-handler="Rsvp" asp-route-id="@ev.EventId">
+                                <button type="submit" class="event-rsvp">RSVP</button>
+                            </form>
+                            <p class="event-rsvp-note">Adds a ticket to your cart. Reserve it at checkout, pay in person.</p>
+                            break;
+                        case DetailsModel.RsvpView.SignIn:
+                            <a class="event-rsvp event-rsvp--link" asp-page="/Account/Login" asp-route-returnUrl="@(HttpContext.Request.Path)">Log in to RSVP</a>
+                            break;
+                        case DetailsModel.RsvpView.MembersOnly:
+                            <button type="button" class="event-rsvp" disabled aria-describedby="rsvp-members-only">RSVP</button>
+                            <p class="event-rsvp-note" id="rsvp-members-only">Members only: RSVP needs a current membership.</p>
+                            break;
+                        case DetailsModel.RsvpView.SoldOut:
+                            <button type="button" class="event-rsvp" disabled>Sold out</button>
+                            break;
+                    }
                 </div>
             </div>
         </div>

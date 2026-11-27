@@ -417,6 +417,60 @@ a.events-card:hover {
         background: #6b0f22;
     }
 
+    /* RSVP (CAR-94): disabled for Sold out and Members only. */
+    .event-rsvp:disabled {
+        background: var(--divider);
+        color: var(--muted);
+        cursor: not-allowed;
+    }
+
+.event-rsvp--link {
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+}
+
+.event-rsvp-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.event-rsvp-going {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s3) var(--s4);
+    border-left: 4px solid #28613b;
+    border-radius: var(--r-sm);
+    background: #eaf4ed;
+}
+
+.event-rsvp-going p {
+    margin: 0;
+}
+
+.event-rsvp-going a {
+    color: var(--brand-text);
+}
+
+.event-rsvp-cancel {
+    min-height: 44px;
+    padding: var(--s2) var(--s4);
+    border: 1px solid var(--maroon);
+    border-radius: 999px;
+    background: var(--raised);
+    color: var(--brand-text);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.event-rsvp-cancel:hover {
+    background: #f6eef0;
+}
+
 /* Ticket Add to cart on the event page (CAR-92). */
 .event-add-to-cart {
     display: flex;
