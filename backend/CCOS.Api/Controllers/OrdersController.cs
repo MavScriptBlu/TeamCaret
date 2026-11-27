@@ -23,6 +23,25 @@ public class OrdersController(
     ClubClock clock) : ControllerBase
 {
     /// <summary>
+    /// GET /api/orders/mine (CAR-95): the signed-in customer's own orders, newest first, for the
+    /// My orders page. Ticket lines carry their event id, so the page can list upcoming RSVPs.
+    /// 401 when not signed in.
+    /// </summary>
+    [HttpGet("mine")]
+    public async Task<ActionResult<List<OrderDto>>> Mine(CancellationToken cancellationToken)
+    {
+        string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int? customerId = userId is null ? null : await accounts.FindCustomerIdAsync(userId, cancellationToken);
+        if (customerId is null)
+        {
+            return Unauthorized();
+        }
+
+        List<Order> mine = await orders.ListForCustomerAsync(customerId.Value, cancellationToken);
+        return Ok(mine.Select(ToDto).ToList());
+    }
+
+    /// <summary>
     /// POST /api/orders: place one order for the signed-in customer.
     /// 201 with the order, 400 for a bad request, 401 when not signed in,
     /// 403 when a ticket is members-only, 409 when an item is out of stock, sold out or gone.

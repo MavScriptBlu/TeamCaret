@@ -17,6 +17,27 @@ public sealed class OrderRepository(AppDbContext db, TicketBookingRepository tic
     public const string PendingStatus = "Pending";
 
     // ─────────────────────────────────────────────────────────────────────────
+    // A customer's orders (CAR-95)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Every order one customer placed, newest first, with its lines and each ticket line's
+    /// registrations (so the caller knows which event a ticket is for). Read only.
+    /// </summary>
+    /// <param name="customerId">Whose orders (from their login). Nobody else's orders are ever returned.</param>
+    /// <param name="cancellationToken">Lets the caller stop the work early.</param>
+    public Task<List<Order>> ListForCustomerAsync(int customerId, CancellationToken cancellationToken = default) =>
+        db.Orders
+            .AsNoTracking()
+            .Where(order => order.CustomerId == customerId)
+            .Include(order => order.OrderLines)
+                .ThenInclude(line => line.TicketRegistrations)
+            .AsSplitQuery()
+            .OrderByDescending(order => order.OrderDate)
+            .ThenByDescending(order => order.OrderId)
+            .ToListAsync(cancellationToken);
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Place an order
     // ─────────────────────────────────────────────────────────────────────────
 

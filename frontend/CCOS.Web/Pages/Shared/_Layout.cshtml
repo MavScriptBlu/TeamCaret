@@ -33,6 +33,8 @@
             {
                 <div class="account-nav">
                     <span class="account-greeting">Hi, @User.Identity.Name</span>
+                    @* My orders (CAR-95): the person's orders and upcoming RSVPs. *@
+                    <a class="account-nav-link" asp-page="/MyOrders">My orders</a>
                     <form method="post" asp-page="/Account/Logout" class="account-logout">
                         <button type="submit" class="account-nav-link">Log out</button>
                     </form>

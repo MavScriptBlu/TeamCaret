@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-27 · CAR-95 My orders
+
+- New `GET /api/orders/mine`: the signed-in customer's own orders, newest first, with each line's name, quantity, price and (for tickets) its event. Nobody else's orders ever come back; 401 when not signed in. `OrderRepository.ListForCustomerAsync` reads them without tracking.
+- New `/MyOrders` page, linked as **My orders** in the header next to "Hi, …" when signed in. Signing in is required (Log in and back).
+- **Upcoming events** first: every upcoming event the person has tickets or an RSVP for, with its date, time, venue and ticket count, and a link to the event page (where Cancel RSVP goes, CAR-94). Tickets in canceled orders and events that are over or removed are left out.
+- **Orders** next: order number, date (club time), items, total and a colored status tag. Pending shows as "Pending (pay in person)"; Paid, Picked up and Canceled are ready for the officer orders page (CAR-96).
+- Empty state: "No orders yet" with links to Merch and Events. API down: a friendly message.
+- Decision: the page has its own small `MyOrdersApiClient`, so this story doesn't depend on checkout's `OrdersApiClient` (CAR-93, #219) and the two PRs can merge in either order.
+- Tests: `MyOrdersApiTests` (only your own orders, newest first, ticket lines name their event, empty list, 401) and `MyOrdersModelTests` (orders and statuses, upcoming events, past or removed events left out, empty state, API down).
+
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
 - New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.
