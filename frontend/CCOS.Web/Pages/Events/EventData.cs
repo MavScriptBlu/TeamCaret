@@ -15,6 +15,7 @@ namespace CCOS.Web.Pages.Events;
 /// <param name="Categories">
 /// Shown on the wireframe but not in the database yet, so this is sample data only.
 /// </param>
+/// <param name="TicketsSold">Tickets already reserved (CAR-94), so the page can say "Sold out".</param>
 public record EventInfo(
     int EventId,
     string Name,
@@ -27,7 +28,8 @@ public record EventInfo(
     int VenueId,
     string VenueName,
     IReadOnlyList<TicketTypeInfo> TicketTypes,
-    IReadOnlyList<string> Categories);
+    IReadOnlyList<string> Categories,
+    int TicketsSold = 0);
 
 /// <summary>
 /// One ticket type for an event, for example "General" at $5 with a $0 member price.
@@ -73,7 +75,8 @@ public static class EventMapping
         dto.TicketTypes
             .Select(ticketType => new TicketTypeInfo(ticketType.Name, ticketType.Price, ticketType.MemberPrice, ticketType.IsActive, ticketType.TicketTypeId))
             .ToList(),
-        []);
+        [],
+        dto.TicketsSold);
 }
 
 /// <summary>

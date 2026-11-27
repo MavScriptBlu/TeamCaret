@@ -92,6 +92,13 @@ builder.Services.AddHttpClient<VenuesApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
+// RSVPs (CAR-94) go through CCOS.Api too, with the signed-in person's token.
+builder.Services.AddHttpClient<RsvpApiClient>(client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
 // The cart (CAR-92) lives in the visitor's session: kept in the website's memory and found again
 // through a cookie. Nothing goes in the database. With more than one copy of the website on a
 // host, swap the memory cache for a shared one (for example Redis).

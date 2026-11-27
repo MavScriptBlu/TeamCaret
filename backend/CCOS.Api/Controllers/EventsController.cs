@@ -230,5 +230,6 @@ public class EventsController(EventRepository events, IAuthorizationService auth
             .Where(t => t.IsActive)
             .Select(t => new TicketTypeDto(t.ProductId, t.Name, t.Price, includeMemberPrice ? t.MemberPrice : null, t.IsActive))
             .ToList(),
-        @event.RowVersion);
+        @event.RowVersion,
+        @event.TicketsSold);
 }
