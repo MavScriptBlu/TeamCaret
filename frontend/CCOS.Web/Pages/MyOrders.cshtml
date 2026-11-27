@@ -1,0 +1,89 @@
+@page
+@model MyOrdersModel
+@*
+    My orders (CAR-95): upcoming RSVPs and tickets first, then every order, newest first.
+*@
+@{
+    ViewData["Title"] = "My orders";
+}
+
+<link rel="stylesheet" href="~/css/orders.css" asp-append-version="true" />
+
+<div class="orders-page">
+    <h1>My orders</h1>
+
+    @if (Model.LoadFailed)
+    {
+        <section class="orders-empty" role="alert">
+            <h2>Orders unavailable</h2>
+            <p>Your orders couldn't be loaded right now. Please try again later.</p>
+        </section>
+    }
+    else if (Model.Orders.Count == 0)
+    {
+        <section class="orders-empty">
+            <h2>No orders yet</h2>
+            <p>When you check out or RSVP, it shows up here.</p>
+            <div class="orders-empty-links">
+                <a class="orders-button" asp-page="/Products/Index">Shop merch</a>
+                <a class="orders-button orders-button--quiet" asp-page="/Events/Index">See events</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        @if (Model.UpcomingEvents.Count > 0)
+        {
+            <section class="orders-section" aria-labelledby="upcoming-heading">
+                <h2 id="upcoming-heading">Upcoming events</h2>
+                <ul class="upcoming-list">
+                    @foreach (var upcoming in Model.UpcomingEvents)
+                    {
+                        <li class="upcoming-card">
+                            <div>
+                                <a class="upcoming-name" asp-page="/Events/Details" asp-route-id="@upcoming.EventId">@upcoming.Name</a>
+                                <p class="upcoming-when">@upcoming.WhenText</p>
+                                <p class="upcoming-venue">@upcoming.VenueName</p>
+                            </div>
+                            <p class="upcoming-tickets">@upcoming.Tickets @(upcoming.Tickets == 1 ? "ticket" : "tickets")</p>
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+
+        <section class="orders-section" aria-labelledby="orders-heading">
+            <h2 id="orders-heading">Orders</h2>
+            <ul class="order-list">
+                @foreach (var order in Model.Orders)
+                {
+                    <li class="order-card">
+                        <div class="order-head">
+                            <div>
+                                <h3>Order #@order.OrderId</h3>
+                                <p class="order-date">@order.DateText</p>
+                            </div>
+                            <span class="order-status order-status--@order.StatusKey">@order.StatusText</span>
+                        </div>
+                        <ul class="order-items">
+                            @foreach (var item in order.Items)
+                            {
+                                <li>
+                                    <span class="order-item-name">
+                                        @item.Quantity × @item.Name
+                                        @if (item.IsTicket)
+                                        {
+                                            <span class="order-item-tag">Event ticket</span>
+                                        }
+                                    </span>
+                                    <span class="order-item-total">@item.LineTotalText</span>
+                                </li>
+                            }
+                        </ul>
+                        <p class="order-total"><span>Total</span> <strong>@order.TotalText</strong></p>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>

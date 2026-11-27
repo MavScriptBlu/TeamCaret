@@ -70,6 +70,14 @@ builder.Services.AddHttpClient<AccountApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+// The My orders page (CAR-95) reads the signed-in person's orders from CCOS.Api. The bearer
+// handler adds their token, so the API only returns their own orders.
+builder.Services.AddHttpClient<MyOrdersApiClient>(client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
 // Product data comes from CCOS.Api. Run the API alongside the site (see Api:BaseUrl).
 // Pages ask for a ProductsApiClient and get one that already knows the API address.
 builder.Services.AddHttpClient<ProductsApiClient>(client =>

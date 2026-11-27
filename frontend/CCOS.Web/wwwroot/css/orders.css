@@ -1,0 +1,203 @@
+/* My orders page (/MyOrders, CAR-95) */
+
+.orders-page h1 {
+    margin-bottom: var(--s4);
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 800;
+}
+
+.orders-section + .orders-section {
+    margin-top: var(--s6);
+}
+
+.orders-section h2 {
+    margin-bottom: var(--s3);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.upcoming-list,
+.order-list,
+.order-items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.upcoming-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: var(--s3);
+}
+
+.upcoming-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: var(--s3);
+    padding: var(--s4);
+    border: 1px solid var(--divider);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--r-sm);
+    background: var(--raised);
+    overflow-wrap: anywhere;
+}
+
+.upcoming-name {
+    color: var(--text);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.upcoming-name:hover {
+    color: var(--brand-text);
+    text-decoration: underline;
+}
+
+.upcoming-when,
+.upcoming-venue {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.upcoming-tickets {
+    margin: 0;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.order-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+}
+
+.order-card {
+    padding: var(--s4);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+    background: var(--raised);
+}
+
+.order-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: var(--s3);
+    margin-bottom: var(--s3);
+}
+
+.order-head h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.order-date {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.order-status {
+    padding: 2px var(--s3);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.order-status--pending { background: #fff7e0; color: #7a5300; }
+.order-status--paid { background: #eaf4ed; color: #28613b; }
+.order-status--pickedup { background: #e8eef8; color: #24467a; }
+.order-status--canceled { background: #f1eeee; color: var(--muted); text-decoration: line-through; }
+.order-status--other { background: #f1eeee; color: var(--text); }
+
+.order-items li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: var(--s2) 0;
+    border-top: 1px solid var(--divider);
+    overflow-wrap: anywhere;
+}
+
+.order-item-tag {
+    margin-left: var(--s1);
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #fff7e0;
+    color: #7a5300;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.order-item-total {
+    white-space: nowrap;
+}
+
+.order-total {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding-top: var(--s2);
+    border-top: 1px solid var(--divider);
+    font-weight: 600;
+}
+
+.order-total strong {
+    font-size: 1.15rem;
+}
+
+.orders-empty {
+    max-width: 480px;
+    margin: var(--s6) auto;
+    padding: var(--s6) var(--s5);
+    border: 1px solid var(--divider);
+    border-radius: var(--r-sm);
+    background: var(--raised);
+    text-align: center;
+}
+
+.orders-empty h2 {
+    margin-bottom: var(--s2);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.orders-empty-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s3);
+    margin-top: var(--s4);
+}
+
+.orders-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: var(--s2) var(--s5);
+    border: 1px solid var(--maroon);
+    border-radius: 999px;
+    background: var(--maroon);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.orders-button:hover {
+    background: var(--masthead);
+    border-color: var(--masthead);
+}
+
+.orders-button--quiet {
+    background: var(--raised);
+    color: var(--brand-text);
+}
+
+.orders-button--quiet:hover {
+    background: #f6eef0;
+    border-color: var(--maroon);
+}
