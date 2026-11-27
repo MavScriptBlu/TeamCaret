@@ -30,7 +30,7 @@ design.
 - SQLite sample file as a fallback when you run the API with no connection string
 - Docker/Podman containers for the API and website too (`task up` runs all three)
 - ASP.NET Core Identity for authentication
-- Deployed to Azure App Service
+- Deployed to Azure App Service with Azure Database for PostgreSQL (step by step in `docs/DEPLOYMENT_AZURE.md`)
 
 ## Local Database Setup
 

@@ -18,6 +18,7 @@ Welcome to the Cyber Cougars Club Order & Event System (CCOS) documentation.
 - [Coding Standards](./CODING_STANDARDS.md) - Code style and conventions
 - [Team Rules](./TEAM_RULES.md) - Team workflow and collaboration guidelines
 - [Deployment](./DEPLOYMENT.md) - Settings, database setup and health checks for running CCOS on a host
+- [Azure walkthrough](./DEPLOYMENT_AZURE.md) - Step by step for putting CCOS on Azure
 - [Project Proposal](./Project%20Proposal_%20Cyber%20Cougars%20Club%20Order%20&%20Event%20System%20(CCOS).md) - Original project scope
 
 ## Getting Started

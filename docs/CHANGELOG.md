@@ -8,6 +8,25 @@ Database and design decisions, newest first.
 - Now it looks the name up past the active-products filter (just for the message) and says "Club Shirt isn't for sale anymore." A removed ticket type says its event instead ("Tickets for CTF Night aren't on sale anymore."), since every ticket type is called something like "General".
 - An id that never existed (a hand-made request) gets "One of the items in your cart isn't for sale anymore." The body still has `productId`, so checkout (CAR-93) can point at the right line.
 - Tests: the removed-product test now checks the name and that the id isn't in the sentence, plus new tests for a removed ticket type and a made-up id. All API (149), Data (86) and Web (206) tests passed.
+## 2026-11-26 · CAR-98 / CAR-53 CCOS is live on Azure
+
+- CCOS is up on Azure and both `/health` pages say Healthy. The live site is <https://ccos-web-caret26.azurewebsites.net/>.
+- What's running: resource group `ccos-rg`, PostgreSQL 17 flexible server `ccos-db-caret26` (Central US, Burstable B1ms, 32 GB) with database `ccos`, and Linux App Service plan `ccos-plan` with the apps `ccos-api-caret26` and `ccos-web-caret26` (.NET 10, HTTPS only). `docs/DEPLOYMENT.md` has a new "Our live setup on Azure" part with every name and setting, the health links, and how to send new code up by hand.
+- Decision: the plan is Free F1 in West US 2. Our student subscription had zero quota for B1 or F1 in Central US, North Central US, East US 2 and East US. F1 sleeps when nobody's on it and has no Always On. We're staying on F1 for good since it's a school account, so open the site a minute before a demo.
+- Decision: GitHub deploys use publish profiles (`azure/webapps-deploy` v3, pinned to its exact commit, with the `AZURE_API_PUBLISH_PROFILE` and `AZURE_WEB_PUBLISH_PROFILE` secrets), since our access can't do the one-click identity setup. New `.github/workflows/deploy-api.yml` and `deploy-web.yml` run from the Run workflow button or a push to `main` that touches that app. `main` is our production branch, so merging to it is what makes the site go live. Without the secrets they skip instead of failing.
+- Both apps now have `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` (Azure does the https part in front of them, so this keeps the https redirect and sign-in cookies working) and `WEBSITE_WEBDEPLOY_USE_SCM=true` (for the GitHub deploys). Both are in the settings tables in `docs/DEPLOYMENT.md`.
+- `backend/README.md` explains how to connect to the Azure database: host, SSL required, adding your IP to the firewall, and keeping the password out of the repo. Docker is still the local setup.
+- No passwords or connection strings with passwords are in the repo. No code changes, so no tests to run.
+
+## 2026-11-26 · CAR-98 Azure setup walkthrough
+
+- New `docs/DEPLOYMENT_AZURE.md`: copy and paste steps (PowerShell + Azure CLI) for putting CCOS on Azure. One resource group, one PostgreSQL flexible server (Burstable B1ms, PostgreSQL 17), one Linux B1 App Service plan with two web apps (API and website) on .NET 10.
+- Decision: Azure Database for PostgreSQL, not Azure SQL like the old backlog says, since the code only talks to PostgreSQL (Npgsql).
+- Decision: zip deploy of `dotnet publish` output instead of containers. App Service keeps the API's sign-in keys in `/home` on its own that way, and the website's go in `/home/data/ccos-keys` through `DataProtection__KeysPath`.
+- Both apps get `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` because Azure handles https in front of them. Without it the https redirect can loop and the sign-in cookie can't tell the visitor is on https.
+- Uses our subscription, **SA_Caret_Fall26** (CAR-53). It shows "Specified access", so the guide says how to check our role and what to do if a create step gets refused. The subscription ID stays out of the repo since the repo is public. Names and region are still **TBD**.
+- `docs/DEPLOYMENT.md`, `docs/README.md` and `README.md` now point to it.
+- Docs only, no code changes, so no tests to run.
 
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
