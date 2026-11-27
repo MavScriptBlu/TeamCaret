@@ -1,0 +1,65 @@
+@page
+@model CCOS.Web.Pages.Checkout.ConfirmationModel
+@using CCOS.Web.Services
+@*
+    Order confirmation (CAR-93). Reserve now, pay in person: the order is Pending until an officer marks it paid.
+*@
+@{
+    ViewData["Title"] = "Order placed";
+    var order = Model.Order;
+}
+
+<link rel="stylesheet" href="~/css/cart.css" asp-append-version="true" />
+
+<div class="cart-page">
+    <section class="confirmation" aria-labelledby="confirmation-heading">
+        <svg class="confirmation-check" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m7.5 12.5 3 3 6-6" /></svg>
+        <h1 id="confirmation-heading">Your order is reserved</h1>
+
+        @if (order is null)
+        {
+            <p>Your order was placed. Pay in person when you pick it up.</p>
+        }
+        else
+        {
+            <p class="confirmation-number">Order <strong>#@order.OrderId</strong></p>
+            <p>We're holding these for you. Pay in person when you pick them up.</p>
+
+            <table class="confirmation-items">
+                <caption>Items in order @order.OrderId</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in order.Lines)
+                    {
+                        <tr>
+                            <th scope="row">@line.Name</th>
+                            <td>@line.Quantity</td>
+                            <td>@Money.Format(line.UnitPrice)</td>
+                            <td>@Money.Format(line.LineTotal)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="row" colspan="3">Order total</th>
+                        <td><strong>@Money.Format(order.TotalAmount)</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <p class="confirmation-status">Status: <strong>@order.Status</strong> (pay in person)</p>
+        }
+
+        <div class="cart-empty-links">
+            <a class="cart-button" asp-page="/Products/Index">Keep shopping</a>
+            <a class="cart-button cart-button--quiet" asp-page="/Events/Index">See events</a>
+        </div>
+    </section>
+</div>

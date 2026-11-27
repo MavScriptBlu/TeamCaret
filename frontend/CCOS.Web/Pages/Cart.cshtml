@@ -3,7 +3,7 @@
 @*
     Cart page (CAR-92). Lists each item with its price (member prices for members, using the shared
     _PriceTag), quantity, line total and the order total. Each line has Update and Remove buttons.
-    Checkout comes next (CAR-93).
+    The Checkout button goes to /Checkout (CAR-93).
 *@
 @{
     ViewData["Title"] = "Your cart";
@@ -84,7 +84,9 @@
             <aside class="cart-summary" aria-label="Order summary">
                 <h2>Order summary</h2>
                 <p class="cart-summary-total"><span>Order total</span> <strong>@Model.TotalText</strong></p>
-                <p class="cart-summary-note">Checkout is coming soon. You'll reserve your order online and pay in person.</p>
+                <p class="cart-summary-note">Reserve now, pay in person. You'll sign in at checkout if you haven't yet.</p>
+                @* Checkout (CAR-93). Signing in is required there; a visitor goes to Log in and comes back with the same cart. *@
+                <a class="cart-button checkout-start" asp-page="/Checkout">Checkout</a>
                 <a class="cart-button cart-button--quiet" asp-page="/Products/Index">Keep shopping</a>
             </aside>
         </div>

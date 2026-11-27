@@ -85,6 +85,14 @@ builder.Services.AddHttpClient<EventsApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
+// Placing orders goes through CCOS.Api too (checkout, CAR-93). The bearer handler adds the
+// signed-in person's token, so each order belongs to whoever placed it.
+builder.Services.AddHttpClient<OrdersApiClient>(client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
 // Venue data comes from CCOS.Api too (venue form and the event form's venue dropdown).
 builder.Services.AddHttpClient<VenuesApiClient>(client =>
 {

@@ -1,0 +1,71 @@
+@page
+@model CheckoutModel
+@*
+    Checkout (CAR-93): the cart one more time, then Place order. Reserve now, pay in person.
+*@
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<link rel="stylesheet" href="~/css/cart.css" asp-append-version="true" />
+
+<div class="cart-page">
+    <a class="checkout-back" asp-page="/Cart">&larr; Back to cart</a>
+    <h1>Checkout</h1>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <p class="cart-flash cart-flash--error" role="alert">@Model.ErrorMessage</p>
+    }
+    @foreach (var notice in Model.Notices)
+    {
+        <p class="cart-flash cart-flash--error" role="status">@notice</p>
+    }
+
+    @if (Model.LoadFailed)
+    {
+        <section class="cart-empty" role="alert">
+            <h2>Checkout unavailable</h2>
+            <p>Your cart couldn't be loaded right now. Your items are still saved. Please try again later.</p>
+            <div class="cart-empty-links">
+                <a class="cart-button cart-button--quiet" asp-page="/Cart">Back to cart</a>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="cart-layout">
+            <section aria-labelledby="checkout-items-heading">
+                <h2 id="checkout-items-heading" class="checkout-heading">Your items</h2>
+                <ul class="checkout-lines">
+                    @foreach (var line in Model.Lines)
+                    {
+                        var isProblem = line.Key == Model.ProblemKey;
+                        <li class="checkout-line @(isProblem ? "checkout-line--problem" : null)" aria-invalid="@(isProblem ? "true" : null)">
+                            <div class="cart-line-info">
+                                <a class="cart-line-name" href="@line.Href">@line.Name</a>
+                                <p class="cart-line-detail">@line.Detail</p>
+                                <partial name="_PriceTag" model="line.PriceTag" />
+                            </div>
+                            <p class="checkout-line-qty">Qty @line.Quantity</p>
+                            <p class="cart-line-total">
+                                <span class="cart-line-total-label">Total</span>
+                                <span>@line.LineTotalText</span>
+                            </p>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            <aside class="cart-summary" aria-label="Order summary">
+                <h2>Order summary</h2>
+                <p class="cart-summary-total"><span>Order total</span> <strong>@Model.TotalText</strong></p>
+                <p class="checkout-pay-note"><strong>Reserve now, pay in person.</strong> Your items are held for you, and you pay when you pick them up.</p>
+                <form method="post">
+                    <button type="submit" class="cart-button checkout-place">Place order</button>
+                </form>
+                <a class="cart-button cart-button--quiet" asp-page="/Cart">Edit cart</a>
+            </aside>
+        </div>
+    }
+</div>

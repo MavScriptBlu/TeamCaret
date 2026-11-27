@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-25 · CAR-93 Checkout
+
+- Checkout is live: Cart → **Checkout** → one more look at the items and total → **Place order** → confirmation page with the order number, items, total and "Pending (pay in person)". No online payment (CAR-87): reserve now, pay in person.
+- `/Checkout` and `/Checkout/Confirmation` need a sign-in (`[Authorize]`). A visitor who isn't signed in goes to Log in ("Log in first") and comes back to checkout with the same cart.
+- Place order checks the cart again with the API first. If anything sold out or went over the stock since the visitor looked, nothing is sent: the cart is fixed, the page explains what changed, and they place the order again.
+- The order goes to `POST /api/orders` (CAR-91) through the new `OrdersApiClient` (bearer token added by `ApiBearerTokenHandler`). Only ids and quantities are sent; the API sets the prices.
+- Placed: the cart is emptied and the order is handed to the confirmation page through TempData (refreshing it later shows a short "your order was placed" message; past orders come with My orders, CAR-95). 409 or 403: the cart stays, the item is outlined, and the message names it ("CTF Night doesn't have enough seats left for this order. Change it in your cart, then try again."). 401: back to Log in. API down: "We couldn't place your order right now", cart untouched.
+- Decision: the Cart page's loading code moved into `CartLoader` (in `Pages/`), so Cart and Checkout check items exactly the same way. No change to how the Cart page behaves.
+- Tests: `CheckoutModelTests` covers the review, a placed order (cart emptied, confirmation handed over), sold out (cart kept, item named), API down, a cart that changed, an expired sign-in, the problem messages, and the confirmation page.
+
 ## 2026-11-18 · CAR-91 place an order (merch and tickets in one checkout)
 
 - New `POST /api/orders` for the signed-in customer. It takes the cart as is (product or ticket type id plus quantity, same as CAR-92's cart), so checkout (CAR-93) and RSVP (CAR-94) both call this one endpoint.
