@@ -2,6 +2,12 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-25 · Order errors say the item's name, not its id
+
+- From Dylan's PR 211 review note: when a cart item got removed, `POST /api/orders` said "Item 12 isn't for sale anymore." Nobody knows what item 12 is.
+- Now it looks the name up past the active-products filter (just for the message) and says "Club Shirt isn't for sale anymore." A removed ticket type says its event instead ("Tickets for CTF Night aren't on sale anymore."), since every ticket type is called something like "General".
+- An id that never existed (a hand-made request) gets "One of the items in your cart isn't for sale anymore." The body still has `productId`, so checkout (CAR-93) can point at the right line.
+- Tests: the removed-product test now checks the name and that the id isn't in the sentence, plus new tests for a removed ticket type and a made-up id. All API (149), Data (86) and Web (206) tests passed.
 ## 2026-11-26 · CAR-98 / CAR-53 CCOS is live on Azure
 
 - CCOS is up on Azure and both `/health` pages say Healthy. The live site is <https://ccos-web-caret26.azurewebsites.net/>.
