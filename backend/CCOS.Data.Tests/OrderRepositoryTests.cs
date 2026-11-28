@@ -1,6 +1,7 @@
 using CCOS.Data;
 using CCOS.Data.Entities;
 using CCOS.Repositories;
+using CCOS.Shared;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

@@ -166,10 +166,11 @@ erDiagram
 
     ORDER {
         int OrderId PK
-        int CustomerId FK
+        int CustomerId FK "nullable for legacy orders"
         datetime OrderDate
-        string Status
+        string Status "Pending, Paid, Picked up, Canceled"
         decimal TotalAmount
+        xid RowVersion
     }
 
     ORDERLINE {

@@ -39,6 +39,7 @@ public static class SiteNav
         new("Manage events", "/Officer/Events", OfficerSection, OfficerOnly: true, MatchPrefix: "/Officer/Events"),
         new("Add venue", "/Officer/Venues/Create", OfficerSection, OfficerOnly: true),
         new("Manage venues", "/Officer/Venues", OfficerSection, OfficerOnly: true, MatchPrefix: "/Officer/Venues"),
+        new("Orders", "/Officer/Orders", OfficerSection, OfficerOnly: true, MatchPrefix: "/Officer/Orders"),
     ];
 
     /// <summary>

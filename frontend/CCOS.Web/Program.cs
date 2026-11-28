@@ -92,6 +92,13 @@ builder.Services.AddHttpClient<VenuesApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 }).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
+// Order history and status actions for the officer Orders page.
+builder.Services.AddHttpClient<OrdersApiClient>(client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
 // GET /health (CAR-84): "Healthy" when the API answers its own /health (so the API and its
 // database work too), "Unhealthy" (503) when it doesn't. Hosts use it to check the site is up.
 builder.Services.AddHttpClient(ApiHealthCheck.ClientName, client =>

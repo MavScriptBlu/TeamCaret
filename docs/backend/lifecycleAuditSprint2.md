@@ -23,8 +23,23 @@ Why: every table tied to money or membership (`OrderLines`, `TicketRegistrations
 | Officer | `Officers` row closed, `OfficerHistory.RevokedDate` set | Advisor (Admin) | Losing officer status shouldn't nuke the Member record underneath it. You're still a member after you step down. |
 | Venue | `IsActive` | Officer | Deactivating a venue doesn't touch Events that already happened there; it just can't host new ones. |
 | Event | `IsActive` | Officer | Same deal as Product. Old ticket registrations still point at the Event that actually happened. |
-| Order | `Status` enum (Pending/Fulfilled/Canceled) | Officer | Orders don't get soft-deleted, they transition status instead. Canceled orders stick around for the money trail. |
+| Order | `Status` constrained to Pending/Paid/Picked up/Canceled | Officer | Orders don't get soft-deleted, they transition status instead. Canceled orders stick around for the money trail. `CustomerId` is nullable for legacy orders. |
 | Ticket (`TicketRegistrations`) | `Status` enum (Purchased/Canceled) | Officer, maybe Customer self-cancel (TBD) | Same status-transition move as Order instead of a flag. No Reserved status: checkout is one transaction, so there's no hold step. See Event, Ticket & Venue Relational Schema. |
+
+### Order status changes (CAR-96)
+
+| Current status | Allowed next status |
+|---|---|
+| Pending | Paid or Canceled |
+| Paid | Picked up or Canceled |
+| Picked up | None (final) |
+| Canceled | None (final) |
+
+The API enforces these transitions; an invalid transition or stale order version returns `409 Conflict`. Officers can cancel a Paid order, but cancellation only restores merchandise stock and event seats. It does not issue a payment refund; there is no payment/refund integration in this scope. The order status, stock restoration and ticket-seat release run in the same database transaction. A canceled order cannot be canceled again, so inventory is not restored twice.
+
+Orders carry PostgreSQL's `xmin` row version. Status changes submit the version the officer saw; a second tab acting on an older version gets a conflict instead of overwriting newer state or restoring inventory twice. The order list uses purchase-time item name and price snapshots and the stored order total, not current product prices. Orders with no customer show as “Unknown customer.”
+
+The CAR-96 migration maps existing `Fulfilled` rows to `Picked up`. Confirm that this is the intended interpretation with the team before applying the migration to a database with existing orders. `CustomerId` remains nullable so existing rows do not require a fabricated customer. Checkout and payment/refund processing remain out of scope; tests create their own orders, and no order seed script was added.
 
 ## 3. Audit Policy
 

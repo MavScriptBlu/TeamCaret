@@ -2,6 +2,15 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-27 · CAR-96 Officer Orders
+
+- Added the Officer-only `/Officer/Orders` page with server-side status filters, order cards, and actions to mark orders paid, picked up, or canceled. The Orders link appears in the Officers navigation group and is hidden from non-officers; the page and API also enforce the Officer policy.
+- Added officer-only `GET /api/orders` (optional status filter) and `PUT /api/orders/{id}/status`. The list includes nullable customer name, UTC order date, purchase-time item snapshots, stored total and PostgreSQL `xmin` row version. `409 Conflict` covers illegal transitions and stale copies; an unknown order returns 404.
+- Lifecycle: Pending → Paid or Canceled; Paid → Picked up or Canceled; Picked up and Canceled are final. Canceling restores merchandise stock and event seats in the same transaction as the status update. It does **not** issue a payment refund; no payment/refund integration exists and refunds are out of scope.
+- The migration adds nullable `CustomerId` and order concurrency versioning, and maps existing `Fulfilled` statuses to `Picked up`. **Confirm the meaning of legacy `Fulfilled` with the team before applying the migration to Dev; the migration has not been applied.** Orders without a customer display as “Unknown customer.”
+- Checkout remains out of scope. Tests create their own orders; no seed script was added, so manual UI testing requires development order data.
+- Tests: repository/API transition and cancellation tests, PostgreSQL stale-version test, Officer access tests, web page-handler tests and navigation tests. The solution and web test project build; the full web test project passed (45 tests). Regression suites for order repositories, event/ticket behavior, and the PostgreSQL stale-order flow also passed during implementation.
+
 ## 2026-11-15 · CAR-77 Venues list revamp
 
 - From Jason's Sprint 4 review notes, in the same style as the Merch (CAR-75) and Events (CAR-76) lists. The goal: see every venue's details at a glance instead of opening rows one at a time.

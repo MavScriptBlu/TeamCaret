@@ -1,0 +1,142 @@
+@page
+@model IndexModel
+@{
+	ViewData["Title"] = "Orders";
+	var message = TempData["OrderMessage"] as string;
+	var error = TempData["OrderError"] as string;
+}
+
+<link rel="stylesheet" href="~/css/products.css" asp-append-version="true" />
+
+@if (message is not null)
+{
+	<p class="product-created-message" role="status">@message</p>
+}
+@if (error is not null)
+{
+	<p class="products-empty" role="alert">@error</p>
+}
+
+<div class="officer-head">
+	<h1>Orders</h1>
+</div>
+
+@if (Model.LoadFailed)
+{
+	<p class="products-empty" role="alert">Orders couldn't be loaded right now. Please try again later.</p>
+}
+else
+{
+	<div class="venues-toolbar">
+		<div class="products-chips" role="group" aria-label="Filter orders by status">
+			<a class="products-chip" asp-page="/Officer/Orders/Index"
+			   aria-current="@(Model.Status is null ? "true" : null)">All</a>
+			<a class="products-chip" asp-page="/Officer/Orders/Index" asp-route-status="Pending"
+			   aria-current="@(Model.Status == "Pending" ? "true" : null)">Pending</a>
+			<a class="products-chip" asp-page="/Officer/Orders/Index" asp-route-status="Paid"
+			   aria-current="@(Model.Status == "Paid" ? "true" : null)">Paid</a>
+			<a class="products-chip" asp-page="/Officer/Orders/Index" asp-route-status="Picked up"
+			   aria-current="@(Model.Status == "Picked up" ? "true" : null)">Picked up</a>
+			<a class="products-chip" asp-page="/Officer/Orders/Index" asp-route-status="Canceled"
+			   aria-current="@(Model.Status == "Canceled" ? "true" : null)">Canceled</a>
+		</div>
+	</div>
+
+	@if (Model.Orders.Count == 0)
+	{
+		<div class="products-empty">
+			@if (Model.Status is null)
+			{
+				<p>No orders yet.</p>
+			}
+			else
+			{
+				<p>No @Model.Status orders.</p>
+				<a asp-page="/Officer/Orders/Index">Show all orders</a>
+			}
+		</div>
+	}
+	else
+	{
+		<p class="products-count" role="status">@Model.Orders.Count @(Model.Orders.Count == 1 ? "order" : "orders")</p>
+		<ul class="venues-grid">
+			@foreach (var order in Model.Orders)
+			{
+				var statusClass = order.Status switch
+				{
+					"Pending" => "is-pending",
+					"Paid" => "is-paid",
+					"Picked up" => "is-picked-up",
+					_ => "is-canceled",
+				};
+				<li>
+					<article class="venue-card order-card" aria-labelledby="order-title-@order.OrderId">
+						<div class="venue-card-body">
+							<div class="venue-card-head">
+								<h2 id="order-title-@order.OrderId">Order #@order.OrderId</h2>
+								<span class="venue-tag @statusClass">@order.Status</span>
+							</div>
+							<p class="venue-fact"><strong>Customer:</strong> @(string.IsNullOrWhiteSpace(order.CustomerName) ? "Unknown customer" : order.CustomerName)</p>
+							<p class="venue-fact"><strong>Placed:</strong> @IndexModel.FormatOrderDate(order.OrderDateUtc) (Central time)</p>
+							<div class="order-items">
+								<h3>Items</h3>
+								<ul>
+									@foreach (var item in order.Items)
+									{
+										<li>@item.Quantity × @item.ProductName — @Money.Format(item.LineTotal)</li>
+									}
+								</ul>
+							</div>
+							<p class="order-total"><strong>Total charged:</strong> @Money.Format(order.TotalAmount)</p>
+						</div>
+						@if (order.Status is "Pending" or "Paid")
+						{
+							<div class="venue-card-actions">
+								@if (order.Status == "Pending")
+								{
+									<form method="post" asp-page-handler="Pay" asp-route-id="@order.OrderId" asp-route-status="@Model.Status">
+										<input type="hidden" name="rowVersion" value="@order.RowVersion" />
+										<button type="submit" class="officer-pill">Mark paid</button>
+									</form>
+								}
+								else
+								{
+									<form method="post" asp-page-handler="Pickup" asp-route-id="@order.OrderId" asp-route-status="@Model.Status">
+										<input type="hidden" name="rowVersion" value="@order.RowVersion" />
+										<button type="submit" class="officer-pill">Mark picked up</button>
+									</form>
+								}
+								<form method="post" asp-page-handler="Cancel" asp-route-id="@order.OrderId" asp-route-status="@Model.Status"
+									  class="officer-delete-form" data-order-cancel-form>
+									<input type="hidden" name="rowVersion" value="@order.RowVersion" />
+									<button type="button" class="officer-delete" data-order-cancel-button
+											data-order-id="@order.OrderId" aria-haspopup="dialog" aria-controls="cancelOrderDialog">
+										Cancel order
+									</button>
+								</form>
+							</div>
+						}
+					</article>
+				</li>
+			}
+		</ul>
+	}
+}
+
+<dialog id="cancelOrderDialog" class="officer-delete-dialog" aria-modal="true"
+		aria-labelledby="cancelOrderTitle" aria-describedby="cancelOrderMessage">
+	<h2 id="cancelOrderTitle">Cancel order?</h2>
+	<p id="cancelOrderMessage">Are you sure you want to cancel order <strong id="cancelOrderId">#?</strong>?</p>
+	<p class="officer-delete-disclaimer">
+		Merchandise stock and event seats will be returned. A canceled order cannot be reactivated.
+		This action does not issue a payment refund.
+	</p>
+	<div class="officer-delete-dialog-actions">
+		<button type="button" class="officer-delete" id="confirmOrderCancel">Yes, cancel order</button>
+		<button type="button" class="officer-pill" id="dismissOrderCancel" autofocus>No</button>
+	</div>
+</dialog>
+
+@section Scripts {
+	<script src="~/js/officer-order-cancel.js" asp-append-version="true"></script>
+}

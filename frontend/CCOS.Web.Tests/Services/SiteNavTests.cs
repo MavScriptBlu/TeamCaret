@@ -22,6 +22,8 @@ public class SiteNavTests
     [InlineData("/Officer/Venues/Create", "Add venue")]
     [InlineData("/Officer/Venues/", "Manage venues")]
     [InlineData("/Officer/Venues/Edit/3", "Manage venues")]
+    [InlineData("/Officer/Orders", "Orders")]
+    [InlineData("/Officer/Orders/Index", "Orders")]
     public void CurrentFor_MenuPage_ReturnsItsLink(string path, string expectedText)
     {
         Assert.Equal(expectedText, SiteNav.CurrentFor(path)?.Text);

@@ -1,5 +1,6 @@
 using CCOS.Data;
 using CCOS.Data.Entities;
+using CCOS.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace CCOS.Repositories;
