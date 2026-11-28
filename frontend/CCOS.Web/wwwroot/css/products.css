@@ -916,3 +916,42 @@ a.product-card:hover {
     .venue-card-actions form {
         margin: 0;
     }
+
+.venue-tag.is-pending {
+    background: #fff1cc;
+    color: #684800;
+}
+
+.venue-tag.is-paid {
+    background: #e3f1e7;
+    color: #1f5130;
+}
+
+.venue-tag.is-picked-up {
+    background: #e5e8f5;
+    color: #343e70;
+}
+
+.venue-tag.is-canceled {
+    background: #f6d7dc;
+    color: var(--brand-text);
+}
+
+.order-items h3 {
+    margin: 0 0 var(--s1);
+    font-size: 14px;
+}
+
+.order-items ul {
+    margin: 0;
+    padding-left: var(--s4);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.order-total {
+    margin: auto 0 0;
+    padding-top: var(--s2);
+    border-top: 1px solid var(--divider);
+}

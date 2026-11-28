@@ -1,5 +1,6 @@
 using CCOS.Data;
 using CCOS.Data.Entities;
+using CCOS.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -14,7 +15,143 @@ namespace CCOS.Repositories;
 public sealed class OrderRepository(AppDbContext db, TicketBookingRepository ticketBookings)
 {
     /// <summary>The status every new order starts in. An officer marks it paid later.</summary>
-    public const string PendingStatus = "Pending";
+    public const string PendingStatus = OrderStatuses.Pending;
+
+    public async Task<IReadOnlyList<Order>> ListForOfficerAsync(
+        string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Order> orders = db.Orders
+            .AsNoTracking()
+            .Include(order => order.Customer)
+            .Include(order => order.OrderLines);
+
+        if (status is not null)
+        {
+            orders = orders.Where(order => order.Status == status);
+        }
+
+        return await orders
+            .OrderByDescending(order => order.OrderDate)
+            .ThenByDescending(order => order.OrderId)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>Changes an order's status if the transition and supplied row version are current.</summary>
+    public async Task<OrderStatusChangeResult> ChangeStatusAsync(
+        int orderId,
+        string nextStatus,
+        uint expectedRowVersion,
+        CancellationToken cancellationToken = default)
+    {
+        await using IDbContextTransaction transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        Order? order = await db.Orders
+            .Include(candidate => candidate.Customer)
+            .Include(candidate => candidate.OrderLines)
+            .SingleOrDefaultAsync(candidate => candidate.OrderId == orderId, cancellationToken);
+
+        if (order is null)
+        {
+            return new OrderStatusChangeResult(OrderStatusChangeOutcome.NotFound);
+        }
+
+        if (order.RowVersion != expectedRowVersion)
+        {
+            return new OrderStatusChangeResult(OrderStatusChangeOutcome.Conflict);
+        }
+
+        if (!order.TryTransitionTo(nextStatus))
+        {
+            return new OrderStatusChangeResult(OrderStatusChangeOutcome.InvalidTransition, order);
+        }
+
+        try
+        {
+            // Save inside the open transaction first: PostgreSQL's xmin rejects stale copies
+            // before a cancellation can restore stock or release event seats.
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return new OrderStatusChangeResult(OrderStatusChangeOutcome.Conflict);
+        }
+
+        if (nextStatus == OrderStatuses.Canceled)
+        {
+            int ticketQuantity = await RestoreMerchandiseStockAsync(order.OrderLines, cancellationToken);
+            int canceledTickets = await ticketBookings.CancelOrderRegistrationsInCurrentTransactionAsync(
+                orderId,
+                cancellationToken: cancellationToken);
+
+            if (ticketQuantity != canceledTickets)
+            {
+                throw new InvalidOperationException(
+                    $"Order {orderId} has {ticketQuantity} ticket items but {canceledTickets} purchased ticket registrations. "
+                    + "Cancellation was rolled back; check the order's ticket records.");
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return new OrderStatusChangeResult(OrderStatusChangeOutcome.Updated, order);
+    }
+
+    // restore stock for merch items only, and return how many tickets were on the order
+    private async Task<int> RestoreMerchandiseStockAsync(
+        ICollection<OrderLine> orderLines,
+        CancellationToken cancellationToken)
+    {
+        List<(int ProductId, int Quantity)> groupedLines = orderLines
+            .GroupBy(line => line.ProductId)
+            .Select(group => (group.Key, group.Aggregate(0, (total, line) => checked(total + line.Quantity))))
+            .ToList();
+
+        if (groupedLines.Count == 0)
+        {
+            return 0;
+        }
+
+        int[] productIds = groupedLines.Select(line => line.ProductId).ToArray();
+        Dictionary<int, bool> ticketProducts = await db.Products
+            .IgnoreQueryFilters()
+            .Where(product => productIds.Contains(product.ProductId))
+            .Select(product => new { product.ProductId, IsTicket = product is TicketType })
+            .ToDictionaryAsync(product => product.ProductId, product => product.IsTicket, cancellationToken);
+
+        if (ticketProducts.Count != groupedLines.Count)
+        {
+            throw new InvalidOperationException("An order item no longer has a product record. Cancellation was rolled back.");
+        }
+
+        int ticketQuantity = 0;
+        foreach ((int productId, int quantity) in groupedLines)
+        {
+            if (ticketProducts[productId])
+            {
+                ticketQuantity = checked(ticketQuantity + quantity);
+                continue;
+            }
+
+            int maxStockBeforeRestore = int.MaxValue - quantity;
+            int updated = await db.Products
+                .IgnoreQueryFilters()
+                .Where(product => product.ProductId == productId
+                    && !(product is TicketType)
+                    && product.StockQuantity <= maxStockBeforeRestore)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        product => product.StockQuantity,
+                        product => product.StockQuantity + quantity),
+                    cancellationToken);
+
+            if (updated != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Stock for product {productId} could not be restored. Cancellation was rolled back.");
+            }
+        }
+
+        return ticketQuantity;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Place an order
@@ -231,6 +368,16 @@ public sealed class OrderRepository(AppDbContext db, TicketBookingRepository tic
     /// <summary>One checked line: what it is, its event for tickets, how many, and the price per item.</summary>
     private sealed record PricedLine(Product Product, Event? Event, int Quantity, decimal UnitPrice);
 }
+
+public enum OrderStatusChangeOutcome
+{
+    Updated,
+    NotFound,
+    InvalidTransition,
+    Conflict,
+}
+
+public sealed record OrderStatusChangeResult(OrderStatusChangeOutcome Outcome, Order? Order = null);
 
 /// <summary>
 /// One line handed to OrderRepository.PlaceOrderAsync: a product or ticket type id and how many.

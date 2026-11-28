@@ -59,7 +59,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-// Adds the signed-in person's API token to calls from the Products, Events and Venues clients.
+// Adds the signed-in person's API token to calls from protected API clients.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ApiBearerTokenHandler>();
 
@@ -87,6 +87,13 @@ builder.Services.AddHttpClient<EventsApiClient>(client =>
 
 // Venue data comes from CCOS.Api too (venue form and the event form's venue dropdown).
 builder.Services.AddHttpClient<VenuesApiClient>(client =>
+{
+    client.BaseAddress = ApiBaseAddress();
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<ApiBearerTokenHandler>();
+
+// Officer order history and status actions.
+builder.Services.AddHttpClient<OrdersApiClient>(client =>
 {
     client.BaseAddress = ApiBaseAddress();
     client.Timeout = TimeSpan.FromSeconds(10);

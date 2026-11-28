@@ -2,6 +2,16 @@
 
 Database and design decisions, newest first.
 
+## 2026-11-28 · CAR-96 Officer order management
+
+- Added the Officer-only `/Officer/Orders` page. It uses the Venues card layout and shows the customer, order date, purchased item snapshots, charged total and status, with filters for Pending, Paid, Picked up and Canceled.
+- Added Officer-protected `GET /api/orders` (optional status filter) and `PUT /api/orders/{id}/status`. The Officer list uses its own shared DTO so the existing CAR-91 checkout/order contract stays intact.
+- Status rules are enforced by the order entity and API: Pending → Paid or Canceled; Paid → Picked up or Canceled; Picked up and Canceled are final. Invalid transitions and stale updates return 409. An accidentally Paid order cannot currently be reset to Pending.
+- Cancel asks for confirmation, then changes status, restores merchandise stock and releases purchased event seats in one transaction. Repeating or racing a stale cancel cannot restore inventory twice. Cancellation does not issue a payment refund; the UI warns officers.
+- Added the Orders link to the Officers navigation group. The API uses PostgreSQL `xmin` as the order concurrency token; SQLite tests use a regular token.
+- Migration `AddOrderManagementLifecycle` maps legacy `Fulfilled` orders to `Picked up` and updates the allowed-status constraint. Its rollback refuses to proceed while Paid orders exist rather than silently losing that status.
+- Tests: Officer API tests cover order snapshots/filtering, status transitions, cancellation inventory restoration, invalid transitions, unknown IDs and 401/403 access. Web tests cover page-model filtering, status posts, conflicts and API failures. Full suites passed: API 156/156; Web 215/215. PostgreSQL order-status concurrency has not yet been directly tested with competing requests.
+
 ## 2026-11-26 · CAR-98 / CAR-53 CCOS is live on Azure
 
 - CCOS is up on Azure and both `/health` pages say Healthy. The live site is <https://ccos-web-caret26.azurewebsites.net/>.

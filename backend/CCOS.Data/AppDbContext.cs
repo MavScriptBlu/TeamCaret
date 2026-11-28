@@ -109,7 +109,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         {
             entity.ToTable("Orders", table =>
             {
-                table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Fulfilled', 'Canceled')");
+                table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Pending', 'Paid', 'Picked up', 'Canceled')");
                 table.HasCheckConstraint("CK_Orders_TotalAmount", "\"TotalAmount\" >= 0");
             });
 
@@ -117,6 +117,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             entity.Property(order => order.Status).HasMaxLength(20).HasDefaultValue("Pending");
             entity.Property(order => order.OrderDate).HasDefaultValueSql("now()");
             entity.Property(order => order.TotalAmount).HasPrecision(10, 2);
+
+            // PostgreSQL's xmin detects stale officer updates; SQLite uses a normal test token.
+            if (Database.IsNpgsql())
+            {
+                entity.Property(order => order.RowVersion)
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
+            }
+            else
+            {
+                entity.Property(order => order.RowVersion).IsConcurrencyToken();
+            }
 
             // CAR-91: every order belongs to the customer who placed it. Customers are never
             // deleted, so this is Restrict like every other link into history.
